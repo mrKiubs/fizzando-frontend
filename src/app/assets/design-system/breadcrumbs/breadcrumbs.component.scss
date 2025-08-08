@@ -1,0 +1,72 @@
+.breadcrumb-container {
+  font-size: 14px;
+  padding: 0 0 8px 0;
+  display: flex;
+  flex-wrap: no-wrap;
+  align-items: center;
+  font-family: "Inter", sans-serif; // Assicurati che il font sia coerente
+  overflow: hidden;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* Spazio tra icona e testo */
+  white-space: nowrap; /* Evita che il testo vada a capo all'interno di un elemento */
+  line-height: 1;
+
+  &:last-child {
+    overflow: hidden;
+    .breadcrumb-current-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+.breadcrumb-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  color: initial; /* Imposta il colore dell'icona al suo valore iniziale/predefinito per mantenere la vivacità */
+  // L'allineamento verticale è gestito da 'align-items: center' sul genitore
+}
+
+.breadcrumb-text-link {
+  color: white !important; /* Il tuo colore desiderato per i link */
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.breadcrumb-current-text {
+  font-weight: 600;
+  color: #ffffff84; // Colore per il testo dell'ultimo elemento (pagina corrente)
+  cursor: default; // Non è un link, quindi non ha il puntatore
+  text-decoration: none; // Assicurati che non ci sia sottolineatura
+}
+
+.breadcrumb-separator {
+  margin: 0 6px;
+  color: #999;
+}
+
+// Regolazioni responsive
+@media (max-width: 768px) {
+  .breadcrumb-container {
+    padding: 8px 0;
+    font-size: 0.9em;
+  }
+
+  .breadcrumb-item {
+    padding: 3px 0; // Regola il padding se necessario
+    line-height: 1;
+  }
+
+  .breadcrumb-separator {
+    margin: 0 5px;
+    line-height: 1;
+  }
+}

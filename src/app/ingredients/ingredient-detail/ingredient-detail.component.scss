@@ -1,0 +1,349 @@
+.detail-wrapper {
+  max-width: 1200px; /* Mantieni questo per il wrapper generale */
+  margin: 0 auto;
+}
+h2 {
+  margin: 0 0 16px 0;
+}
+/* Base Glass Card Styles */
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  color: #fff;
+  @media (max-width: 600px) {
+    padding: 8px;
+  }
+}
+
+/* Mini Glass Card for AI Details / Related Cocktails */
+.glass-card-mini {
+  background-color: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  backdrop-filter: blur(16px);
+  @media (max-width: 600px) {
+    padding: 8px;
+  }
+}
+
+/* Glass Button Styles */
+.glass-button {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &.primary {
+    background-color: rgba(0, 123, 255, 0.3);
+    color: #fff;
+    &:hover {
+      background-color: rgba(0, 123, 255, 0.5);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  &.secondary {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+  }
+}
+
+/* Loading and Error States */
+.loading-message,
+.error-message {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  color: #fff;
+}
+.error-message {
+  color: #f44336;
+  mat-icon {
+    font-size: 3rem;
+    color: #f44336;
+  }
+}
+
+/* Basic loading icon style (since mat-spinner is removed) */
+.loading-icon {
+  font-size: 3rem;
+  color: #87ceeb;
+  animation: spin 2s linear infinite; /* Simple spin animation */
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Main Ingredient Detail Grid Layout - AGGIORNATO */
+.ingredient-detail-grid {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: 1fr; /* Default: one column for mobile */
+  grid-template-areas:
+    "header"
+    "ai-insights"
+    "related-cocktails" /* Spostato sotto ai-insights */
+    "actions";
+
+  /* Aggiungi max-width a tutte le sezioni principali qui, così da non doverlo ripetere */
+  .main-ingredient-header,
+  .ai-insights-section,
+  .related-cocktails-section {
+    max-width: 1200px; /* Riferimento al max-width del detail-wrapper */
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+}
+
+/* Grid Area Definitions */
+.main-ingredient-header {
+  grid-area: header;
+}
+.ai-insights-section {
+  grid-area: ai-insights;
+}
+.related-cocktails-section {
+  grid-area: related-cocktails;
+}
+.card-actions-bottom {
+  grid-area: actions;
+  text-align: center;
+}
+
+/* Main Ingredient Header Section */
+.main-ingredient-header {
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    text-align: center;
+
+    @media (min-width: 768px) {
+      flex-direction: row;
+      text-align: left;
+    }
+  }
+
+  .ingredient-main-image-wrapper {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(16px);
+  }
+
+  .ingredient-main-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ingredient-subtitle {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+    margin-top: 0.4px;
+    margin-bottom: 16px;
+  }
+
+  .ingredient-description {
+    font-size: 16px;
+    line-height: 22px;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+  }
+}
+
+/* AI Insights Grid and Blocks */
+.ai-blocks-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  @media (max-width: 600px) {
+    gap: 12px;
+  }
+}
+
+.ai-detail-block {
+  .ai-block-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .ai-block-title mat-icon {
+    font-size: 1.4rem;
+    width: 1.4rem;
+    height: 1.4rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 0;
+  }
+}
+
+/* Related Cocktails Section - AGGIORNATO */
+.related-cocktails-section {
+  /* Non servono stili specifici di larghezza qui, la grid-area e il max-width nella griglia principale gestiranno */
+}
+.no-related-cocktails {
+  text-align: center;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 1rem;
+}
+
+.related-cocktail-cards-grid {
+  display: grid;
+  gap: 16px; /* Spazio tra le card */
+  grid-template-columns: 1fr; /* Mobile: 1 colonna */
+}
+
+/* Responsive Grid Layouts - AGGIORNATO per Full Width e 4 colonne */
+@media (min-width: 600px) {
+  .related-cocktail-cards-grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 colonne */
+  }
+}
+
+@media (min-width: 900px) {
+  .related-cocktail-cards-grid {
+    grid-template-columns: repeat(3, 1fr); /* 3 colonne */
+  }
+}
+
+@media (min-width: 1200px) {
+  .related-cocktail-cards-grid {
+    grid-template-columns: repeat(4, 1fr); /* 4 colonne */
+  }
+}
+
+/* Media query generale per layout principale, mantiene 1 colonna dopo 768px */
+@media (min-width: 768px) {
+  .ingredient-detail-grid {
+    grid-template-columns: 1fr; /* Una colonna singola per tutti i contenuti */
+    grid-template-areas:
+      "header"
+      "ai-insights"
+      "related-cocktails"
+      "actions";
+  }
+
+  .main-ingredient-header .header-content {
+    flex-direction: row;
+    text-align: left;
+  }
+}
+
+/* Rimuovi la @media (min-width: 1024px) precedente se non serve più */
+/* L'ho già rimossa nel mio esempio precedente, ma se ce l'hai ancora, toglila */
+// @media (min-width: 1024px) { ... }
+/* Aggiungi questi stili in ingredient-detail.component.scss */
+
+/* Barre di Navigazione in Alto e Basso */
+.navigation-bar {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-bottom: 32px;
+
+  .nav-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 32px;
+
+    a {
+      .ingredient-image-wrapper-nav {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
+        flex-shrink: 0;
+        background-color: rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+    }
+  }
+
+  .nav-bottom {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+/* Il resto del tuo CSS esistente rimane invariato */
+/* ... */

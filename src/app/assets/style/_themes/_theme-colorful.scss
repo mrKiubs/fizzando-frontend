@@ -1,0 +1,55 @@
+// app/assets/style/_themes/_theme-colorful.scss
+
+// Importa le variabili SCSS generali per accedere ai valori base dei colori
+@use "../variables" as vars;
+@use "sass:color"; // Importa il modulo color per color.adjust
+
+.theme-colorful {
+  // Colori principali
+  --primary-color: #6c5ce7; // Viola vibrante
+  --secondary-color: #00cec9; // Ciano brillante
+  --text-color: #333333; // Testo scuro per sfondi chiari/vetro
+  --background-color: linear-gradient(
+    135deg,
+    #1a2a6c,
+    #b21f1f,
+    #fdab2d
+  ); // Sfondo base app (esempio del tuo)
+  --surface-color: #ffffff; // Superfici chiare
+
+  // Colori specifici per l'effetto Liquid Glass (su sfondo colorato/complesso) - Più visibili
+  --glass-bg-color: rgba(
+    vars.$color-white-base,
+    0.4
+  ); // Leggero vetro più opaco (40%)
+  --glass-border-color: rgba(
+    vars.$color-white-base,
+    0.6
+  ); // Bordo più visibile (60%)
+  --glass-shadow-color: rgba(
+    vars.$color-black-base,
+    0.25
+  ); // Ombra più presente (25%)
+  --glass-reflection-start-color: rgba(
+    vars.$color-white-base,
+    0.2
+  ); // Riflesso più evidente (20%)
+  --glass-glow-color: rgba(vars.$color-white-base, 0.6); // Bagliore bianco
+
+  // CUSTOM PROPERTIES PER GLI STATI HOVER (valori più intensi)
+  --glass-bg-hover-color: rgba(
+    vars.$color-white-base,
+    0.6
+  ); // Ancora più opaco all'hover (60%)
+  --glass-border-hover-color: rgba(
+    vars.$color-white-base,
+    0.75
+  ); // Bordo più marcato all'hover (75%)
+  --glass-shadow-hover-color: rgba(
+    vars.$color-black-base,
+    0.35
+  ); // Ombra più scura all'hover (35%)
+
+  // Testo sui vetri
+  --glass-text-color: vars.$color-text-light;
+}

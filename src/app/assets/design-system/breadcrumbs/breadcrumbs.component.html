@@ -1,0 +1,28 @@
+<nav class="breadcrumb-container" *ngIf="breadcrumbs$ | async as breadcrumbs">
+  <ng-container *ngFor="let bc of breadcrumbs; let last = last">
+    <span class="breadcrumb-item">
+      <!-- Visualizza l'icona se presente -->
+      <span *ngIf="bc.displayIcon" class="breadcrumb-icon">{{
+        bc.displayIcon
+      }}</span>
+
+      <!-- La parte testuale, cliccabile se non è l'ultimo elemento -->
+      <ng-container *ngIf="!last; else currentText">
+        <a
+          [routerLink]="bc.url"
+          class="breadcrumb-text-link"
+          (click)="onLinkClicked(); $event.stopPropagation()"
+        >
+          {{ bc.displayText }}
+        </a>
+      </ng-container>
+      <!-- La parte testuale, non cliccabile se è l'ultimo elemento -->
+      <ng-template #currentText>
+        <span class="breadcrumb-current-text">
+          {{ bc.displayText }}
+        </span>
+      </ng-template>
+    </span>
+    <span class="breadcrumb-separator" *ngIf="!last">›</span>
+  </ng-container>
+</nav>

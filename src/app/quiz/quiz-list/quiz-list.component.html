@@ -1,0 +1,248 @@
+<div class="page-header-container">
+  <h1>Quiz Center</h1>
+  <h2 class="page-secondary-title">
+    Your Challenge in the World of Cocktails!
+  </h2>
+  <p class="page-subtitle">
+    Dive into the fascinating universe of mixology with our quizzes dedicated to
+    the most iconic and intriguing cocktails!<br />Each challenge consists of
+    <b>5 questions and a total of 7 correct answers to uncover</b>, testing your
+    knowledge of history, ingredients, and techniques.<br />Are you just an
+    enthusiast or a seasoned expert? Prove your skill, and only after achieving
+    the maximum score in all quizzes can you finally claim the title of Cocktail
+    Wizard and master the art of mixed drinks!<br />Get ready to blend knowledge
+    and fun!.
+  </p>
+</div>
+
+<div class="search-bar-container">
+  <div class="custom-search-input-wrapper">
+    <input
+      type="text"
+      class="custom-search-input"
+      placeholder="Search quizzes..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearchTermChange()"
+    />
+    <mat-icon
+      class="clear-search-icon"
+      *ngIf="searchTerm"
+      (click)="clearFilters(); searchTerm = ''"
+      svgIcon="close"
+    ></mat-icon>
+    <mat-icon class="search-icon" svgIcon="search"></mat-icon>
+  </div>
+</div>
+
+<div class="filters-accordion" [class.expanded]="isExpanded">
+  <div class="accordion-header" (click)="toggleExpansion()">
+    <h3 class="accordion-title">
+      <mat-icon class="accordion-icon" svgIcon="filter_list"></mat-icon>
+      Filters
+    </h3>
+    <span class="active-filters-summary" *ngIf="!isExpanded">
+      ({{ getActiveFiltersText() }})
+    </span>
+  </div>
+
+  <div
+    class="accordion-content"
+    [@accordionAnimation]="isExpanded ? 'open' : 'closed'"
+  >
+    <div class="accordion-content-wrapper">
+      <!-- Filtro Categoria -->
+      <div class="filter-group">
+        <label for="category-select" class="filter-label">Category</label>
+        <div class="custom-select-wrapper">
+          <select
+            id="category-select"
+            class="custom-select"
+            [(ngModel)]="selectedCategory"
+            (change)="applyFilters()"
+            (click)="$event.stopPropagation()"
+          >
+            <option value="">All Categories</option>
+            <option
+              *ngFor="let category of categories$ | async"
+              [value]="category"
+            >
+              {{ category }}
+            </option>
+          </select>
+          <mat-icon
+            class="select-arrow-icon"
+            svgIcon="arrow_drop_down"
+          ></mat-icon>
+        </div>
+      </div>
+
+      <div class="filter-group filter-button-row">
+        <button class="glass-button secondary" (click)="clearFilters()">
+          <mat-icon svgIcon="clear_all"></mat-icon>
+          Clear Filters
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr />
+
+<div *ngIf="loading" class="loading-message">Loading quizzes...</div>
+<div *ngIf="error" class="error-message">{{ error }}</div>
+
+<div class="quiz-grid-container" *ngIf="!error && quizzes.length > 0">
+  <div class="quiz-card" *ngFor="let quiz of quizzes; trackBy: trackByQuizId">
+    <!-- MODIFICA QUI: usa quiz.slug -->
+    <a [routerLink]="['/quiz', quiz.slug]" class="quiz-card-link">
+      <div>
+        <h3 class="quiz-title">{{ quiz.title }}</h3>
+        <p class="quiz-description">{{ quiz.description }}</p>
+      </div>
+
+      <div class="quiz-meta">
+        <span class="category-value">{{ quiz.category }}</span
+        ><br />
+        <span class="info">5 Questions | 7 Correct Answers</span>
+      </div>
+    </a>
+  </div>
+</div>
+<div
+  *ngIf="!loading && !error && quizzes.length === 0"
+  class="no-results-message"
+>
+  No quizzes found with the selected filters.
+</div>
+
+<div class="load-more-container">
+  <div class="term-count-summary" *ngIf="!loading && totalItems > 0">
+    Showing {{ quizzes.length }} of {{ totalItems }} quizzes.
+  </div>
+
+  <button
+    class="glass-button primary"
+    (click)="loadMore()"
+    *ngIf="quizzes.length < totalItems && !loading"
+  >
+    Load more ({{ totalItems - quizzes.length }}
+    remaining)
+  </button>
+</div>
+
+<div class="key-features-section">
+  <h3>Why Take Our Cocktail Quizzes?</h3>
+  <div class="feature-item">
+    <span class="feature-icon">❓</span>
+    <p>
+      <b>Test Your Knowledge:</b> Challenge yourself on various aspects of
+      cocktail making and history.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">💡</span>
+    <p>
+      <b>Learn New Facts:</b> Discover fascinating trivia and deepen your
+      understanding of mixology with every question.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">📈</span>
+    <p>
+      <b>Improve Your Skills:</b> Identify areas for improvement and become a
+      more knowledgeable bartender or enthusiast.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">🏆</span>
+    <p>
+      <b>Become a Mixology Master:</b> Track your progress and work towards
+      mastering the art and science of cocktails.
+    </p>
+  </div>
+</div>
+
+<div class="faq-section">
+  <h2>Frequently Asked Questions about Cocktail Quizzes</h2>
+
+  <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[0])">
+      What types of quizzes are available?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[0].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[0].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        We offer a range of quizzes covering cocktail <b>recipes</b>,
+        <b>history</b>, <b>ingredients</b>, and advanced
+        <b>mixology techniques</b>. New quizzes are added regularly!
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[1])">
+      How do I take a quiz?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[1].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[1].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        Simply click on any <b>quiz card</b> to start! You'll be presented with
+        <b>questions</b>, and your <b>score</b> will be displayed at the end.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[2])">
+      Can I track my progress?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[2].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[2].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        Currently, quiz progress is <b>not saved</b>. However, you can
+        <b>retake quizzes</b> as many times as you like to improve your score.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[3])">
+      Are there different difficulty levels?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[3].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[3].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        Yes, each quiz is tagged with a <b>difficulty level</b> (Easy, Medium,
+        Hard) to help you choose the right challenge.
+      </p>
+    </div>
+  </div>
+</div>

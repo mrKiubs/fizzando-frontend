@@ -1,0 +1,4 @@
+export const env = {
+  production: false,
+  apiUrl: 'http://192.168.1.241:1337', // CAMBIA QUI!
+};

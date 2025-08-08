@@ -1,0 +1,111 @@
+// app/assets/style/_variables.scss
+
+// ********************************************
+// DEFINIZIONI DI VARIABILI SCSS (devono essere all'inizio)
+// ********************************************
+$color-white-base: #fff;
+$color-black-base: #000000;
+
+// Colori Base della palette (valori SCSS da usare in altri file Sass o come fallback)
+$color-primary: #6c5ce7; // Un viola vibrante
+$color-secondary: #00cec9; // Un ciano brillante
+$color-text-dark: #333333;
+$color-text-light: #f5f5f5;
+
+// Valori di sfocatura (blur)
+$blur-sm: 5px;
+$blur-md: 10px;
+$blur-lg: 20px;
+
+// Valori di arrotondamento dei bordi
+$border-radius-sm: 8px;
+$border-radius-md: 16px;
+$border-radius-lg: 24px;
+$border-radius-circle: 50%;
+
+// Durate delle transizioni per animazioni fluide
+$transition-duration-sm: 0.2s;
+$transition-duration-md: 0.4s;
+$transition-duration-lg: 0.6s;
+
+// Funzioni di easing per transizioni "liquide"
+$ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94); // Standard ease-out
+$ease-out-quint: cubic-bezier(
+  0.23,
+  1,
+  0.32,
+  1
+); // Più pronunciato, "molleggiato"
+$ease-in-out-sine: cubic-bezier(0.445, 0.05, 0.55, 0.95);
+
+// Spaziature (padding, margin)
+$spacing-xxs: 4px;
+$spacing-xs: 8px;
+$spacing-sm: 12px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// Altri valori generici
+$font-family-primary: "Inter", sans-serif;
+$font-family-secondary: "Arial", sans-serif; // Esempio
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// ********************************************
+// DICHIARAZIONE DELLE CSS CUSTOM PROPERTIES (:root block)
+// ********************************************
+// Queste variabili CSS usano i valori definiti sopra come fallback o default.
+// I loro valori verranno sovrascritti dai temi specifici.
+:root {
+  // Colori di base del tema
+  --primary-color: #{$color-primary};
+  --secondary-color: #{$color-secondary};
+  --text-color: #{$color-text-dark}; // Colore testo principale
+  --background-color: #f0f2f5; // Sfondo principale dell'app
+  --surface-color: #ffffff; // Sfondo elementi come card, menu
+
+  // Colori specifici per l'effetto Liquid Glass (DEFAULT / FALLBACK)
+  // Aumentato l'opacità significativamente per la visibilità di base
+  --glass-bg-color: rgba(255, 255, 255, 0.4); // Base più opaca (40%)
+  --glass-border-color: rgba(255, 255, 255, 0.6); // Bordo più visibile (60%)
+  --glass-shadow-color: rgba(0, 0, 0, 0.2); // Ombra più presente (20%)
+  --glass-reflection-start-color: rgba(
+    255,
+    255,
+    255,
+    0.2
+  ); // Riflesso più visibile (20%)
+  --glass-glow-color: rgba(255, 255, 255, 0.5); // Colore per bagliori leggeri
+
+  // NUOVE CUSTOM PROPERTIES PER GLI STATI HOVER DEL VETRO
+  --glass-bg-hover-color: rgba(
+    255,
+    255,
+    255,
+    0.6
+  ); // Ancora più opaco all'hover (60%)
+  --glass-border-hover-color: rgba(
+    255,
+    255,
+    255,
+    0.75
+  ); // Bordo più marcato all'hover (75%)
+  --glass-shadow-hover-color: rgba(
+    0,
+    0,
+    0,
+    0.35
+  ); // Ombra più scura all'hover (35%)
+
+  // Testo sui vetri
+  --glass-text-color: #{$color-text-light};
+
+  // Variabili per spaziature e font-family (copiano le variabili SCSS)
+  --spacing-lg: #{$spacing-lg};
+  --font-family-primary: #{$font-family-primary};
+  --transition-duration-md: #{$transition-duration-md};
+  --ease-in-out-sine: #{$ease-in-out-sine};
+}

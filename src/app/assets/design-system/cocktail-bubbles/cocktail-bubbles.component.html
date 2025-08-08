@@ -1,0 +1,12 @@
+<div class="bubbles-container">
+  <div
+    *ngFor="let bubble of bubbles"
+    class="bubble"
+    [style.left.px]="bubble.left"
+    [style.width.px]="bubble.size"
+    [style.height.px]="bubble.size"
+    [style.--bubble-duration.s]="bubble.duration"
+    [style.--bubble-delay.s]="bubble.delay"
+    [style.--spiral-amplitude.px]="bubble.spiralAmplitude"
+  ></div>
+</div>

@@ -1,0 +1,394 @@
+<!-- src/app/cocktails/ingredient-search-cocktail-list/ingredient-search-cocktail-list.component.html -->
+<div class="page-header-container">
+  <h1>Find Your Cocktail</h1>
+  <h2>Discover What You Can Mix with the Ingredients You Have</h2>
+  <p class="page-subtitle">
+    Ever wondered what delicious cocktails you can create with the spirits,
+    mixers, and garnishes already in your home bar? Our
+    <b>"Find Your Cocktail" tool</b> makes it simple! Select the ingredients you
+    have on hand, and we'll instantly show you both
+    <b>perfect matches</b> (cocktails using only your selected items) and
+    <b>partial matches</b> (recipes that include your ingredients, but might
+    require a few more).
+  </p>
+</div>
+
+<div class="search-bar-container">
+  <div class="custom-search-input-wrapper ingredient-search-wrapper">
+    <input
+      type="text"
+      class="custom-search-input"
+      placeholder="Search and add ingredients..."
+      [(ngModel)]="ingredientSearchTerm"
+      (input)="onIngredientSearchTermChange()"
+    />
+    <mat-icon
+      class="clear-search-icon"
+      *ngIf="ingredientSearchTerm"
+      (click)="ingredientSearchTerm = ''; onIngredientSearchTermChange()"
+      svgIcon="close"
+    ></mat-icon>
+    <mat-icon class="search-icon" svgIcon="search"></mat-icon>
+  </div>
+
+  <div class="selected-ingredients-container">
+    <span
+      *ngIf="selectedIngredientIds.length === 0"
+      class="no-selection-message"
+      >No ingredients selected yet.</span
+    >
+    <div class="filter-item">
+      <div
+        *ngFor="let id of selectedIngredientIds"
+        class="ingredient-chip glass-card-mini"
+      >
+        <img
+          class="ingredient-img"
+          [src]="getIngredientImageUrlById(id)"
+          alt="{{ getIngredientNameById(id) }}"
+        />
+        {{ getIngredientNameById(id) }}
+        <mat-icon
+          class="chip-remove-icon"
+          (click)="toggleIngredientSelection(id)"
+          svgIcon="close"
+        ></mat-icon>
+      </div>
+    </div>
+
+    <button
+      *ngIf="selectedIngredientIds.length > 0"
+      class="glass-button secondary clear-all-button"
+      (click)="clearSelectedIngredients()"
+    >
+      <mat-icon svgIcon="clear_all"></mat-icon> Clear All
+    </button>
+  </div>
+
+  <div
+    class="ingredient-suggestions glass-card"
+    *ngIf="ingredientSearchTerm && filteredIngredients.length > 0"
+  >
+    <div *ngIf="loadingIngredients" class="loading-inline">
+      Loading ingredients...
+    </div>
+    <ul class="suggestion-list">
+      <li
+        *ngFor="
+          let ingredient of filteredIngredients;
+          trackBy: trackByIngredientId
+        "
+      >
+        <label class="suggestion-item">
+          <input
+            type="checkbox"
+            [checked]="selectedIngredientIds.includes(ingredient.external_id)"
+            (change)="toggleIngredientSelection(ingredient.external_id)"
+          />
+          {{ ingredient.name }}
+        </label>
+      </li>
+    </ul>
+    <p
+      *ngIf="filteredIngredients.length === 0 && !loadingIngredients"
+      class="no-suggestions-message"
+    >
+      No matching ingredients.
+    </p>
+  </div>
+</div>
+
+<hr />
+
+<div *ngIf="loadingCocktails" class="loading-message">Loading cocktails...</div>
+<div *ngIf="error" class="error-message">{{ error }}</div>
+
+<ng-container
+  *ngIf="!loadingCocktails && !error && selectedIngredientIds.length > 0"
+>
+  <section
+    class="cocktail-results-section glass-card"
+    *ngIf="perfectMatchCocktails.length > 0"
+  >
+    <h2 class="section-title">
+      Cocktails You Can Make Right Now
+      <mat-icon svgIcon="check_circle"></mat-icon>
+    </h2>
+    <p class="section-description">
+      These cocktails use <b>*only*</b> the ingredients you've selected. You
+      have everything you need!
+    </p>
+    <div class="cocktail-list">
+      <app-cocktail-card
+        *ngFor="
+          let cocktail of perfectMatchCocktails;
+          trackBy: trackByCocktailId
+        "
+        [cocktail]="cocktail"
+        [routerLink]="['/cocktails', cocktail.slug]"
+        [totalSelectedIngredientsCount]="selectedIngredientIds.length"
+      ></app-cocktail-card>
+    </div>
+  </section>
+
+  <div
+    *ngIf="
+      perfectMatchCocktails.length === 0 && selectedIngredientIds.length > 0
+    "
+    class="no-results-message glass-card"
+  >
+    <mat-icon svgIcon="info"></mat-icon>
+    <p>
+      We couldn't find any cocktails you can make with <b>*only*</b> your
+      selected ingredients.
+    </p>
+    <p *ngIf="partialMatchCocktails.length > 0">
+      But don't worry, check out the section below for cocktails that use some
+      of them!
+    </p>
+    <p *ngIf="partialMatchCocktails.length === 0">
+      Try adding more ingredients to find perfect matches, or explore popular
+      recipes.
+    </p>
+  </div>
+
+  <section
+    class="cocktail-results-section glass-card"
+    *ngIf="partialMatchCocktails.length > 0"
+  >
+    <h2 class="section-title">
+      Other Cocktails Using Your Ingredients
+      <mat-icon svgIcon="add_circle_outline"></mat-icon>
+    </h2>
+    <p class="section-description">
+      These cocktails include your selected ingredients, but might require
+      additional ones. <b>Great for inspiration!</b>
+    </p>
+    <div class="cocktail-list">
+      <app-cocktail-card
+        *ngFor="
+          let cocktail of partialMatchCocktails;
+          trackBy: trackByCocktailId
+        "
+        [cocktail]="cocktail"
+        [routerLink]="['/cocktails', cocktail.slug]"
+        [totalSelectedIngredientsCount]="selectedIngredientIds.length"
+      ></app-cocktail-card>
+    </div>
+  </section>
+
+  <div
+    *ngIf="
+      perfectMatchCocktails.length === 0 && partialMatchCocktails.length === 0
+    "
+    class="no-results-message glass-card"
+  >
+    <mat-icon svgIcon="search_off"></mat-icon>
+    <p>No cocktails found for your selected ingredients.</p>
+    <p>Try adding more ingredients, or explore popular recipes!</p>
+  </div>
+</ng-container>
+
+<div
+  *ngIf="!loadingCocktails && !error && selectedIngredientIds.length === 0"
+  class="no-results-message glass-card initial-message"
+>
+  <mat-icon svgIcon="menu_book"></mat-icon>
+  <p><b>Select ingredients above to find cocktails!</b></p>
+  <p>Start by typing in the search box or selecting from the suggestions.</p>
+</div>
+
+<div class="key-features-section">
+  <h3>Why Use Our "Find Your Cocktail" Tool?</h3>
+  <div class="feature-item">
+    <span class="feature-icon">🏠🍹</span>
+    <p>
+      <b>Maximize Your Home Bar:</b> Stop guessing! See exactly what you can
+      make with your existing ingredients, reducing waste and inspiring
+      creativity.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">✅</span>
+    <p>
+      <b>Perfect Matches:</b> Get specific recipes that require
+      <b>*only*</b> the ingredients you've selected – ideal for quick mixes
+      without extra shopping.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">💡</span>
+    <p>
+      <b>Unlock New Possibilities:</b> Explore partial matches to discover
+      cocktails that are just one or two ingredients away, expanding your
+      repertoire effortlessly.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">⏱️</span>
+    <p>
+      <b>Save Time & Effort:</b> No more endless scrolling through recipes. Our
+      smart search delivers relevant results based on what you have.
+    </p>
+  </div>
+</div>
+
+<div class="faq-section">
+  <h2>Frequently Asked Questions about Ingredient Search</h2>
+
+  <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[0])">
+      How does the "Find Your Cocktail" tool work?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[0].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@faqAccordionAnimation]="faqs[0].isExpanded ? 'expanded' : 'collapsed'"
+    >
+      <p class="faq-answer">
+        Simply type the name of the ingredients you have into the search bar. As
+        you select ingredients, the tool will automatically search for cocktails
+        you can make. It provides two lists: <b>"Perfect Matches"</b> (cocktails
+        using only your selected ingredients) and
+        <b>"Other Cocktails Using Your Ingredients"</b> (recipes that use some
+        of your ingredients but might require others).
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[1])">
+      What if I only have a few ingredients?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[1].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@faqAccordionAnimation]="faqs[1].isExpanded ? 'expanded' : 'collapsed'"
+    >
+      <p class="faq-answer">
+        No problem! The tool is designed to work whether you have a fully
+        stocked bar or just a few basic items. If you only have a few, you'll
+        likely see more results in the <b>"Other Cocktails"</b> section, giving
+        you inspiration for future purchases.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[2])">
+      Can I select multiple ingredients?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[2].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@faqAccordionAnimation]="faqs[2].isExpanded ? 'expanded' : 'collapsed'"
+    >
+      <p class="faq-answer">
+        Yes, you can select as many ingredients as you like! The more
+        ingredients you add, the more precise and varied your cocktail results
+        will be.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[3])">
+      How do I remove an ingredient I've selected?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[3].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@faqAccordionAnimation]="faqs[3].isExpanded ? 'expanded' : 'collapsed'"
+    >
+      <p class="faq-answer">
+        You can remove a selected ingredient by clicking the <b>"x" icon</b> on
+        its chip, or by unchecking the checkbox next to its name in the
+        suggestion list.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[4])">
+      Why do some cocktails appear in "Other Cocktails" if I have all the
+      ingredients?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[4].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@faqAccordionAnimation]="faqs[4].isExpanded ? 'expanded' : 'collapsed'"
+    >
+      <p class="faq-answer">
+        The <b>"Perfect Matches"</b> section strictly shows cocktails that
+        <b>*only*</b> require the ingredients you've selected.
+        <b>"Other Cocktails"</b> includes recipes where your selected
+        ingredients are <b>*part*</b> of the recipe, but it may also list
+        additional ingredients you don't have. This is to give you more options
+        and inspiration!
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[5].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[5])">
+      Where can I find information about individual cocktail ingredients?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[5].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@faqAccordionAnimation]="faqs[5].isExpanded ? 'expanded' : 'collapsed'"
+    >
+      <p class="faq-answer">
+        To deepen your knowledge of ingredients, visit our
+        <b>"Ingredients"</b> section. There you will find details on every
+        single component of your favorite drinks. (The link to this section is
+        in the navigation bar).
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[6].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[6])">
+      Is there a glossary for cocktail technical terms?
+      <mat-icon
+        class="faq-toggle-icon"
+        [class.rotated]="faqs[6].isExpanded"
+        svgIcon="arrow_drop_down"
+      ></mat-icon>
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@faqAccordionAnimation]="faqs[6].isExpanded ? 'expanded' : 'collapsed'"
+    >
+      <p class="faq-answer">
+        Yes! To understand all the terms and techniques of the cocktail world,
+        we invite you to consult our <b>"Glossary"</b> section. (The link to
+        this section is in the navigation bar).
+      </p>
+    </div>
+  </div>
+</div>

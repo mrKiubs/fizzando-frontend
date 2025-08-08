@@ -1,0 +1,87 @@
+<!-- src/app/cocktails/cocktail-card/cocktail-card.component.html -->
+<a
+  [routerLink]="['/cocktails', cocktail.slug]"
+  class="cocktail-card-link-wrapper"
+  [@cardAnimation]
+>
+  <div class="cocktail-card">
+    <div class="glassy-image-container">
+      <img
+        [src]="getCocktailCardImageUrl(cocktail.image)"
+        [alt]="cocktail.name"
+        [attr.width]="250"
+        [attr.height]="250"
+        class="cocktail-card-image"
+        loading="lazy"
+        [attr.srcset]="getCocktailCardImageSrcset(cocktail.image)"
+        [attr.sizes]="'(max-width: 768px) 76px, ' + '238px'"
+      />
+      <!-- image-overlay rimosso completamente -->
+      <span
+        class="matched-ingredients-badge"
+        [ngClass]="{
+          'perfect-match-badge':
+            cocktail.matchedIngredientCount === cocktail.ingredients_list.length
+        }"
+        *ngIf="matchedIngredientsBadgeText"
+      >
+        <span class="desktop">{{ matchedIngredientsBadgeText.desktop }}</span>
+        <span
+          class="mobile"
+          [innerHTML]="matchedIngredientsBadgeText.mobile"
+        ></span>
+      </span>
+    </div>
+    <div class="glassy-content-container">
+      <div class="glassy-info">
+        <h3 class="cocktail-card-title">{{ cocktail.name }}</h3>
+
+        <div class="cocktail-chips-container">
+          <span class="cocktail-chip category-chip">{{
+            cocktail.category
+          }}</span>
+          <span class="cocktail-chip abv-chip"
+            >ABV: {{ cocktail.ai_alcohol_content }}</span
+          >
+        </div>
+
+        <div
+          class="cocktail-key-info"
+          *ngIf="mainIngredientsFormatted.length > 0"
+        >
+          <p class="info-label">Key Ingredients:</p>
+          <div class="ingredients-list">
+            <span
+              class="ingredient-item"
+              *ngFor="let ingredient of mainIngredientsFormatted"
+            >
+              {{ ingredient }}
+            </span>
+            <span
+              class="ingredient-item-more"
+              *ngIf="
+                cocktail.ingredients_list &&
+                cocktail.ingredients_list.length > 3
+              "
+              >...</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="cocktail-extra-info">
+        <div class="info-item" *ngIf="cocktail.glass">
+          <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
+          <span>{{ cocktail.glass }}</span>
+        </div>
+
+        <div class="info-item">
+          <span class="icon">{{
+            getPreparationIcon(cocktail.preparation_type)
+          }}</span>
+          <span>{{ cocktail.preparation_type }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</a>

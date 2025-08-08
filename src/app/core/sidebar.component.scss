@@ -1,0 +1,23 @@
+@use "../assets/style/mixins" as m;
+
+.category-link-container {
+  ul {
+    li {
+      margin-bottom: 8px;
+      &:last-child {
+        margin-bottom: 0px;
+      }
+      a {
+        @include m.glass-card;
+        width: 100%;
+        display: block;
+
+        color: white;
+        font-weight: 100;
+        font-size: 14px;
+        text-transform: uppercase;
+        padding: 8px;
+      }
+    }
+  }
+}

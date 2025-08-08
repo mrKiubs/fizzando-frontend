@@ -1,0 +1,673 @@
+/* src/app/core/navbar.component.scss */
+
+.app-header {
+  color: #fff;
+  padding: 10px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  background-image: linear-gradient(
+    120deg,
+    rgba(210, 252, 195, 0.0823529412) 0%,
+    rgba(157, 142, 252, 0.062745098) 100%
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo-container {
+  flex-shrink: 0;
+}
+
+.logo-link {
+  text-decoration: none;
+  color: #fff;
+}
+
+.logo-text {
+  font-size: 32px;
+  line-height: 32px;
+}
+
+.menu-toggle-button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  margin-left: auto;
+  mat-icon {
+    font-size: 28px;
+    height: 28px;
+    width: 28px;
+  }
+}
+
+.full-screen-menu-overlay {
+  position: fixed;
+  top: 65px; /* Inizia sotto l'header fisso */
+  left: 0;
+  width: 100%;
+  height: calc(100dvh - 65px); /* MODIFICA QUI: da 100vh a 100dvh */
+  z-index: 1000; /* Z-index inferiore all'header ma superiore al contenuto della pagina */
+  box-sizing: border-box;
+  padding: 16px; /* Padding generale per l'overlay */
+
+  /* Stili e animazione per lo sfondo */
+  background-image: linear-gradient(
+    120deg,
+    rgba(210, 252, 195, 0.0823529412) 0%,
+    rgba(157, 142, 252, 0.062745098) 100%
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  opacity: 0;
+  visibility: hidden;
+  /* Transizione solo per opacità e visibilità per lo sfondo */
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+
+  display: flex; /* Per centrare il contenuto */
+  justify-content: center;
+  align-items: center;
+}
+
+.full-screen-menu-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.overlay-content {
+  max-width: 768px;
+  width: 100%;
+  max-height: 100%; /* Lascia max-height: 100% qui */
+  overflow-y: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  transform: scale(0.95);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  /* NUOVO: Sfondo più trasparente per il contenuto */
+  background-color: rgba(0, 0, 0, 0.4); /* Nero con opacità 40% */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Quando l'overlay è aperto, applica lo stato finale al contenuto */
+.full-screen-menu-overlay.open .overlay-content {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 15px;
+
+  position: sticky;
+  top: 0;
+  /* NUOVO: Sfondo più trasparente per l'header del contenuto */
+  background-color: rgba(0, 0, 0, 0.4); /* Nero con opacità 40% */
+  backdrop-filter: blur(8px); /* Applica anche qui il blur per coerenza */
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10; /* Assicura che sia sopra il contenuto che scorre */
+  padding-top: 0;
+}
+
+.overlay-title {
+  margin: 0;
+  font-size: 2.2em;
+  color: #ffffff; /* Mantenuto bianco puro per migliore contrasto */
+  font-weight: bold;
+}
+
+.close-overlay-button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 36px;
+  cursor: pointer;
+  mat-icon {
+    font-size: 36px;
+    height: 36px;
+    width: 36px;
+  }
+  &:hover {
+    color: #ffd700; /* Mantenuto l'hover giallo se desiderato */
+  }
+}
+
+.overlay-search-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  position: relative;
+}
+
+.overlay-search-input {
+  color: white;
+  flex-grow: 1;
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+  }
+
+  &:focus {
+    border: none;
+    background-color: rgb(255 255 255 / 90%); /* Sfondo bianco */
+    color: #555; /* Testo scuro */
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  /* NUOVA REGOLA: Mantieni lo stile "bianco" quando c'è un valore */
+  &.has-value {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgb(255 255 255 / 90%);
+    color: #555;
+
+    &::placeholder {
+      color: #555;
+    }
+  }
+}
+
+/* Assicurati che il placeholder si adatti quando l'input è bianco */
+.overlay-search-input.has-value::placeholder {
+  color: rgba(0, 0, 0, 0.4); /* Placeholder più scuro su sfondo bianco */
+}
+
+/* NUOVI STILI PER LA RICERCA LIVE */
+.live-search-results {
+  position: absolute;
+  top: 110px;
+  left: 0;
+  width: calc(100% - 32px);
+  z-index: 1001;
+  background-color: rgb(255 255 255 / 90%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  max-height: 300px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  margin: 0 16px;
+
+  .loading-message,
+  .no-results-message {
+    text-align: center;
+    padding: 10px;
+    font-style: italic;
+    color: #555;
+  }
+
+  .results-group {
+    /* IMPORTANTE: per position: sticky, l'elemento padre (results-group)
+     non deve avere overflow: hidden o overflow: auto se non è lui l'elemento scrollabile principale,
+     altrimenti l'effetto sticky non funzionerà correttamente all'interno del suo contesto di scorrimento.
+     Nel tuo caso, l'overflow è probabilmente sul <body> o su un contenitore più esterno. */
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .group-title {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: #f9f9f9d3;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      margin-bottom: 8px;
+      font-size: 1.2em;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 16px 16px 8px 16px;
+      box-shadow: 1px 1px 8px #00000026;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0 12px;
+      margin: 0;
+
+      li {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 8px 0;
+
+        a {
+          color: #555;
+          text-decoration: none;
+          font-size: 16px;
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          &:hover {
+            color: #555;
+            text-decoration: underline;
+          }
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+  }
+}
+
+/* FINE NUOVI STILI PER LA RICERCA LIVE */
+
+.search-type-selector {
+  display: flex;
+  gap: 10px;
+  label {
+    display: flex;
+    align-items: center;
+    color: #fff;
+    font-size: 0.95em;
+    cursor: pointer;
+    input[type="radio"] {
+      margin-right: 5px;
+      accent-color: #ffd700;
+    }
+  }
+}
+
+.overlay-search-button {
+  background-color: #ffd700;
+  color: #333;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1.1em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  &:hover {
+    background-color: darken(#ffd700, 10%);
+    transform: translateY(-2px);
+  }
+  mat-icon {
+    font-size: 24px;
+    height: 24px;
+    width: 24px;
+  }
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin-top: 32px;
+}
+
+.menu-card {
+  /* NUOVO: Sfondo più trasparente per migliore contrasto del testo */
+  background-color: #00000025;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px; /* Uniformato a 12px */
+  padding: 16px; /* Uniformato a 16px */
+
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Mantenuto lo stesso shadow */
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    /* Mantenuto l'hover come era nel tuo codice fornito */
+  }
+
+  h3 {
+    color: #ffffff; /* Mantenuto bianco puro per migliore contrasto */
+    font-size: 1.6em;
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+  }
+
+  h4 {
+    color: #d0d0d07f; /* Mantenuto grigio chiaro per migliore contrasto */
+    font-size: 16px;
+    margin-top: 16px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    li {
+      border-bottom: px solid #ccc;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 8px 0;
+    }
+    a {
+      color: #d0d0d0; /* Mantenuto grigio chiaro per migliore leggibilità */
+      text-decoration: none;
+      font-size: 1em;
+      &:hover {
+        color: #ffd700; /* Mantenuto l'hover giallo se desiderato */
+      }
+    }
+  }
+
+  .category-list,
+  .category-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+    a {
+      background-color: #444;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-size: 0.9em;
+      transition: background-color 0.2s ease;
+      font-size: 13px;
+      &:hover {
+        background-color: #555;
+        color: #ffd700;
+      }
+    }
+  }
+}
+
+.home-card {
+  //grid-column: span 1;
+}
+.cocktails-card {
+  //grid-column: span 2;
+}
+
+.articles-card {
+  .category-grid {
+    /* Modificato per avere 3 colonne fisse su desktop */
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .menu-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  .cocktails-card,
+  .articles-card,
+  .home-card,
+  .my-recipes-card,
+  .saved-card {
+    grid-column: span 1 !important;
+  }
+  .overlay-content {
+    padding: 25px;
+  }
+  .overlay-title {
+    font-size: 2em;
+  }
+  .overlay-search-input {
+    font-size: 1em;
+    padding: 10px 18px;
+  }
+  .overlay-search-button {
+    font-size: 1em;
+    padding: 8px 18px;
+    mat-icon {
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .search-bar-desktop {
+    display: none;
+  }
+  .header-content {
+    justify-content: space-between;
+  }
+  .menu-toggle-button {
+    margin-left: 0;
+  }
+
+  .full-screen-menu-overlay {
+    padding: 0;
+    /* Rimuovi lo sfondo dell'overlay e il blur su mobile */
+    background-image: none;
+    background-color: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .overlay-content {
+    padding: 0 16px 16px 16px;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+  .overlay-title {
+    font-size: 1.8em;
+  }
+  .close-overlay-button {
+    font-size: 30px;
+    mat-icon {
+      font-size: 30px;
+      height: 30px;
+      width: 30px;
+    }
+  }
+
+  .overlay-search-section {
+    position: relative;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .overlay-search-input {
+    width: 100%;
+  }
+  .search-type-selector {
+    justify-content: center;
+  }
+  .overlay-search-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  .menu-card {
+    grid-column: span 1 !important;
+    padding: 15px;
+    h3 {
+      font-size: 1.4em;
+    }
+    h4 {
+      font-size: 1em;
+    }
+  }
+  .articles-card .category-grid {
+    /* Torna a una singola colonna su mobile */
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-text {
+    font-size: 26px;
+    line-height: 26px;
+  }
+}
+.overlay-breadcrumbs {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  padding: 0 0 8px 0;
+  font-weight: 400;
+
+  a {
+    color: rgba(255, 255, 255, 0.8);
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.custom-select-wrapper {
+  position: relative;
+
+  select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    padding-right: 2.5rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1rem;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  mat-icon {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    color: white;
+  }
+}
+
+.filter-with-button {
+  display: flex;
+  gap: 8px; // Spazio tra select e button
+  align-items: center;
+  width: 100%; // Assicurati che occupi lo spazio disponibile
+}
+
+.custom-select-wrapper {
+  flex-grow: 1; // Fa in modo che la select occupi lo spazio rimanente
+  position: relative;
+  // Stili esistenti per la select
+}
+
+.go-button {
+  background-color: #666; /* Grigio di default */
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0; /* Impedisce al pulsante di restringersi */
+  display: flex; /* Per centrare l'icona se ne avesse una */
+  justify-content: center;
+  align-items: center;
+  color: white; /* Colore del testo/icona sul pulsante */
+
+  &.active {
+    background-color: green; /* Verde quando attivo */
+  }
+}
+.img-cocktail {
+  border-radius: 3px;
+}
+.img-ingredient {
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.085);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px;
+}
+
+/* Aggiungi queste classi nel tuo navbar.component.scss */
+
+.search-input-container {
+  position: relative; /* Contenitore per posizionamento assoluto del pulsante */
+  width: 100%; /* Assicurati che il contenitore occupi la larghezza necessaria */
+}
+
+.overlay-search-input {
+  /* Mantieni gli stili esistenti per l'input */
+  width: 100%;
+  padding-right: 40px; /* Lascia spazio per il pulsante "x" */
+  box-sizing: border-box; /* Assicura che padding non allarghi l'input */
+}
+
+.clear-search-button {
+  position: absolute;
+  right: 10px; /* Distanza dal bordo destro del contenitore */
+  top: 50%; /* Allineamento verticale al centro */
+  transform: translateY(-50%); /* Regolazione precisa per centrarlo */
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex; /* Per centrare l'icona MatIcon */
+  align-items: center;
+  justify-content: center;
+  color: #888; /* Colore dell'icona */
+  font-size: 20px; /* Dimensione dell'icona, se non usi mat-icon */
+  width: 30px; /* Area cliccabile più grande */
+  height: 30px; /* Area cliccabile più grande */
+
+  mat-icon {
+    font-size: 25px; /* Dimensione specifica per l'icona */
+    height: 25px;
+    width: 25px;
+    color: #333;
+  }
+
+  &:hover {
+    color: #000; /* Colore al passaggio del mouse */
+  }
+}

@@ -1,0 +1,11 @@
+<p>sidebar works!</p>
+
+<div class="category-link-container">
+  <ul>
+    <li *ngFor="let category of categories">
+      <a [routerLink]="['/articles/category', category.slug]">
+        {{ category.name }}
+      </a>
+    </li>
+  </ul>
+</div>

@@ -1,0 +1,114 @@
+{
+  "cocktailCategories": {
+    "Refreshing": ["highball_glasses", "mixing_tools", "bar_towels"],
+    "After-Dinner": ["coffee_mugs", "liqueur_glasses", "cocktail_shakers"],
+    "Tropical": ["tiki_mugs", "bamboo_stirrers", "cocktail_umbrellas"],
+    "Sour": ["shakers", "jiggers", "citrus_juicers"],
+    "Spirit-Forward": ["whiskey_glasses", "mixing_spoons", "bitters"],
+    "Classic": ["martini_glasses", "mixing_tools", "cocktail_strainers"],
+    "Hot": ["irish_coffee_cups", "tea_pots", "heat_resistant_gloves"],
+    "Aperitif": ["wine_glasses", "aperitif_glasses", "ice_buckets"],
+    "Sparkling": ["champagne_flutes", "wine_chillers", "cocktail_corkscrews"],
+    "Flaming": ["flame_safe_glasses", "bar_lighters", "fireproof_mats"]
+  },
+  "glassTypes": {
+    "Cocktail glass": ["martini_glasses", "coupe_glasses"],
+    "Highball Glass": ["highball_glasses"],
+    "Collins glass": ["collins_glasses"],
+    "Old-fashioned glass": ["old_fashioned_glasses"],
+    "Shot glass": ["shot_glasses"],
+    "Coffee mug": ["coffee_mugs"],
+    "Whiskey sour glass": ["whiskey_glasses"],
+    "Punch bowl": ["punch_bowls"],
+    "Champagne Flute": ["champagne_flutes"],
+    "Hurricane glass": ["hurricane_glasses"],
+    "Martini Glass": ["martini_glasses"],
+    "Wine Glass": ["wine_glasses"],
+    "Pint glass": ["pint_glasses"],
+    "Irish coffee cup": ["irish_coffee_cups"],
+    "Beer mug": ["beer_mugs"],
+    "Pitcher": ["pitchers"],
+    "Margarita glass": ["margarita_glasses"],
+    "Beer pilsner": ["beer_pilsners"],
+    "Balloon Glass": ["balloon_glasses"],
+    "Margarita/Coupette glass": ["coupette_glasses"],
+    "White wine glass": ["white_wine_glasses"],
+    "Cordial glass": ["cordial_glasses"],
+    "Brandy snifter": ["brandy_snifters"],
+    "Beer Glass": ["beer_glasses"],
+    "Nick and Nora Glass": ["nick_and_nora_glasses"]
+  },
+  "ingredientCategories": {
+    "Bitters": ["bitters"],
+    "Carbonated Mixers": ["carbonated_mixer_bottles", "mixing_glasses"],
+    "Citrus Juices": ["citrus_juicers", "zesters"],
+    "Dairy & Eggs": ["egg_whisk", "milk_jugs"],
+    "Fresh Fruits (Solid/Garnish)": ["fruit_knives", "cutting_boards"],
+    "Fresh Herbs & Botanicals": ["herb_scissors", "muddlers"],
+    "Fruit Juices (Non-Citrus)": ["juicers", "measuring_jugs"],
+    "Liqueurs & Cordials": ["liqueur_glasses", "pourers"],
+    "Miscellaneous": ["bar_tools_set"],
+    "Non-Carbonated Mixers": ["mixing_glasses", "stirrers"],
+    "Other Extracts & Flavorings": ["flavor_droppers", "small_bottles"],
+    "Salts & Sugars (Rimming/Specialty)": [
+      "rimming_glasses",
+      "specialty_sugars"
+    ],
+    "Spices": ["spice_grinders", "measuring_spoons"],
+    "Spirits": ["whiskey_glasses", "decanters"],
+    "Syrups & Sweeteners": ["syrup_pumps", "bottles"],
+    "Vegetables (Non-Herb)": ["vegetable_peelers", "cutting_boards"],
+    "Wines & Fortified Wines": ["wine_glasses", "wine_openers"]
+  },
+  "affiliateProducts": {
+    "highball_glasses": [
+      {
+        "title": "Libbey Classic Highball Glasses, Set of 4",
+        "imageUrl": "https://m.media-amazon.com/images/I/81Kx9uMrzFL._AC_SL1500_.jpg",
+        "link": "https://www.amazon.com/dp/B0000CFON8?tag=tuoaffiliateid-20",
+        "asin": "B0000CFON8"
+      }
+    ],
+    "coffee_mugs": [
+      {
+        "title": "Le Creuset Stoneware Coffee Mug",
+        "imageUrl": "https://m.media-amazon.com/images/I/71+grr9Nc6L._AC_SL1500_.jpg",
+        "link": "https://www.amazon.com/dp/B0039KIXHK?tag=tuoaffiliateid-20",
+        "asin": "B0039KIXHK"
+      }
+    ],
+    "tiki_mugs": [
+      {
+        "title": "Tiki Classic Ceramic Mug Set - 4 Pack",
+        "imageUrl": "https://m.media-amazon.com/images/I/71E9vR2bBML._AC_SL1500_.jpg",
+        "link": "https://www.amazon.com/dp/B07ZL5N36X?tag=tuoaffiliateid-20",
+        "asin": "B07ZL5N36X"
+      }
+    ],
+    "citrus_juicers": [
+      {
+        "title": "Chef'n FreshForce Citrus Juicer",
+        "imageUrl": "https://m.media-amazon.com/images/I/71uQq7hw5LL._AC_SL1500_.jpg",
+        "link": "https://www.amazon.com/dp/B001JK5VQG?tag=tuoaffiliateid-20",
+        "asin": "B001JK5VQG"
+      }
+    ],
+    "mixing_tools": [
+      {
+        "title": "OXO SteeL Cocktail Shaker Set",
+        "imageUrl": "https://m.media-amazon.com/images/I/81cog1HQZnL._AC_SL1500_.jpg",
+        "link": "https://www.amazon.com/dp/B01LZL4Y90?tag=tuoaffiliateid-20",
+        "asin": "B01LZL4Y90"
+      }
+    ],
+    "bitters": [
+      {
+        "title": "Angostura Aromatic Bitters, 4 oz",
+        "imageUrl": "https://m.media-amazon.com/images/I/61iGpqw2HHL._AC_SL1500_.jpg",
+        "link": "https://www.amazon.com/dp/B0014LQGCU?tag=tuoaffiliateid-20",
+        "asin": "B0014LQGCU"
+      }
+    ]
+    /* Continua con gli altri gruppi... */
+  }
+}

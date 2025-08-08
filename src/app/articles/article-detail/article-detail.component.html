@@ -1,0 +1,98 @@
+<div class="container">
+  <div *ngIf="loading" class="loading-message glass-card">
+    <p>Caricamento articolo…</p>
+  </div>
+  <div *ngIf="error" class="error-message glass-card">
+    <mat-icon>error</mat-icon>
+    <span>{{ error }}</span>
+  </div>
+
+  <ng-container *ngIf="article && !loading && !error">
+    <main class="content">
+      <article>
+        <header>
+          <h1>{{ article.title }}</h1>
+          <p
+            class="article-meta"
+            *ngIf="article.categories?.length || article.publishedAt"
+          >
+            <ng-container *ngIf="article.categories?.length">
+              Categoria:
+              <ng-container
+                *ngFor="let category of article.categories; last as isLast"
+              >
+                <a [routerLink]="['/articles/category', category.slug]">
+                  {{ category.name }}
+                </a>
+                <ng-container *ngIf="!isLast">, </ng-container>
+              </ng-container>
+            </ng-container>
+            <ng-container *ngIf="article.publishedAt">
+              <span *ngIf="article.categories?.length"> | </span> Pubblicato il
+              <time [attr.datetime]="article.publishedAt">{{
+                article.publishedAt | date : "longDate"
+              }}</time>
+            </ng-container>
+          </p>
+        </header>
+
+        <figure *ngIf="article.image?.url" class="image-container">
+          <img
+            [src]="article.image.url"
+            [alt]="article.title || 'Immagine articolo'"
+          />
+        </figure>
+
+        <section class="introduction">
+          <p>{{ article.introduction }}</p>
+        </section>
+
+        <ng-container *ngFor="let sec of article.sections">
+          <section class="section-block">
+            <h2>{{ sec.heading }}</h2>
+            <ng-container *ngFor="let block of sec.content">
+              <p *ngFor="let child of block.children">{{ child.text }}</p>
+            </ng-container>
+            <figure *ngIf="sec.image?.url" class="section-image">
+              <img [src]="sec.image?.url" [alt]="sec.heading" />
+            </figure>
+          </section>
+        </ng-container>
+
+        <section class="conclusion">
+          <p>{{ article.conclusion }}</p>
+        </section>
+      </article>
+
+      <section
+        *ngIf="article.related_cocktails?.length"
+        class="related-content"
+      >
+        <h3>Cocktail Correlati</h3>
+        <div class="related-items-grid">
+          <app-cocktail-card
+            *ngFor="let c of article.related_cocktails"
+            [cocktail]="c"
+          ></app-cocktail-card>
+        </div>
+      </section>
+
+      <section
+        *ngIf="article.related_ingredients?.length"
+        class="related-content"
+      >
+        <h3>Ingredienti Chiave</h3>
+        <div class="related-items-grid">
+          <app-ingredient-card
+            *ngFor="let ingredient of article.related_ingredients"
+            [ingredient]="ingredient"
+          ></app-ingredient-card>
+        </div>
+      </section>
+    </main>
+
+    <aside class="sidebar">
+      <app-sidebar></app-sidebar>
+    </aside>
+  </ng-container>
+</div>

@@ -1,0 +1,54 @@
+.bubbles-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Nasconde le bollicine una volta fuori dalla viewport */
+  pointer-events: none;
+  z-index: -2;
+}
+
+.bubble {
+  position: absolute;
+  /* Colore e trasparenza per una bolla ben visibile e netta */
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 1),
+    /* Completamente opaco al centro */ rgba(255, 255, 255, 0.8) 70%,
+    rgba(255, 255, 255, 0.6) 100%
+      /* Leggermente più trasparente ai bordi ma comunque definito */
+  );
+  border-radius: 50%;
+  bottom: -50px; /* Partono dal basso, fuori dallo schermo */
+
+  /* MODIFICA CHIAVE: animation-timing-function per una velocità finale più marcata */
+  /* Questa cubic-bezier parte lenta e accelera in modo più aggressivo verso la fine. */
+  animation: ascend-cocktail var(--bubble-duration) cubic-bezier(0.4, 0, 1, 1)
+    infinite;
+  animation-delay: var(--bubble-delay);
+
+  /* Bordo sottile e visibile per definizione */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  /* Riflessi e ombra interna per dare profondità senza alone esterno */
+  box-shadow:
+    /* Riflesso superiore netto */ 0 0 4px rgba(255, 255, 255, 0.8),
+    /* Ombra interna per tridimensionalità */ inset 0 0 8px rgba(0, 0, 0, 0.2);
+
+  /* Opacità base sempre a 1. Non ci sono animazioni sull'opacità. */
+  opacity: 1;
+}
+
+/* KEYFRAMES ESSENZIALI: Solo inizio e fine, con uscita completa e scala */
+@keyframes ascend-cocktail {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.3); /* Inizio: alla base, piccola */
+  }
+  100% {
+    /* Fine: Molto più in alto (esce dalla viewport), più grande, con leggera deriva */
+    transform: translateY(-110vh)
+      translateX(calc(var(--spiral-amplitude) * 0.5)) scale(1.1);
+    /* L'opacità è sempre 1, non viene modificata qui */
+  }
+}

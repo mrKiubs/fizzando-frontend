@@ -1,0 +1,173 @@
+/* src/app/components/article-list/article-list.component.scss */
+
+/* Importa i mixin se li usi nel tuo progetto. Assicurati che il percorso sia corretto. */
+@import "../../assets/style/mixins";
+
+:host {
+  display: block; /* Assicura che il componente sia un blocco per il layout */
+}
+
+/* Stili per l'intestazione della pagina */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.content {
+  flex-grow: 1; /* Permette al contenuto di espandersi */
+}
+
+.content ul {
+  list-style: none; /* Rimuove i pallini di default dalla lista */
+  padding: 0;
+}
+
+.content li {
+  @include glass-card;
+  margin-bottom: 16px;
+}
+.content li p {
+  color: white;
+}
+.content li h2 {
+  color: white;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.content li img {
+  max-width: 100%; /* Assicura che l'immagine non strabordi */
+  height: auto;
+  display: block;
+  border-radius: 4px;
+}
+
+.read-more-link {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 8px 15px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.read-more-link:hover {
+  background-color: #0056b3;
+}
+
+/* --- Stili per la Sidebar --- */
+.sidebar {
+  @include glass-card;
+}
+
+.sidebar h2,
+.sidebar h3 {
+  color: #0056b3;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar nav li {
+  margin-bottom: 10px;
+}
+
+.sidebar nav a {
+  text-decoration: none;
+  color: #007bff;
+  display: block; /* Rende l'intera area del link cliccabile */
+  padding: 5px 0;
+}
+
+.sidebar nav a:hover {
+  text-decoration: underline;
+}
+
+/* --- Media Query per Desktop (schermi più grandi di 768px) --- */
+@media (min-width: 768px) {
+  .container {
+    flex-direction: row; /* Per desktop: content e sidebar affiancati */
+    align-items: flex-start; /* Allinea gli elementi in alto */
+  }
+
+  .content {
+    flex: 3; /* Il contenuto occupa 3 parti dello spazio disponibile */
+    /* Oppure: flex-basis: 70%; per una larghezza fissa */
+  }
+
+  .sidebar {
+    flex: 1; /* La sidebar occupa 1 parte dello spazio disponibile */
+    /* Oppure: flex-basis: 30%; per una larghezza fissa */
+    min-width: 250px; /* Larghezza minima per evitare che diventi troppo stretta */
+  }
+}
+
+.article-card {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  align-items: center;
+  gap: 16px;
+
+  header {
+    h2 {
+      font-size: 28px;
+      margin: 0 0 0 0;
+      line-height: 32px;
+
+      @media (max-width: 600px) {
+        font-size: 18px;
+        line-height: 20px;
+      }
+    }
+  }
+}
+section {
+  p {
+    color: white;
+  }
+  &.conclusion,
+  &.introduction {
+    p {
+      margin-top: 32px;
+      margin-bottom: 64px;
+    }
+  }
+}
+article {
+  @include glass-card;
+  h1 {
+    text-align: left;
+    margin: 36px 0;
+  }
+
+  figure {
+    --b: 4px; /* the border thickness */
+    --d: 16px; /* the distance from the edge */
+
+    --_g: calc(100% - 2 * (var(--d) + var(--b)));
+    mask: conic-gradient(from 90deg at var(--d) var(--d), #0000 25%, #000 0) 0 0 /
+        calc(100% - var(--d)) calc(100% - var(--d)),
+      linear-gradient(#000 0 0) 50% / var(--_g) var(--_g) no-repeat;
+
+    img {
+      opacity: 0.55;
+      filter: blur(1px);
+    }
+  }
+}
+
+.related-items-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}

@@ -1,0 +1,108 @@
+/* src/app/glossary/glossary-card/glossary-card.component.scss */
+@import "../../assets/style/mixins";
+/* Wrapper esterno per animazioni e gestione click/cursori */
+.glossary-card-wrapper {
+  cursor: default; /* IMPOSTATO A DEFAULT PER ELIMINARE LA MANINA */
+  transition: box-shadow 0.3s ease, transform 0.2s ease-out; /* Mantiene transition per transform ma lo useremo solo su mobile */
+  border-radius: 12px;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Ombra iniziale più soft */
+
+  &:hover {
+    /* RIMOSSO: transform: translateY(-5px); */ /* Elimina il sollevamento */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); /* Ombra più pronunciata e diffusa, come cocktail-card */
+  }
+}
+
+/* La card interna */
+.glossary-item {
+  @include glass-card;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  height: 100%;
+  justify-content: space-between;
+  /* AGGIUNTO: Cambio colore sfondo all'hover */
+}
+
+/* Header del termine */
+.glossary-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.term-title {
+  padding: 0 0 8px 0;
+  margin: 0 0 0 0;
+}
+
+/* Body della descrizione */
+.glossary-body {
+  display: flex;
+  flex-direction: column; /* Assicura che il testo si allinei verticalmente */
+  padding: 16px 0;
+}
+
+.term-description {
+  font-size: 0.95em; /* Leggermente più piccolo */
+  line-height: 1.7; /* Leggermente aumentato per leggibilità */
+  color: rgba(255, 255, 255, 0.9);
+  text-align: left; /* Allineato a sinistra */
+  margin: 0; /* Rimuovi margini predefiniti */
+}
+
+/* Footer per la categoria */
+.glossary-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 0 0 0;
+  font-size: 14px;
+}
+
+.category-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px; /* Spazio tra icona e testo */
+  font-size: 0.9rem; /* Dimensione del testo della categoria */
+  font-weight: 700; /* Grassetto */
+  color: #8be9fd; /* Colore per la categoria (es. azzurro chiaro) */
+  text-transform: capitalize; /* Capitalizza la prima lettera se necessario */
+
+  .category-icon {
+    font-size: 1em; /* Dimensione dell'icona, leggermente più piccola */
+    color: #8be9fd; /* Colore dell'icona */
+  }
+}
+
+/* Media query per desktop */
+@media (min-width: 769px) {
+  .glossary-card-wrapper {
+    cursor: default; /* Già impostato, ma lo manteniamo esplicito qui */
+  }
+}
+
+/* Media query per mobile */
+@media (max-width: 768px) {
+  .glossary-card-wrapper {
+    transform: none !important; /* Rimuovi l'effetto hover di sollevamento in mobile */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); /* Ombra più contenuta */
+  }
+
+  .glossary-item {
+    padding: 15px; /* Padding leggermente ridotto per mobile */
+    gap: 10px; /* Spazio tra gli elementi */
+    /* Nessun hover di sfondo su mobile */
+    &:hover {
+      background-color: rgba(
+        255,
+        255,
+        255,
+        0.15
+      ); /* Torna al colore normale per evitare effetti indesiderati */
+    }
+  }
+}

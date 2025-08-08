@@ -1,0 +1,471 @@
+<div class="page-header-container">
+  <h1>Cocktail Explorer</h1>
+  <h2>Your Ultimate Cocktail Guide: Search, Filter, and Discover New Drinks</h2>
+
+  <ng-container>
+    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+  </ng-container>
+
+  <p class="page-subtitle">
+    Welcome to [Your App/Site Name]'s <b>definitive cocktail archive</b>!
+    Whether you're a seasoned bartender or an enthusiast looking for new
+    inspiration, here you will find <b>hundreds of cocktail recipes</b>, from
+    <b>timeless classics</b> to <b>innovative creations</b> and
+    <b>exotic drinks</b> from around the globe.
+  </p>
+</div>
+
+<div class="custom-search-input-wrapper">
+  <input
+    type="text"
+    class="custom-search-input"
+    placeholder="Search cocktails by name..."
+    [(ngModel)]="searchTerm"
+    (input)="onSearchTermChange()"
+  />
+  <mat-icon
+    class="clear-search-icon"
+    *ngIf="searchTerm"
+    (click)="clearFilters(); searchTerm = ''"
+    svgIcon="close"
+  ></mat-icon>
+  <mat-icon class="search-icon" svgIcon="search"></mat-icon>
+</div>
+
+<div class="filters-accordion" [class.expanded]="isExpanded">
+  <div class="accordion-header" (click)="toggleExpansion()">
+    <h3 class="accordion-title">
+      <mat-icon class="accordion-icon" svgIcon="filter_list"></mat-icon>
+      Filters
+    </h3>
+    <span class="active-filters-summary" *ngIf="!isExpanded">
+      ({{ getActiveFiltersText() }})
+    </span>
+  </div>
+
+  <div
+    class="accordion-content"
+    [@accordionAnimation]="isExpanded ? 'open' : 'closed'"
+  >
+    <div class="filter-group">
+      <label for="category-select" class="filter-label">Category</label>
+      <div class="custom-select-wrapper">
+        <select
+          id="category-select"
+          class="custom-select"
+          [(ngModel)]="selectedCategory"
+          (change)="applyFilters()"
+          (click)="$event.stopPropagation()"
+        >
+          <option value="">All Categories</option>
+          <option *ngFor="let category of categories" [value]="category">
+            {{ category }}
+          </option>
+        </select>
+        <mat-icon
+          class="select-arrow-icon"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label for="alcoholic-select" class="filter-label"
+        >Alcoholic / Non-Alcoholic</label
+      >
+      <div class="custom-select-wrapper">
+        <select
+          id="alcoholic-select"
+          class="custom-select"
+          [(ngModel)]="selectedAlcoholic"
+          (change)="applyFilters()"
+          (click)="$event.stopPropagation()"
+        >
+          <option value="">All</option>
+          <option *ngFor="let option of alcoholicOptions" [value]="option">
+            {{ option }}
+          </option>
+        </select>
+        <mat-icon
+          class="select-arrow-icon"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </div>
+    </div>
+
+    <div class="filter-group filter-button-row">
+      <button class="glass-button secondary" (click)="clearFilters()">
+        <mat-icon svgIcon="clear_all"></mat-icon>
+        Clear Filters
+      </button>
+    </div>
+  </div>
+</div>
+
+<hr />
+
+<p class="cocktail-card-legend">
+  The cards below show the cocktail <b>image</b>, <b>category</b>, estimated
+  <b>ABV (Alcohol By Volume)</b>, <b>key ingredients</b>, and
+  <b>recommended glass</b>. Click on each cocktail for full details!
+</p>
+
+<div *ngIf="loading" class="loading-message">Loading cocktails...</div>
+<div *ngIf="error" class="error-message">{{ error }}</div>
+<div class="cocktail-list" *ngIf="!error && cocktails.length > 0">
+  <ng-container
+    *ngFor="
+      let cocktail of cocktails;
+      let i = index;
+      trackBy: trackByCocktailId
+    "
+  >
+    <app-cocktail-card [cocktail]="cocktail"></app-cocktail-card>
+
+    <ng-container *ngIf="i > 0 && (i + 1) % 5 === 0">
+      <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+      <div *ngIf="!isMobile">
+        <app-dev-ads [type]="'responsive'"></app-dev-ads>
+        <app-dev-ads [type]="'responsive'"></app-dev-ads>
+      </div>
+    </ng-container>
+  </ng-container>
+</div>
+
+<div class="no-results-message" *ngIf="!loading && !cocktails.length">
+  <p>No cocktails found matching your criteria. Try adjusting your filters!</p>
+</div>
+
+<div class="pagination-container" *ngIf="!loading && totalPages > 1">
+  <div class="pagination-controls">
+    <button
+      class="glass-button secondary"
+      [disabled]="currentPage === 1"
+      (click)="goToPage(currentPage - 1)"
+    >
+      Previous
+    </button>
+
+    <div class="page-numbers">
+      <a
+        *ngIf="showFirstPage()"
+        [routerLink]="[]"
+        [queryParams]="{ page: 1 }"
+        queryParamsHandling="merge"
+        class="page-number"
+        [ngClass]="{ active: currentPage === 1 }"
+        (click)="goToPage(1)"
+      >
+        1
+      </a>
+      <span *ngIf="showFirstEllipsis()" class="ellipsis">...</span>
+
+      <ng-container *ngFor="let page of getVisiblePages()">
+        <a
+          [routerLink]="[]"
+          [queryParams]="{ page: page }"
+          queryParamsHandling="merge"
+          class="page-number"
+          [ngClass]="{ active: currentPage === page }"
+          (click)="goToPage(page)"
+        >
+          {{ page }}
+        </a>
+      </ng-container>
+
+      <span *ngIf="showLastEllipsis()" class="ellipsis">...</span>
+      <a
+        *ngIf="showLastPage()"
+        [routerLink]="[]"
+        [queryParams]="{ page: totalPages }"
+        queryParamsHandling="merge"
+        class="page-number"
+        [ngClass]="{ active: currentPage === totalPages }"
+        (click)="goToPage(totalPages)"
+      >
+        {{ totalPages }}
+      </a>
+    </div>
+
+    <button
+      class="glass-button secondary"
+      [disabled]="currentPage === totalPages"
+      (click)="goToPage(currentPage + 1)"
+    >
+      Next
+    </button>
+  </div>
+</div>
+<ng-container>
+  <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+  <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+</ng-container>
+<section class="glass-card">
+  <h2 class="section-title">🛒 Craft cocktails with the Right Tools</h2>
+  <div class="affiliate-card-list" #affiliateCardList>
+    <div class="scrollerdiv">
+      <ng-container *ngFor="let product of productList; let i = index">
+        <app-affiliate-product
+          [title]="product.title"
+          [imageUrl]="product.imageUrl"
+          [price]="product.price"
+          [link]="product.link"
+          [showPlaceholder]="product.showPlaceholder"
+        >
+        </app-affiliate-product>
+      </ng-container>
+    </div>
+  </div>
+  <p class="affiliate-bottom">
+    We may get a little kickback if you buy via these links — it helps keep the
+    shaker shaking! 🙌🍸
+  </p>
+</section>
+<ng-container>
+  <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+  <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+</ng-container>
+
+<section class="glass-card">
+  <h2 class="section-title">
+    🛒 Too Much Work? Let a Robot Make Your cocktails for You!
+  </h2>
+  <div class="affiliate-card-list" #affiliateCardList>
+    <div class="scrollerdiv">
+      <ng-container *ngFor="let product of productListRobot; let i = index">
+        <app-affiliate-product
+          [title]="product.title"
+          [imageUrl]="product.imageUrl"
+          [price]="product.price"
+          [link]="product.link"
+          [showPlaceholder]="product.showPlaceholder"
+        >
+        </app-affiliate-product>
+      </ng-container>
+    </div>
+  </div>
+  <p class="affiliate-bottom">
+    We may get a little kickback if you buy via these links — it helps keep the
+    shaker shaking! 🙌🍸
+  </p>
+</section>
+<ng-container>
+  <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+  <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+</ng-container>
+<div class="key-features-section">
+  <h3>Why use [Your App/Site Name] to explore cocktails?</h3>
+  <div class="feature-item">
+    <span class="feature-icon">📚</span>
+    <p>
+      <b>Comprehensive Details:</b> Each cocktail provides full instructions,
+      precise measurements, origin stories, sensory descriptions, food pairings,
+      ideal occasions, and variations.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">📦</span>
+    <p>
+      <b>Discover Ingredients:</b> Explore our
+      <a href="/ingredients"><b>Ingredients</b></a>
+      section to learn more about individual components.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">🧑‍🍳</span>
+    <p>
+      <b>Craft with What You Have:</b> Use our
+      <a href="/find-by-ingredients"><b>Find by Ingredients</b></a>
+      tool to discover cocktails you can make with your current stock.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">🎓</span>
+    <p>
+      <b>Master Your Craft:</b> Deepen your cocktail knowledge with our
+      <a href="/glossary"><b>Glossary</b></a>
+      of technical terms and techniques.
+    </p>
+  </div>
+</div>
+
+<div class="bottom-container">
+  <div class="faq-section">
+    <h2>Frequently Asked Questions about Cocktails</h2>
+
+    <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[0])">
+        What types of cocktails can I find here?
+        <mat-icon
+          class="faq-toggle-icon"
+          [class.rotated]="faqs[0].isExpanded"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@faqAccordionAnimation]="faqs[0].isExpanded ? 'expanded' : 'collapsed'"
+      >
+        <p class="faq-answer">
+          Our archive features a comprehensive range, including
+          <b>classic cocktails</b> (like Old Fashioned, Daiquiri),
+          <b>modern and innovative creations</b>, <b>tropical drinks</b>,
+          refreshing <b>long drinks</b>, and sophisticated <b>short drinks</b>.
+          You can easily filter by category to explore specific types.
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[1])">
+        How can I find a specific cocktail by name?
+        <mat-icon
+          class="faq-toggle-icon"
+          [class.rotated]="faqs[1].isExpanded"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@faqAccordionAnimation]="faqs[1].isExpanded ? 'expanded' : 'collapsed'"
+      >
+        <p class="faq-answer">
+          Use the <b>"Search cocktails by name..." bar</b> at the top of the
+          page. Simply type the name of the drink you're looking for, and our
+          system will help you find it quickly.
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[2])">
+        What detailed information is available for each cocktail?
+        <mat-icon
+          class="faq-toggle-icon"
+          [class.rotated]="faqs[2].isExpanded"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@faqAccordionAnimation]="faqs[2].isExpanded ? 'expanded' : 'collapsed'"
+      >
+        <p class="faq-answer">
+          Each cocktail card displays an <b>image</b>, its
+          <b>category</b> (e.g., Ordinary Drink, Cocktail), estimated
+          <b>Alcohol By Volume (ABV)</b>, <b>key ingredients</b>, and the
+          <b>recommended glass</b>. Clicking on a cocktail will provide in-depth
+          details such as <b>complete step-by-step instructions</b>, a
+          comprehensive list of <b>ingredients with precise measurements</b>,
+          the cocktail's <b>origin</b>, a rich <b>sensory description</b> (taste
+          and aroma), <b>perfect food pairing suggestions</b>, the
+          <b>ideal occasion</b> to enjoy it, its unique <b>personality</b>, and
+          potential <b>variations</b>.
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[3])">
+        Can I filter cocktails based on specific criteria?
+        <mat-icon
+          class="faq-toggle-icon"
+          [class.rotated]="faqs[3].isExpanded"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@faqAccordionAnimation]="faqs[3].isExpanded ? 'expanded' : 'collapsed'"
+      >
+        <p class="faq-answer">
+          Yes, absolutely! You can <b>filter cocktails</b> by various criteria
+          such as <b>category</b> (e.g., Before Dinner, After Dinner),
+          <b>alcoholic type</b> (e.g., Alcoholic, Non Alcoholic, Optional
+          Alcohol), or the <b>type of glass</b> used (e.g., Martini glass,
+          Highball glass). This helps you narrow down your search efficiently.
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[4])">
+        How can I search for cocktails based on ingredients I have at home?
+        <mat-icon
+          class="faq-toggle-icon"
+          [class.rotated]="faqs[4].isExpanded"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@faqAccordionAnimation]="faqs[4].isExpanded ? 'expanded' : 'collapsed'"
+      >
+        <p class="faq-answer">
+          Certainly! Navigate to our "<a href="/find-cocktail"
+            ><b>Find by Ingredients</b></a
+          >" section where you can select the ingredients you possess and
+          discover which cocktails you can craft! (The link to this section is
+          in the navigation bar).
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[5].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[5])">
+        Where can I find information about individual cocktail ingredients?
+        <mat-icon
+          class="faq-toggle-icon"
+          [class.rotated]="faqs[5].isExpanded"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@faqAccordionAnimation]="faqs[5].isExpanded ? 'expanded' : 'collapsed'"
+      >
+        <p class="faq-answer">
+          To deepen your knowledge of ingredients, visit our "<a
+            href="/ingredients"
+            ><b>Ingredients</b></a
+          >" section. There you will find details on every single component of
+          your favorite drinks. (The link to this section is in the navigation
+          bar).
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[6].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[6])">
+        Is there a glossary for cocktail technical terms?
+        <mat-icon
+          class="faq-toggle-icon"
+          [class.rotated]="faqs[6].isExpanded"
+          svgIcon="arrow_drop_down"
+        ></mat-icon>
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@faqAccordionAnimation]="faqs[6].isExpanded ? 'expanded' : 'collapsed'"
+      >
+        <p class="faq-answer">
+          Yes! To understand all the terms and techniques of the cocktail world,
+          we invite you to consult our "<a href="/glossary"><b>Glossary</b></a
+          >" section. (The link to this section is in the navigation bar).
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="banner-container">
+    <ng-container>
+      <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+      <app-dev-ads *ngIf="!isMobile" [type]="'half-page'"></app-dev-ads>
+    </ng-container>
+  </div>
+</div>
+
+<ng-container>
+  <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+  <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+</ng-container>

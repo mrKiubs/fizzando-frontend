@@ -1,0 +1,86 @@
+.ad-placeholder {
+  border: 2px dashed #888;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    45deg,
+    #fafafa,
+    #fafafa 10px,
+    #e0e0e0 10px,
+    #e0e0e0 20px
+  );
+  color: #555;
+  font-weight: 700;
+  text-align: center;
+  padding: 12px 0;
+  user-select: none;
+  margin: 1rem auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 0.95rem;
+}
+
+.ad-placeholder.prod {
+  border-color: #0b610b;
+  background: #d8f7d8;
+  color: #0b610b;
+  font-weight: 600;
+}
+
+/* Dimensioni standard dei vari formati: */
+.leaderboard {
+  width: 728px;
+  height: 90px;
+}
+.large-leaderboard {
+  width: 970px;
+  height: 90px;
+}
+.banner {
+  width: 468px;
+  height: 60px;
+}
+.skyscraper {
+  width: 120px;
+  height: 600px;
+}
+.wide-skyscraper {
+  width: 160px;
+  height: 600px;
+}
+.half-page {
+  width: 300px;
+  height: 600px;
+}
+.medium-rectangle {
+  width: 300px;
+  height: 250px;
+}
+.large-rectangle {
+  width: 336px;
+  height: 280px;
+}
+.mobile-banner {
+  width: 320px;
+  height: 100px;
+}
+.mobile-leaderboard {
+  width: 320px;
+  height: 50px;
+}
+.square {
+  width: 250px;
+  height: 250px;
+}
+.small-square {
+  width: 200px;
+  height: 200px;
+}
+.responsive {
+  width: 100%;
+  max-width: 336px;
+  height: auto;
+  aspect-ratio: 4 / 3;
+}

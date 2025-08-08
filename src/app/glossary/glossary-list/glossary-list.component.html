@@ -1,0 +1,243 @@
+<div class="page-header-container">
+  <h1>Cocktail Glossary</h1>
+  <h2>Unlock the Language of Mixology: Terms, Techniques & Definitions</h2>
+  <p class="page-subtitle">
+    Welcome to our comprehensive <b>Cocktail Glossary</b>! Whether you're a
+    seasoned mixologist or just starting your journey, this is your go-to
+    resource for understanding all the essential
+    <b>cocktail terms, techniques, and spirits definitions</b>. Use the search
+    bar and category filters to easily find what you need and deepen your
+    knowledge of the fascinating world of mixology.
+  </p>
+</div>
+
+<div class="search-bar-container">
+  <div class="custom-search-input-wrapper">
+    <input
+      type="text"
+      class="custom-search-input"
+      placeholder="Search terms..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearchTermChange()"
+    />
+    <mat-icon
+      class="clear-search-icon"
+      *ngIf="searchTerm"
+      (click)="clearFilters(); searchTerm = ''"
+      >close</mat-icon
+    >
+    <mat-icon class="search-icon">search</mat-icon>
+  </div>
+</div>
+
+<div class="filters-accordion" [class.expanded]="isExpanded">
+  <div class="accordion-header" (click)="toggleExpansion()">
+    <h3 class="accordion-title">
+      <mat-icon class="accordion-icon">filter_list</mat-icon>
+      Filters
+    </h3>
+    <span class="active-filters-summary" *ngIf="!isExpanded">
+      ({{ getActiveFiltersText() }})
+    </span>
+  </div>
+
+  <div
+    class="accordion-content"
+    [@accordionAnimation]="isExpanded ? 'open' : 'closed'"
+  >
+    <div class="accordion-content-wrapper">
+      <div class="filter-group">
+        <label for="category-select" class="filter-label">Category</label>
+        <div class="custom-select-wrapper">
+          <select
+            id="category-select"
+            class="custom-select"
+            [(ngModel)]="selectedCategory"
+            (change)="applyFilters()"
+            (click)="$event.stopPropagation()"
+          >
+            <option value="">All Categories</option>
+            <option
+              *ngFor="let category of categories$ | async"
+              [value]="category"
+            >
+              {{ category }}
+            </option>
+          </select>
+          <mat-icon class="select-arrow-icon">arrow_drop_down</mat-icon>
+        </div>
+      </div>
+
+      <div class="filter-group filter-button-row">
+        <button class="glass-button secondary" (click)="clearFilters()">
+          <mat-icon>clear_all</mat-icon>
+          Clear Filters
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr />
+<div *ngIf="loading" class="loading-message">Loading terms...</div>
+<div *ngIf="error" class="error-message">{{ error }}</div>
+
+<div class="glossary-grid-container" *ngIf="!error && terms.length > 0">
+  <app-glossary-card
+    *ngFor="let term of terms; trackBy: trackByTermId"
+    [term]="term"
+  ></app-glossary-card>
+</div>
+<div
+  *ngIf="!loading && !error && terms.length === 0"
+  class="no-results-message"
+>
+  No terms found with the selected filters.
+</div>
+
+<div class="load-more-container">
+  <div class="term-count-summary" *ngIf="!loading && totalItems > 0">
+    Showing {{ terms.length }} of {{ totalItems }} terms.
+  </div>
+
+  <button
+    class="glass-button primary"
+    (click)="loadMore()"
+    *ngIf="terms.length < totalItems && !loading"
+  >
+    Load {{ nextLoadAmount }} more ({{ totalItems - terms.length }}
+    remaining)
+  </button>
+</div>
+
+<div class="key-features-section">
+  <h3>Why Explore Our Cocktail Glossary?</h3>
+  <div class="feature-item">
+    <span class="feature-icon">📚</span>
+    <p>
+      <b>Comprehensive Definitions:</b> Find clear, concise explanations for
+      hundreds of cocktail-related terms, from basic to obscure.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">✨</span>
+    <p>
+      <b>Master Techniques:</b> Understand the methods behind crafting perfect
+      drinks, such as 'Muddling', 'Shaking', and 'Stirring'.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">🍸</span>
+    <p>
+      <b>Demystify Ingredients:</b> Learn about different spirits, liqueurs, and
+      mixers, and how they contribute to a cocktail's profile.
+    </p>
+  </div>
+  <div class="feature-item">
+    <span class="feature-icon">🎓</span>
+    <p>
+      <b>Enhance Your Mixology Skills:</b> Build your knowledge and confidence
+      to create, order, and discuss cocktails like a pro.
+    </p>
+  </div>
+</div>
+
+<div class="faq-section">
+  <h2>Frequently Asked Questions about the Cocktail Glossary</h2>
+
+  <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[0])">
+      What kind of terms can I find in the Cocktail Glossary?
+      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[0].isExpanded"
+        >expand_more</mat-icon
+      >
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[0].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        Our Cocktail Glossary includes a wide range of terms, from common
+        cocktail ingredients and bar tools to advanced mixology techniques,
+        historical definitions, and types of drinks.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[1])">
+      How can I search for a specific term?
+      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[1].isExpanded"
+        >expand_more</mat-icon
+      >
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[1].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        You can use the search bar at the top of the glossary page. Simply type
+        in the term you are looking for, and the results will filter
+        automatically as you type.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[2])">
+      Can I filter terms by category?
+      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[2].isExpanded"
+        >expand_more</mat-icon
+      >
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[2].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        Yes, you can! Open the <b>"Filters"</b> section by clicking on it.
+        There's a dropdown menu for <b>"Category"</b> where you can select
+        specific categories like <b>"Techniques"</b>, <b>"Spirits"</b>,
+        <b>"Garnish"</b>, etc., to narrow down your search.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[3])">
+      What if I can't find a term I'm looking for?
+      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[3].isExpanded"
+        >expand_more</mat-icon
+      >
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[3].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        While our glossary is comprehensive, it's always growing. If you can't
+        find a specific term, please visit our Contact Us page with your
+        suggestion! We're always happy to expand our resources.
+      </p>
+    </div>
+  </div>
+
+  <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
+    <h3 class="faq-question" (click)="toggleFaq(faqs[4])">
+      How often is the glossary updated?
+      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[4].isExpanded"
+        >expand_more</mat-icon
+      >
+    </h3>
+    <div
+      class="faq-answer-wrapper"
+      [@accordionAnimation]="faqs[4].isExpanded ? 'open' : 'closed'"
+    >
+      <p class="faq-answer">
+        We regularly review and update our glossary to ensure accuracy and to
+        add new terms as they emerge in the world of cocktails. Our goal is to
+        keep it a relevant and valuable resource for all enthusiasts.
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,435 @@
+@use "../../assets/style/mixins" as m;
+
+:host {
+  display: block;
+}
+
+.page-header-container {
+  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .page-subtitle {
+    font-size: 16px; /* Slightly larger text for readability */
+    color: rgba(255, 255, 255, 0.7); /* Slightly lighter color */
+    margin-top: 14px; /* Space from the title */
+    line-height: 1.5; /* Line height for better readability */
+    max-width: 600px; /* Limit width to avoid overly long lines */
+    margin-left: auto; /* Center the text */
+    margin-right: auto; /* Center the text */
+    font-weight: 300;
+  }
+}
+
+.search-bar-container {
+  padding: 0;
+  max-width: 800px;
+  margin: 16px auto;
+}
+
+.custom-search-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.custom-search-input {
+  flex-grow: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 1rem;
+  padding: 0;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.search-icon,
+.clear-search-icon {
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-search-icon {
+  &:hover {
+    color: #fff;
+  }
+}
+
+/* STILI PER L'ACCORDION CUSTOM */
+.filters-accordion {
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+
+  .accordion-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: background-color 0.2s ease, border-bottom 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .accordion-title {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #fff;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .accordion-icon {
+      color: rgba(255, 255, 255, 0.8);
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .accordion-description {
+      display: none;
+    }
+
+    .active-filters-summary {
+      margin-left: 0.5rem;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 50%;
+      transition: opacity 0.3s ease;
+    }
+  }
+
+  &.expanded {
+    .accordion-icon {
+      transform: rotate(180deg);
+    }
+    .accordion-header {
+      justify-content: center;
+    }
+  }
+
+  /* Contenitore animato: nessun padding qui, solo per l'animazione di altezza/opacità */
+  .accordion-content {
+    /* Rimosso padding da qui - gestito dal wrapper */
+    /* Le proprietà display/flex/gap vengono spostate sul wrapper interno */
+    /* Qui rimane solo la gestione del flusso e overflow */
+  }
+
+  /* Wrapper interno per il contenuto e il padding */
+  .accordion-content-wrapper {
+    padding: 16px; /* Applica il padding qui, fisso! */
+    display: flex; /* Mantieni il layout flex */
+    flex-direction: column; /* Impila gli elementi verticalmente */
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    align-items: stretch;
+  }
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: unset;
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: auto;
+}
+
+.filter-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.5rem;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+
+  .custom-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    padding-right: 2.5rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1rem;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    &:focus {
+      border-color: #fff;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    }
+
+    option {
+      background-color: #333;
+      color: #fff;
+    }
+  }
+
+  .select-arrow-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+  }
+}
+
+.glass-button {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  &.primary {
+    background-color: rgba(0, 123, 255, 0.3);
+    color: #fff;
+    &:hover {
+      background-color: rgba(0, 123, 255, 0.5);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  &.secondary {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    mat-icon {
+      font-size: 1.2rem;
+      color: #fff;
+    }
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+  }
+}
+
+hr {
+  border: 0;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin: 32px auto;
+  max-width: 800px;
+}
+
+.loading-message,
+.error-message,
+.no-results-message {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.error-message {
+  color: #f44336;
+}
+
+.cocktail-list {
+  /* Ho mantenuto il nome della classe per coerenza col CSS già scritto */
+  display: grid;
+  gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  grid-auto-rows: minmax(auto);
+  grid-auto-flow: dense;
+
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+  .cocktail-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .cocktail-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .cocktail-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .cocktail-list {
+    gap: 16px;
+    grid-auto-rows: minmax(auto);
+  }
+}
+
+.load-more-container {
+  text-align: center;
+  margin: 2rem auto;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+
+  .cocktail-count-summary {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .glass-button {
+    width: auto;
+    padding: 0.8rem 2rem;
+  }
+}
+
+/* --- REGOLE SPECIFICHE PER DESKTOP --- */
+@media (min-width: 768px) {
+  .filters-accordion .accordion-content-wrapper {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .filter-group {
+    flex: 1 1 calc(33% - 1rem); /* Qui era 33%, ho lasciato per un placeholder di 3 campi*/
+    min-width: 200px;
+    max-width: calc(
+      50% - 0.75rem
+    ); /* Modificato per 2 campi, se ne hai solo 2 */
+    /* Se i filtri sono sempre solo 2, puoi usare flex: 1 1 calc(50% - 0.75rem); */
+  }
+
+  .filter-group.filter-button-row {
+    flex: 0 0 auto;
+    min-width: unset;
+    height: 100%;
+    display: flex;
+    margin-bottom: 0;
+  }
+}
+
+/* --- REGOLE SPECIFICHE PER MOBILE (Potremmo non aver più bisogno di molte override qui) --- */
+@media (max-width: 767px) {
+  .filter-group {
+    min-width: unset;
+  }
+
+  .filter-group.filter-button-row {
+    align-self: center;
+    width: auto;
+  }
+}
+
+.page-header-container {
+  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .page-subtitle {
+    font-size: 1.05rem; /* Slightly larger text for readability */
+    color: rgba(255, 255, 255, 0.85); /* Slightly lighter color */
+    margin-top: 14px; /* Space from the title */
+    line-height: 1.5; /* Line height for better readability */
+    max-width: 700px; /* Limit width to avoid overly long lines */
+    margin-left: auto; /* Center the text */
+    margin-right: auto; /* Center the text */
+    font-weight: 300;
+    margin-bottom: 30px; /* More space before search/filters */
+  }
+}
+/* --- DESKTOP-SPECIFIC RULES --- */
+@media (min-width: 768px) {
+  .filters-accordion .accordion-content-wrapper {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .filter-group {
+    flex: 1 1 calc(33% - 1rem);
+    min-width: 200px;
+    max-width: calc(33% - 1rem);
+  }
+
+  .filter-group.filter-button-row {
+    flex: 0 0 auto;
+    min-width: unset;
+    height: 100%;
+    display: flex;
+    margin-bottom: 0;
+  }
+}
+
+/* --- MOBILE-SPECIFIC RULES --- */
+@media (max-width: 767px) {
+  .filter-group {
+    min-width: unset;
+  }
+
+  .filter-group.filter-button-row {
+    align-self: center;
+    width: auto;
+  }
+}
+
+/* Styles for the Key Features section (now at the bottom) */
+
+p.ingredient-card-legend {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  margin: -15px auto 25px auto;
+  max-width: 800px;
+  line-height: 1.4;
+}

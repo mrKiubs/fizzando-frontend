@@ -1,0 +1,418 @@
+<header class="app-header" [class.scrolled]="isScrolled">
+  <div class="header-content">
+    <div class="logo-container">
+      <a routerLink="/" class="logo-link" (click)="closeMenu()">
+        <h1 class="logo-text">COCKTAIL EXPLORER</h1>
+      </a>
+    </div>
+
+    <button class="menu-toggle-button" (click)="toggleMenu()">
+      <mat-icon [svgIcon]="isMenuOpen ? 'close' : 'menu'"></mat-icon>
+    </button>
+  </div>
+</header>
+
+<div class="full-screen-menu-overlay" [class.open]="isMenuOpen">
+  <div class="overlay-content">
+    <div class="overlay-breadcrumbs">
+      <app-breadcrumbs (linkClicked)="closeMenu()"></app-breadcrumbs>
+    </div>
+
+    <div class="overlay-search-section">
+      <div class="search-input-container">
+        <input
+          type="text"
+          placeholder="Find cocktail, ingredient, article, quiz..."
+          class="overlay-search-input"
+          [(ngModel)]="overlaySearchTerm"
+          (input)="onSearchTermChange()"
+          (focus)="onSearchInputFocus()"
+          (blur)="onSearchInputBlur()"
+          [class.has-value]="overlaySearchTerm.length > 0"
+        />
+        <button
+          *ngIf="overlaySearchTerm.length > 0"
+          class="clear-search-button"
+          (click)="clearSearchTerm($event)"
+        >
+          <mat-icon svgIcon="close"></mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div
+      class="live-search-results"
+      *ngIf="overlaySearchTerm.length >= 3 && isSearchInputFocused"
+    >
+      <div *ngIf="liveSearchLoading" class="loading-message">
+        Caricamento risultati...
+      </div>
+
+      <div
+        *ngIf="
+          !liveSearchLoading &&
+          (liveCocktailResults.length > 0 ||
+            liveIngredientResults.length > 0 ||
+            liveArticleResults.length > 0 ||
+            liveQuizResults.length > 0)
+        "
+      >
+        <div class="results-group">
+          <h4 class="group-title">
+            🍸 Cocktails ({{ liveCocktailResults.length }})
+          </h4>
+          <ul>
+            <li *ngFor="let cocktail of liveCocktailResults">
+              <a
+                [routerLink]="['/cocktails', cocktail.slug]"
+                (click)="closeMenu()"
+              >
+                <img
+                  *ngIf="cocktail.image?.formats?.thumbnail?.url"
+                  [src]="cocktail.image?.formats?.thumbnail?.url"
+                  [alt]="cocktail.name"
+                  class="img-cocktail"
+                  width="30"
+                  height="30"
+                />
+                {{ cocktail.name }}</a
+              >
+            </li>
+          </ul>
+        </div>
+
+        <div class="results-group" *ngIf="liveIngredientResults.length > 0">
+          <h4 class="group-title">
+            🍋 Ingredients ({{ liveIngredientResults.length }})
+          </h4>
+          <ul>
+            <li *ngFor="let ingredient of liveIngredientResults">
+              <a
+                [routerLink]="['/ingredients', ingredient.external_id]"
+                (click)="closeMenu()"
+              >
+                <img
+                  *ngIf="ingredient.image?.url"
+                  [src]="ingredient.image?.url"
+                  [alt]="ingredient.name"
+                  class="img-ingredient"
+                  width="30"
+                  height="30"
+                />
+                {{ ingredient.name }}</a
+              >
+            </li>
+          </ul>
+        </div>
+
+        <div class="results-group" *ngIf="liveArticleResults.length > 0">
+          <h4 class="group-title">
+            📚 Articles ({{ liveArticleResults.length }})
+          </h4>
+          <ul>
+            <li *ngFor="let article of liveArticleResults">
+              <a
+                [routerLink]="['/articles', article.slug]"
+                (click)="closeMenu()"
+              >
+                <img
+                  *ngIf="article.image?.formats?.thumbnail?.url"
+                  [src]="article.image.formats.thumbnail?.url"
+                  [alt]="article.title"
+                  class="img-article"
+                  width="30"
+                  height="30"
+                />
+                {{ article.title }}</a
+              >
+            </li>
+          </ul>
+        </div>
+
+        <div class="results-group" *ngIf="liveQuizResults.length > 0">
+          <h4 class="group-title">❓ Quizzes ({{ liveQuizResults.length }})</h4>
+          <ul>
+            <li *ngFor="let quiz of liveQuizResults">
+              <a [routerLink]="['/quiz', quiz.slug]" (click)="closeMenu()">
+                {{ quiz.title }}</a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div
+        *ngIf="
+          !liveSearchLoading &&
+          overlaySearchTerm.length >= 3 &&
+          liveCocktailResults.length === 0 &&
+          liveIngredientResults.length === 0 &&
+          liveArticleResults.length === 0 &&
+          liveQuizResults.length === 0
+        "
+        class="no-results-message"
+      >
+        Nessun risultato trovato per "{{ overlaySearchTerm }}".
+      </div>
+    </div>
+    <div class="menu-grid">
+      <div class="menu-card cocktails-card">
+        <h3>🍸 Cocktails</h3>
+        <ul>
+          <li>
+            <a routerLink="/cocktails" (click)="closeMenu()"
+              >🍸 All Cocktails</a
+            >
+          </li>
+          <li>
+            <a
+              routerLink="/cocktails"
+              [queryParams]="{ alcoholic: 'Alcoholic' }"
+              (click)="closeMenu()"
+              >🥃 Alcoholic</a
+            >
+          </li>
+          <li>
+            <a
+              routerLink="/cocktails"
+              [queryParams]="{ alcoholic: 'Non Alcoholic' }"
+              (click)="closeMenu()"
+              >💧 Non Alcoholic</a
+            >
+          </li>
+        </ul>
+        <h4>Explore by Category</h4>
+        <div class="filter-with-button">
+          <div class="custom-select-wrapper">
+            <select
+              [(ngModel)]="selectedCocktailCategory"
+              class="custom-select"
+            >
+              <option
+                value=""
+                [attr.selected]="selectedCocktailCategory === '' ? true : null"
+              >
+                All Categories
+              </option>
+              <option value="classic">🧊 Classic</option>
+              <option value="tropical">🌴 Tropical</option>
+              <option value="refreshing">🍃 Refreshing</option>
+              <option value="aperitif">🥂 Aperitif</option>
+              <option value="after-dinner">🌙 After-Dinner</option>
+              <option value="sour">🍋 Sour</option>
+              <option value="spirit-forward">🥃 Spirit-Forward</option>
+              <option value="sparkling">✨ Sparkling</option>
+              <option value="flaming">🔥 Flaming</option>
+              <option value="hot">♨️ Hot</option>
+              <option value="other">❓ Other</option>
+            </select>
+            <mat-icon
+              class="select-arrow-icon"
+              svgIcon="arrow_drop_down"
+            ></mat-icon>
+          </div>
+          <button
+            class="go-button glass-button secondary"
+            [class.active]="
+              selectedCocktailCategory !== '' &&
+              selectedCocktailCategory !== activeCocktailCategoryInUrl
+            "
+            (click)="goCocktailCategory()"
+          >
+            Go
+          </button>
+        </div>
+      </div>
+
+      <div class="menu-card ingredients-card">
+        <h3>🍋 Ingredients</h3>
+        <ul>
+          <li>
+            <a routerLink="/ingredients" (click)="closeMenu()"
+              >🥕 All Ingredients</a
+            >
+          </li>
+          <li>
+            <a
+              routerLink="/ingredients"
+              [queryParams]="{ alcoholic: 'true' }"
+              (click)="closeMenu()"
+              >🥃 Alcoholic Ingredients</a
+            >
+          </li>
+          <li>
+            <a
+              routerLink="/ingredients"
+              [queryParams]="{ alcoholic: 'false' }"
+              (click)="closeMenu()"
+              >💧 Non-Alcoholic Ingredients</a
+            >
+          </li>
+        </ul>
+        <h4>Explore By Type</h4>
+        <div class="filter-with-button">
+          <div class="custom-select-wrapper">
+            <select [(ngModel)]="selectedIngredientType" class="custom-select">
+              <option
+                value=""
+                [attr.selected]="selectedIngredientType === '' ? true : null"
+              >
+                All Types
+              </option>
+              <option value="spirits">🥃 Spirits</option>
+              <option value="liqueurs-and-cordials">
+                🍯 Liqueurs & Cordials
+              </option>
+              <option value="wines-and-fortified-wines">
+                🍷 Wines & Fortified Wines
+              </option>
+              <option value="bitters">🌿 Bitters</option>
+              <option value="syrups-and-sweeteners">
+                🍬 Syrups & Sweeteners
+              </option>
+              <option value="citrus-juices">🍋 Citrus Juices</option>
+              <option value="fruit-juices-non-citrus">
+                🍎 Fruit Juices (Non-Citrus)
+              </option>
+              <option value="carbonated-mixers">🫧 Carbonated Mixers</option>
+              <option value="non-carbonated-mixers">
+                💧 Non-Carbonated Mixers
+              </option>
+              <option value="fresh-herbs-and-botanicals">
+                🌱 Fresh Herbs & Botanicals
+              </option>
+              <option value="spices">🌶️ Spices</option>
+              <option value="fresh-fruits-solid-garnish">
+                🍓 Fresh Fruits (Solid/Garnish)
+              </option>
+              <option value="vegetables-non-herb">
+                🥕 Vegetables (Non-Herb)
+              </option>
+              <option value="dairy-and-eggs">🥛 Dairy & Eggs</option>
+              <option value="other-extracts-and-flavorings">
+                🧪 Other Extracts & Flavorings
+              </option>
+              <option value="salts-and-sugars-rimming-specialty">
+                🧂 Salts & Sugars (Rimming/Specialty)
+              </option>
+              <option value="miscellaneous">✨ Miscellaneous</option>
+            </select>
+            <mat-icon
+              class="select-arrow-icon"
+              svgIcon="arrow_drop_down"
+            ></mat-icon>
+          </div>
+          <button
+            class="go-button glass-button secondary"
+            [class.active]="
+              selectedIngredientType !== '' &&
+              selectedIngredientType !== activeIngredientTypeInUrl
+            "
+            (click)="goIngredientType()"
+          >
+            Go
+          </button>
+        </div>
+      </div>
+
+      <div class="menu-card my-recipes-card">
+        <h3>🍸 + 🍋 Find Your Cocktail</h3>
+        <ul>
+          <li>
+            <a routerLink="/find-cocktail" (click)="closeMenu()"
+              >🌿 Search by Ingredients</a
+            >
+          </li>
+        </ul>
+      </div>
+
+      <div class="menu-card my-recipes-card">
+        <h3>❓ Quiz</h3>
+        <ul>
+          <li>
+            <a routerLink="/quiz" (click)="closeMenu()">🗒️ All quizzes</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="menu-card articles-card">
+        <h3>📚 Articles</h3>
+        <ul>
+          <li>
+            <a routerLink="/articles" (click)="closeMenu()">📄 All Articles</a>
+          </li>
+        </ul>
+        <h4>Explore By Categories</h4>
+        <div class="filter-with-button">
+          <div class="custom-select-wrapper">
+            <select [(ngModel)]="selectedArticleCategory" class="custom-select">
+              <option
+                value=""
+                [attr.selected]="selectedArticleCategory === '' ? true : null"
+              >
+                All Categories
+              </option>
+              <option value="advanced-mixology">🧪 Advanced Mixology</option>
+              <option value="bartending-techniques">
+                🛠️ Bartending Techniques
+              </option>
+              <option value="best-3-cocktails">🏆 Best 3 Cocktails</option>
+              <option value="classic-cocktails">🕰️ Classic Cocktails</option>
+              <option value="cocktail-ingredients">
+                🌿 Cocktail Ingredients
+              </option>
+              <option value="cocktail-innovation">
+                💡 Cocktail Innovation
+              </option>
+              <option value="drink-history">📜 Drink History</option>
+              <option value="easy-cocktail-recipes">
+                🧑‍🍳 Easy Cocktail Recipes
+              </option>
+              <option value="exotic-sips">🏝️ Exotic Sips</option>
+              <option value="famous-aperitifs">🥂 Famous Aperitifs</option>
+              <option value="food-pairings">🍽️ Food Pairings</option>
+              <option value="glassware-guide">🥂 Glassware Guide</option>
+              <option value="home-bar-essentials">
+                🏡 Home Bar Essentials
+              </option>
+              <option value="mocktails-and-zero-proof">
+                💧 Mocktails & Zero Proof
+              </option>
+              <option value="non-alcoholic-drinks">
+                💧 Non-Alcoholic Drinks
+              </option>
+              <option value="party-drinks">🥳 Party Drinks</option>
+              <option value="seasonal-drinks">🌸 Seasonal Drinks</option>
+              <option value="spirits-guide">🥃 Spirits Guide</option>
+              <option value="summer-cocktails">☀️ Summer Cocktails</option>
+              <option value="tropical-drinks">🥭 Tropical Drinks</option>
+              <option value="winter-warmers">🧣 Winter Warmers</option>
+            </select>
+            <mat-icon
+              class="select-arrow-icon"
+              svgIcon="arrow_drop_down"
+            ></mat-icon>
+          </div>
+          <button
+            class="go-button glass-button secondary"
+            [class.active]="
+              selectedArticleCategory !== '' &&
+              selectedArticleCategory !== activeArticleCategoryInUrl
+            "
+            (click)="goArticleCategory()"
+          >
+            Go
+          </button>
+        </div>
+      </div>
+
+      <div class="menu-card home-card">
+        <h3>🏠 Home</h3>
+        <ul>
+          <li><a routerLink="/" (click)="closeMenu()">🏠 Go to Homepage</a></li>
+          <li><a routerLink="/about" (click)="closeMenu()">ℹ️ About Us</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

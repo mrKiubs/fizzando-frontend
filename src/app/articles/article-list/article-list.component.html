@@ -1,0 +1,43 @@
+<div class="container">
+  <div *ngIf="loading" class="loading-message">
+    <p>Loading articles…</p>
+  </div>
+  <div *ngIf="error" class="error-message">
+    <!-- Assumendo che mat-icon sia ancora disponibile, altrimenti rimuovilo -->
+    <!-- <mat-icon>error</mat-icon> -->
+    <span>{{ error }}</span>
+  </div>
+
+  <main class="content">
+    <app-dev-ads type="large-leaderboard"></app-dev-ads>
+    <!-- Titoli dinamici H1 e H2/Paragrafo per SEO -->
+    <h1 *ngIf="mainTitle">{{ mainTitle }}</h1>
+    <p *ngIf="subTitle" class="page-description">{{ subTitle }}</p>
+
+    <ul *ngIf="!loading && !error && articles.length > 0">
+      <li *ngFor="let article of articles">
+        <a [routerLink]="['/articles', article.slug]">
+          <article class="article-card">
+            <figure class="article-image">
+              <img
+                [src]="getImageUrl(article.image)"
+                [alt]="article.title || 'Article image preview'"
+              />
+            </figure>
+            <header>
+              <h2>{{ article.title }}</h2>
+            </header>
+          </article>
+        </a>
+      </li>
+    </ul>
+    <div *ngIf="!loading && !error && articles.length === 0">
+      No articles found.
+    </div>
+  </main>
+
+  <aside class="sidebar">
+    <app-dev-ads type="responsive"></app-dev-ads>
+    <app-sidebar></app-sidebar>
+  </aside>
+</div>

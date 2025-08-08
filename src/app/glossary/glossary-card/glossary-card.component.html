@@ -1,0 +1,19 @@
+<!-- src/app/glossary/glossary-card/glossary-card.component.html -->
+<div class="glossary-card-wrapper">
+  <div class="glossary-item">
+    <div class="glossary-header">
+      <h2 class="term-title">{{ term.term }}</h2>
+    </div>
+
+    <div class="glossary-body">
+      <p class="term-description">{{ term.description }}</p>
+    </div>
+
+    <div class="glossary-footer">
+      <span class="category-chip">
+        <!-- Icona Material Design per la categoria -->
+        {{ term.category }}
+      </span>
+    </div>
+  </div>
+</div>

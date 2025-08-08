@@ -1,0 +1,84 @@
+<div class="quiz-detail-container glass-effect">
+  <div *ngIf="loading" class="loading-message">Loading quiz...</div>
+  <div *ngIf="error" class="error-message">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && quiz">
+    <div *ngIf="!quizCompleted">
+      <h2 class="quiz-title">{{ quiz.title }}</h2>
+      <p class="quiz-description">{{ quiz.description }}</p>
+
+      <div
+        *ngIf="
+          quiz.quizData?.questions && quiz.quizData.questions.length > 0;
+          else noQuestions
+        "
+      >
+        <div class="question-card glass-effect">
+          <h3>
+            Question {{ currentQuestionIndex + 1 }} /
+            {{ quiz.quizData.questions.length }}
+          </h3>
+          <p class="question-text">
+            {{ quiz.quizData.questions[currentQuestionIndex].questionText }}
+          </p>
+
+          <ul class="options-list">
+            <li
+              *ngFor="
+                let option of quiz.quizData.questions[currentQuestionIndex]
+                  .options;
+                let i = index
+              "
+              (click)="onOptionChange(i)"
+              [class.selected]="selectedOptions.includes(i)"
+              class="glass-effect option-button"
+            >
+              {{ option.optionText }}
+            </li>
+          </ul>
+
+          <div class="quiz-actions">
+            <button
+              class="glass-button primary"
+              *ngIf="!showResult"
+              (click)="checkAnswer()"
+              [disabled]="selectedOptions.length === 0"
+            >
+              Check Answer
+            </button>
+
+            <button
+              class="glass-button primary"
+              *ngIf="showResult"
+              (click)="nextQuestion()"
+            >
+              {{
+                currentQuestionIndex + 1 < quiz.quizData.questions.length
+                  ? "Next Question"
+                  : "View Results"
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <ng-template #noQuestions>
+        <p class="no-questions-message">No questions found for this quiz.</p>
+      </ng-template>
+    </div>
+
+    <div *ngIf="quizCompleted" class="quiz-results glass-effect">
+      <h2>Quiz Completed!</h2>
+      <p>Your Score: {{ score }} / {{ maxScore || "N/A" }}</p>
+
+      <p class="feedback-message">{{ feedbackMessage }}</p>
+      <div class="quiz-actions">
+        <button class="glass-button primary" (click)="restartQuiz()">
+          Restart Quiz
+        </button>
+        <button class="glass-button secondary" [routerLink]="['/quiz']">
+          Back to Quizzes
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</div>

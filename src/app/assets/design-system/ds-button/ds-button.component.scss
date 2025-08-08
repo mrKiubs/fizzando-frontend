@@ -1,0 +1,65 @@
+// src/app/assets/design-system/ds-button/ds-button.component.scss
+
+// Importa le tue variabili e i tuoi mixin SCSS
+@use "../../style/variables" as vars;
+@use "../../style/mixins" as *; // I mixin possono essere globali qui con 'as *'
+
+.ds-button {
+  /* From https://css.glass */
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(2rem);
+  border-radius: 8px;
+  padding: 4px 8px;
+  color: white;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.3);
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    background-color: rgba(
+      255,
+      255,
+      255,
+      0.28
+    ); /* un po' più chiaro ma non troppo */
+    color: rgba(255, 255, 255, 0.75);
+
+    /* box-shadow più soft, meno intenso e più sfumato */
+    box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.1);
+  }
+
+  &:active {
+    background-image: gradient(
+        45deg,
+        #ffffff00,
+        #ffffff00 70%,
+        #ffffff33 60%,
+        /* meno opaco: ~20% */ #ffffff33 90%,
+        #ffffff00 90%
+      ),
+      linear-gradient(
+        45deg,
+        #ffffff00,
+        #ffffff00 20%,
+        #ffffff33 50%,
+        /* meno opaco: ~20% */ #ffffff33 60%,
+        #ffffff00 60%
+      );
+  }
+
+  &.icon-only {
+    border-radius: 50%;
+    padding: 8px;
+
+    &.little {
+      padding: 4px;
+    }
+  }
+}

@@ -1,0 +1,163 @@
+<!-- src/app/dashboard/dashboard.component.html -->
+
+<div class="dashboard-container">
+  <div *ngIf="loading" class="loading-message">
+    <p>Caricamento dati dashboard...</p>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button class="glass-button primary" (click)="ngOnInit()">Riprova</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="dashboard-content">
+    <!-- Prima Riga: Descrizione Sito (2/3) e Cocktail Casuale (1/3) -->
+    <section class="hero-section glass-card">
+      <div class="hero-text">
+        <h2>Benvenuto in Cocktail Explorer!</h2>
+        <p>
+          Esplora il mondo affascinante dei cocktail con la nostra guida
+          completa. Che tu sia un appassionato, un aspirante bartender, o
+          semplicemente in cerca di ispirazione per il tuo prossimo drink,
+          troverai un archivio dettagliato di ricette, ingredienti, articoli
+          approfonditi e quiz divertenti. La nostra piattaforma è progettata per
+          essere la tua risorsa definitiva, chiara e accessibile, per scoprire,
+          creare e gustare l'arte della mixology.
+        </p>
+        <button class="glass-button primary" [routerLink]="['/cocktails']">
+          Esplora tutti i Cocktail <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </section>
+
+    <section class="random-cocktail-section glass-card" *ngIf="randomCocktail">
+      <h3>Il Tuo Cocktail Casuale</h3>
+      <div class="cocktail-display">
+        <img
+          [src]="getAbsoluteImageUrl(randomCocktail.image)"
+          [alt]="randomCocktail.name"
+          class="random-cocktail-image"
+        />
+        <h4>{{ randomCocktail.name }}</h4>
+        <p class="cocktail-category">{{ randomCocktail.category }}</p>
+        <button
+          class="glass-button secondary"
+          [routerLink]="['/cocktails', randomCocktail.slug]"
+        >
+          Vedi Ricetta <mat-icon>visibility</mat-icon>
+        </button>
+      </div>
+    </section>
+
+    <!-- Seconda Riga: Link Rapidi / Esplora per Categoria (A tutta larghezza) -->
+    <section class="quick-links-section glass-card">
+      <h3>Esplora Rapidamente</h3>
+      <div class="links-grid">
+        <button class="glass-button secondary" [routerLink]="['/cocktails']">
+          <mat-icon>local_bar</mat-icon> Tutti i Cocktail
+        </button>
+        <button class="glass-button secondary" [routerLink]="['/ingredients']">
+          <mat-icon>science</mat-icon> Tutti gli Ingredienti
+        </button>
+        <button class="glass-button secondary" [routerLink]="['/quiz']">
+          <mat-icon>quiz</mat-icon> Fai un Quiz!
+        </button>
+        <button class="glass-button secondary" [routerLink]="['/articles']">
+          <mat-icon>article</mat-icon> Leggi Articoli
+        </button>
+        <button
+          class="glass-button secondary"
+          [routerLink]="['/cocktails']"
+          [queryParams]="{ alcoholic: 'Alcoholic' }"
+        >
+          <mat-icon>liquor</mat-icon> Cocktail Alcolici
+        </button>
+        <button
+          class="glass-button secondary"
+          [routerLink]="['/cocktails']"
+          [queryParams]="{ alcoholic: 'Non Alcoholic' }"
+        >
+          <mat-icon>local_drink</mat-icon> Cocktail Analcolici
+        </button>
+      </div>
+    </section>
+
+    <!-- Terza Riga: Articoli per Categoria (3 box da 1/3) -->
+    <section class="articles-by-category-section">
+      <h3>Esplora Articoli per Categoria</h3>
+      <div class="articles-category-grid">
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'history']"
+              >Storia dei Cocktail</a
+            >
+          </h4>
+          <p>
+            Scopri le origini affascinanti e l'evoluzione dei tuoi drink
+            preferiti.
+          </p>
+          <ul class="category-article-list">
+            <li *ngFor="let article of historyArticles">
+              <a [routerLink]="['/articles', article.slug]">{{
+                article.title
+              }}</a>
+            </li>
+          </ul>
+          <button
+            class="glass-button secondary"
+            [routerLink]="['/articles/category', 'history']"
+          >
+            Vedi Tutti <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'techniques']"
+              >Tecniche di Mixology</a
+            >
+          </h4>
+          <p>Impara le basi e i segreti per preparare cocktail perfetti.</p>
+          <ul class="category-article-list">
+            <li *ngFor="let article of techniquesArticles">
+              <a [routerLink]="['/articles', article.slug]">{{
+                article.title
+              }}</a>
+            </li>
+          </ul>
+          <button
+            class="glass-button secondary"
+            [routerLink]="['/articles/category', 'techniques']"
+          >
+            Vedi Tutti <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'ingredients']"
+              >Il Mondo degli Ingredienti</a
+            >
+          </h4>
+          <p>Approfondisci la conoscenza di spiriti, liquori e aromi.</p>
+          <ul class="category-article-list">
+            <li *ngFor="let article of ingredientsArticles">
+              <a [routerLink]="['/articles', article.slug]">{{
+                article.title
+              }}</a>
+            </li>
+          </ul>
+          <button
+            class="glass-button secondary"
+            [routerLink]="['/articles/category', 'ingredients']"
+          >
+            Vedi Tutti <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Le altre sezioni verranno aggiunte qui sotto in futuro -->
+  </div>
+</div>

@@ -1,0 +1,131 @@
+// src/app/assets/style/_reset.scss
+
+// Un reset CSS semplice e moderno, basato su principi comuni per "normalizzare" il browser
+// e fornire una base pulita per i tuoi stili.
+
+// 1. Box-sizing per tutti gli elementi (border-box per un layout più intuitivo)
+html {
+  box-sizing: border-box;
+  -webkit-text-size-adjust: 100%; // Impedisce la regolazione automatica del testo su Safari Mobile
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit; // Eredita box-sizing da html
+}
+
+// 2. Rimuovi margini e padding predefiniti da tutti gli elementi
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+dl,
+dd,
+ol,
+ul,
+figure,
+figcaption,
+table,
+th,
+td,
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section,
+summary {
+  margin: 0;
+  padding: 0;
+}
+
+// 3. Imposta una base di font e line-height
+body {
+  line-height: 1.5;
+}
+
+// 4. Stili per immagini, video e media per renderli responsivi
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block; // Rimuovi lo spazio extra sotto le immagini (inline-block di default)
+  max-width: 100%; // Rendi i media responsivi
+}
+
+// 5. Rimuovi gli stili predefiniti delle liste (solo ul/ol)
+ul,
+ol {
+  list-style: none;
+}
+
+// 6. Rimuovi la decorazione del testo e imposta un colore di default per i link
+a {
+  text-decoration: none; // Rimuovi la sottolineatura
+  color: inherit; // Eredita il colore del testo dall'elemento genitore
+}
+
+// 7. Resetta gli stili per i campi dei form (input, textarea, button, select)
+input,
+button,
+textarea,
+select {
+  font: inherit; // Eredita font-family e font-size
+  border: none; // Rimuovi il bordo predefinito
+  outline: none; // Rimuovi il focus outline (ma assicurati di fornire un'alternativa visibile per l'accessibilità)
+  background-color: transparent; // Rendi lo sfondo trasparente
+  color: inherit; // Eredita il colore del testo
+}
+
+// 8. Stili di base per i pulsanti
+button {
+  cursor: pointer; // Indica che è cliccabile
+}
+
+// 9. Rimuovi lo stile predefinito di focus per gli elementi interattivi (per poi applicare il tuo)
+:focus-visible {
+  outline: none; // Rimuovi l'outline di focus predefinito
+  // Ricorda di applicare i tuoi stili di focus visibili nei tuoi componenti!
+}
+
+// 10. Rimuovi il bordo da fieldset e legend
+fieldset,
+legend {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+// 11. Rendere i textareas e gli inputs consistenti
+textarea {
+  resize: vertical; // Permette solo il ridimensionamento verticale per default
+}
+
+// 12. Rendere gli elementi HTML5 "display: block" per un rendering consistente
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section,
+summary {
+  display: block;
+}

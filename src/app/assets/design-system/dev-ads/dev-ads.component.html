@@ -1,0 +1,10 @@
+<div *ngIf="isDev; else prodTpl" class="ad-placeholder" [ngClass]="type">
+  <span class="ad-label">DEV MODE - {{ type | titlecase }} Ad Placeholder</span>
+</div>
+
+<ng-template #prodTpl>
+  <!-- In produzione andrà inserito qui il codice reale -->
+  <div class="ad-placeholder prod">
+    <span>PROD MODE - Annuncio reale (non simulato)</span>
+  </div>
+</ng-template>

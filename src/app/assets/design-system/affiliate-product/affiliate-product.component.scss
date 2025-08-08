@@ -1,0 +1,47 @@
+.affiliate-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 1rem;
+  text-align: center;
+  background: #fff;
+  max-width: 220px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  img {
+    width: 100%;
+    object-fit: contain;
+    max-height: 180px;
+    margin-bottom: 0.5rem;
+  }
+
+  .info {
+    h4 {
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+      color: #333;
+    }
+
+    .price {
+      font-weight: bold;
+      color: #b12704; // Amazon price red
+      margin-bottom: 0.5rem;
+    }
+
+    a {
+      text-decoration: none;
+      background: #ffa41c;
+      color: #111;
+      padding: 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+      font-weight: 600;
+    }
+
+    a:hover {
+      background: #f08a00;
+    }
+  }
+}

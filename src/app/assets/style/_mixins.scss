@@ -1,0 +1,98 @@
+// app/assets/style/_mixins.scss
+
+@use "variables" as vars;
+@use "sass:color";
+
+// Mixin base per l'effetto Glassmorphism
+// Utilizza le CSS Custom Properties per i colori e i valori che cambiano con il tema.
+@mixin liquid-glass-effect(
+  $bg-color: null,
+  $border-color: null,
+  $shadow-color: null,
+  $blur-amount: vars.$blur-md,
+  $border-radius: vars.$border-radius-md
+) {
+  background-color: if($bg-color, $bg-color, var(--glass-bg-color));
+  border: 1px solid if($border-color, $border-color, var(--glass-border-color));
+  border-radius: $border-radius;
+  box-shadow: 0 4px 30px
+    if($shadow-color, $shadow-color, var(--glass-shadow-color));
+  backdrop-filter: blur($blur-amount);
+  -webkit-backdrop-filter: blur($blur-amount);
+
+  transition: background-color var(--transition-duration-md, 0.4s)
+      var(--ease-in-out-sine, cubic-bezier(0.445, 0.05, 0.55, 0.95)),
+    box-shadow var(--transition-duration-md, 0.4s)
+      var(--ease-in-out-sine, cubic-bezier(0.445, 0.05, 0.55, 0.95)),
+    border-color var(--transition-duration-md, 0.4s)
+      var(--ease-in-out-sine, cubic-bezier(0.445, 0.05, 0.55, 0.95));
+
+  &:hover,
+  &:focus {
+    background-color: var(--glass-bg-hover-color);
+    box-shadow: 0 8px 40px var(--glass-shadow-hover-color); // Ombra più pronunciata all'hover
+    border-color: var(--glass-border-hover-color);
+  }
+}
+
+// Mixin per un effetto "bagliore" interno o sul bordo (utile per l'illuminazione dinamica)
+@mixin liquid-glass-glow($color: null, $size: vars.$spacing-md, $spread: 0px) {
+  box-shadow: 0 0 $size $spread if($color, $color, var(--glass-glow-color));
+  transition: box-shadow var(--transition-duration-md, 0.4s)
+    var(--ease-in-out-sine, cubic-bezier(0.445, 0.05, 0.55, 0.95));
+}
+
+// Mixin per un gradiente di riflesso sottile (simula la luce sul vetro)
+@mixin liquid-glass-reflection(
+  $angle: 45deg,
+  $start-color: null,
+  $end-color: null
+) {
+  background: linear-gradient(
+    $angle,
+    if($start-color, $start-color, var(--glass-reflection-start-color)),
+    if($end-color, $end-color, rgba(vars.$color-white-base, 0))
+  );
+}
+
+// NUOVO MIXIN: Effetto di bordo interno per "Liquid Glass"
+@mixin liquid-glass-inner-border(
+  $color-light: rgba(vars.$color-white-base, 0.1),
+  $color-dark: rgba(vars.$color-black-base, 0.1)
+) {
+  // Queste ombre inset creano un effetto 3D che simula un bordo "incassato" o "gonfiato" leggermente
+  box-shadow: 0 0 0 1px $color-light inset,
+    // Bordo interno chiaro (luce)
+    0 0 0 2px $color-dark inset; // Bordo interno scuro (ombra)
+}
+
+@mixin glass-card {
+  background-image: linear-gradient(120deg, #d2fcc315 0%, #9d8efc10 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(
+    5px
+  ); // Per compatibilità con browser basati su WebKit
+  transition: box-shadow 0.2s ease;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+
+  @media (max-width: 600px) {
+    padding: 8px;
+  }
+
+  // Stili opzionali per l'hover, comuni per le "glass card"
+  &:hover {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); // Ombra più pronunciata
+  }
+}
+
+@mixin search-filter-bar-bg {
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}

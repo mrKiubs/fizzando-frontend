@@ -1,0 +1,337 @@
+<div class="cocktail-detail-wrapper">
+  <div *ngIf="loading" class="loading-message glass-card">
+    <p>Loading cocktail details...</p>
+  </div>
+
+  <div *ngIf="error" class="error-message glass-card">
+    <mat-icon>error</mat-icon>
+    <span>{{ error }}</span>
+    <button class="glass-button secondary" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon> Go Back
+    </button>
+  </div>
+
+  <ng-container *ngIf="cocktail && !loading && !error">
+    <h1 class="cocktail-title">{{ cocktail.name }}</h1>
+    <h2 class="cocktail-subtitle">
+      {{ cocktail.category }} - {{ cocktail.alcoholic }}
+      <ng-container *ngIf="cocktail.glass">
+        <span class="separator">|</span> Glass: {{ cocktail.glass }}
+      </ng-container>
+    </h2>
+  </ng-container>
+
+  <ng-container>
+    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+  </ng-container>
+
+  <div
+    *ngIf="cocktail && !loading && !error"
+    class="cocktail-main-content glass-card"
+  >
+    <div class="main-content-grid">
+      <div class="cocktail-image-column">
+        <div class="image-wrapper">
+          <img
+            [src]="getCocktailImageUrl(cocktail)"
+            alt="{{ cocktail.name }}"
+            class="detail-image"
+          />
+        </div>
+      </div>
+
+      <div class="cocktail-description-instructions-column">
+        <section class="description-section">
+          <p>{{ cocktail.ai_description || cocktail.instructions }}</p>
+        </section>
+
+        <section class="instructions-section">
+          <h2 class="section-title">Instructions</h2>
+          <p>{{ cocktail.instructions }}</p>
+        </section>
+      </div>
+
+      <div class="cocktail-ingredients-column">
+        <section class="ingredients-section">
+          <h2 class="section-title">Ingredients</h2>
+          <ul class="ingredient-list">
+            <li *ngFor="let item of cocktail.ingredients_list">
+              <div class="image-ingredient-wrapper">
+                <img
+                  [src]="getIngredientImageUrl(item)"
+                  [alt]="item.ingredient.name"
+                  width="50"
+                />
+              </div>
+
+              <span class="ingredient-measure">{{ item.measure }}</span>
+              <ng-container
+                *ngIf="
+                  item.ingredient.external_id &&
+                    item.ingredient.external_id !== 'unknown-ingredient';
+                  else unknownIngredient
+                "
+              >
+                <div class="ing-cocktail">
+                  <a
+                    [routerLink]="['/ingredients', item.ingredient.external_id]"
+                    class="ingredient-link"
+                  >
+                    {{ item.ingredient.name }}
+                  </a>
+                  <span class="ing-type">{{
+                    item.ingredient.ingredient_type
+                  }}</span>
+                </div>
+              </ng-container>
+              <ng-template #unknownIngredient>
+                <div class="ing-cocktail">
+                  <span>{{ item.ingredient.name }}</span>
+                </div>
+              </ng-template>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <ng-container>
+    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+  </ng-container>
+
+  <section
+    *ngIf="cocktail && !loading && !error"
+    class="ai-details-section glass-card"
+  >
+    <h2 class="section-title">🔍 {{ cocktail.name }} Deep Dive</h2>
+    <div class="ai-blocks-grid">
+      <div
+        class="ai-detail-block glass-card-mini"
+        *ngIf="cocktail.ai_presentation"
+      >
+        <h3 class="ai-block-title">🎁 Presentation</h3>
+        <p>{{ cocktail.ai_presentation }}</p>
+      </div>
+
+      <div class="ai-detail-block glass-card-mini" *ngIf="cocktail.ai_pairing">
+        <h3 class="ai-block-title">🍽️ Pairing</h3>
+        <p>{{ cocktail.ai_pairing }}</p>
+      </div>
+
+      <div class="ai-detail-block glass-card-mini" *ngIf="cocktail.ai_origin">
+        <h3 class="ai-block-title">🌍 Origin</h3>
+        <p>{{ cocktail.ai_origin }}</p>
+      </div>
+
+      <div class="ai-detail-block glass-card-mini" *ngIf="cocktail.ai_occasion">
+        <h3 class="ai-block-title">🎉 Occasion</h3>
+        <p>{{ cocktail.ai_occasion }}</p>
+      </div>
+
+      <div
+        class="ai-detail-block glass-card-mini"
+        *ngIf="cocktail.ai_sensory_description"
+      >
+        <h3 class="ai-block-title">👃 Sensory Description</h3>
+        <p>{{ cocktail.ai_sensory_description }}</p>
+      </div>
+
+      <div
+        class="ai-detail-block glass-card-mini"
+        *ngIf="cocktail.ai_personality"
+      >
+        <h3 class="ai-block-title">😎 Personality</h3>
+        <p>{{ cocktail.ai_personality }}</p>
+      </div>
+
+      <div
+        class="ai-detail-block glass-card-mini"
+        *ngIf="cocktail.ai_variations"
+      >
+        <h3 class="ai-block-title">🔄 Variations</h3>
+        <p>{{ cocktail.ai_variations }}</p>
+      </div>
+
+      <div
+        class="ai-detail-block glass-card-mini"
+        *ngIf="cocktail.ai_alcohol_content"
+      >
+        <h3 class="ai-block-title">🍸 Alcohol Content</h3>
+        <p>{{ cocktail.ai_alcohol_content }}</p>
+        <p class="abv-warning" style="margin-top: 8px">
+          <ng-container
+            *ngIf="cocktail.alcoholic === 'Alcoholic'; else noLimit"
+          >
+            🚫 Not for minors, pregnant mamas or designated drivers—sip
+            responsibly! 😉
+          </ng-container>
+          <ng-template #noLimit>
+            🆓 No booze here—drink up, the world is your oyster! 🍹
+          </ng-template>
+        </p>
+      </div>
+    </div>
+  </section>
+  <ng-container>
+    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+  </ng-container>
+  <section class="glass-card">
+    <h2 class="section-title">
+      🛒 Craft {{ cocktail?.name }} with the Right Tools
+    </h2>
+    <div class="affiliate-card-list" #affiliateCardList>
+      <div class="scrollerdiv">
+        <ng-container *ngFor="let product of productList; let i = index">
+          <app-affiliate-product
+            [title]="product.title"
+            [imageUrl]="product.imageUrl"
+            [price]="product.price"
+            [link]="product.link"
+            [showPlaceholder]="product.showPlaceholder"
+          >
+          </app-affiliate-product>
+        </ng-container>
+      </div>
+    </div>
+    <p class="affiliate-bottom">
+      We may get a little kickback if you buy via these links — it helps keep
+      the shaker shaking! 🙌🍸
+    </p>
+  </section>
+
+  <ng-container>
+    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+  </ng-container>
+
+  <section
+    class="related-cocktails-section"
+    *ngIf="similarCocktails.length > 0"
+  >
+    <h2 class="section-title">
+      🍹 If you liked the {{ cocktail?.name }}, try these too!
+    </h2>
+    <div class="related-cocktail-cards-grid">
+      <ng-container *ngFor="let item of getCocktailsAndAds(); let i = index">
+        <ng-container *ngIf="isCocktail(item); else adBlock">
+          <app-cocktail-card
+            [cocktail]="item"
+            [routerLink]="['/cocktails', item.slug]"
+          ></app-cocktail-card>
+        </ng-container>
+
+        <ng-template #adBlock>
+          <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+          <div class="banner-disposition" *ngIf="!isMobile">
+            <app-dev-ads [type]="'responsive'"></app-dev-ads>
+            <app-dev-ads [type]="'responsive'"></app-dev-ads>
+          </div>
+        </ng-template>
+      </ng-container>
+    </div>
+  </section>
+  <ng-container>
+    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+  </ng-container>
+  <section class="glass-card">
+    <h2 class="section-title">
+      🛒 Serve Your {{ cocktail?.name }} in the Perfect Glass
+    </h2>
+    <div class="affiliate-card-list" #affiliateCardList>
+      <div class="scrollerdiv">
+        <ng-container *ngFor="let product of productList; let i = index">
+          <app-affiliate-product
+            [title]="product.title"
+            [imageUrl]="product.imageUrl"
+            [price]="product.price"
+            [link]="product.link"
+            [showPlaceholder]="product.showPlaceholder"
+          >
+          </app-affiliate-product>
+        </ng-container>
+      </div>
+    </div>
+    <p class="affiliate-bottom">
+      We may get a little kickback if you buy via these links — it helps keep
+      the shaker shaking! 🙌🍸
+    </p>
+  </section>
+  <ng-container>
+    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+  </ng-container>
+  <section class="glass-card">
+    <h2 class="section-title">
+      🛒 Too Much Work? Let a Robot Make Your {{ cocktail?.name }} for You!
+    </h2>
+    <div class="affiliate-card-list" #affiliateCardList>
+      <div class="scrollerdiv">
+        <ng-container *ngFor="let product of productListRobot; let i = index">
+          <app-affiliate-product
+            [title]="product.title"
+            [imageUrl]="product.imageUrl"
+            [price]="product.price"
+            [link]="product.link"
+            [showPlaceholder]="product.showPlaceholder"
+          >
+          </app-affiliate-product>
+        </ng-container>
+      </div>
+    </div>
+    <p class="affiliate-bottom">
+      We may get a little kickback if you buy via these links — it helps keep
+      the shaker shaking! 🙌🍸
+    </p>
+  </section>
+  <div class="navigation-bar" *ngIf="!loading && !error">
+    <div class="nav-top">
+      <a
+        *ngIf="previousCocktail"
+        [routerLink]="['/cocktails', previousCocktail.slug]"
+        class="glass-button secondary nav-button"
+      >
+        <mat-icon svgIcon="chevron_left"></mat-icon>
+        <div class="cocktail-image-wrapper">
+          <img
+            [src]="previousCocktail.imageUrl"
+            alt="{{ previousCocktail.name }}"
+            class="nav-cocktail-image"
+          />
+        </div>
+        {{ previousCocktail.name }}
+      </a>
+      <span *ngIf="!previousCocktail" class="nav-placeholder"></span>
+
+      <a
+        *ngIf="nextCocktail"
+        [routerLink]="['/cocktails', nextCocktail.slug]"
+        class="glass-button secondary nav-button"
+      >
+        {{ nextCocktail.name }}
+        <div class="cocktail-image-wrapper">
+          <img
+            [src]="nextCocktail.imageUrl"
+            alt="{{ nextCocktail.name }}"
+            class="nav-cocktail-image"
+          />
+        </div>
+        <mat-icon svgIcon="chevron_right"></mat-icon>
+      </a>
+      <span *ngIf="!nextCocktail" class="nav-placeholder"></span>
+    </div>
+    <div class="nav-bottom">
+      <button class="glass-button secondary" (click)="goBack()">
+        <mat-icon svgIcon="arrow_back"></mat-icon> Go Back
+      </button>
+    </div>
+  </div>
+  <ng-container>
+    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+  </ng-container>
+</div>

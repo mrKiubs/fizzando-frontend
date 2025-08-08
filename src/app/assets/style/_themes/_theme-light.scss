@@ -1,0 +1,48 @@
+// app/assets/style/_themes/_theme-light.scss
+
+@use "../variables" as vars;
+@use "sass:color";
+
+.theme-light {
+  // Colori principali
+  --primary-color: #4caf50; // Verde tenue
+  --secondary-color: #ffc107; // Giallo ambra
+  --text-color: #212121; // Testo scuro
+  --background-color: #f5f5f5; // Sfondo grigio molto chiaro
+  --surface-color: #ffffff; // Superfici bianche
+
+  // Colori specifici per l'effetto Liquid Glass (su sfondo chiaro) - Più visibili
+  --glass-bg-color: rgba(0, 0, 0, 0.2); // Vetro leggermente più opaco (20%)
+  --glass-border-color: rgba(0, 0, 0, 0.35); // Bordo più visibile (35%)
+  --glass-shadow-color: rgba(0, 0, 0, 0.15); // Ombra più presente (15%)
+  --glass-reflection-start-color: rgba(
+    0,
+    0,
+    0,
+    0.1
+  ); // Riflesso più evidente (10%)
+  --glass-glow-color: rgba(0, 0, 0, 0.1); // Bagliore scuro molto tenue
+
+  // CUSTOM PROPERTIES PER GLI STATI HOVER (valori più intensi)
+  --glass-bg-hover-color: rgba(
+    0,
+    0,
+    0,
+    0.3
+  ); // Ancora più opaco all'hover (30%)
+  --glass-border-hover-color: rgba(
+    0,
+    0,
+    0,
+    0.5
+  ); // Bordo più marcato all'hover (50%)
+  --glass-shadow-hover-color: rgba(
+    0,
+    0,
+    0,
+    0.25
+  ); // Ombra più scura all'hover (25%)
+
+  // Testo sui vetri
+  --glass-text-color: vars.$color-text-dark;
+}

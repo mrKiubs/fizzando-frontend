@@ -1,0 +1,306 @@
+// app/assets/style/main.scss
+
+@use "_reset" as *;
+
+@use "variables" as *;
+@use "mixins" as *;
+
+// Importa tutti i temi
+// CORREZIONE: Aggiunto il prefisso '_' al nome della cartella del tema
+@use "_themes/theme-colorful" as *;
+@use "_themes/theme-light" as *;
+@use "_themes/theme-dark" as *;
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.cocktail-card-title,
+.ingredient-link {
+  font-family: "Bebas Neue", sans-serif;
+  letter-spacing: 0.05em;
+}
+
+// Puoi applicare stili globali o un effetto di base qui
+
+// Stili globali per elementi generici che useranno le custom properties
+
+// Nota: i tuoi componenti Material Design useranno ancora i loro stili di default
+// finché non li sovrascriverai con i tuoi stili custom che usano le CSS variables.
+
+h1 {
+  font-size: 46px;
+  line-height: 50px;
+  text-align: center;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0;
+  text-shadow: none;
+  -webkit-text-stroke: 0.01px rgba(255, 255, 255, 0.6);
+  text-stroke: 0.01px rgba(255, 255, 255, 0.6);
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  background: none;
+  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.1));
+
+  &.justify-left {
+    text-align: left;
+    @media (max-width: 600px) {
+      text-align: center;
+    }
+  }
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0;
+  background: none;
+  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.1));
+  margin: 32px 0;
+}
+
+p.page-subtitle {
+  font-size: 16px; /* Slightly larger text for readability */
+  color: rgba(255, 255, 255, 0.7); /* Slightly lighter color */
+  line-height: 1.5; /* Line height for better readability */
+  max-width: 600px; /* Limit width to avoid overly long lines */
+  font-weight: 300;
+  margin: 0 auto 32px;
+
+  b {
+    font-weight: 600;
+    letter-spacing: 0.05px;
+  }
+}
+a.ingredient-link {
+  color: white !important;
+}
+.faq-section {
+  max-width: 800px;
+  margin: 40px auto; /* Margine sopra come da tuo esempio */
+  padding: 16px; /* Padding come da tuo esempio */
+  background-color: rgba(255, 255, 255, 0.05); /* Stile glassy */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 600px) {
+    padding: 8px; /* Adjusted padding for smaller screens */
+    margin: 16px auto;
+  }
+
+  h2 {
+    color: rgba(255, 255, 255, 0.8); /* Colore più vicino agli altri titoli */
+    font-weight: 600;
+    margin-bottom: 24px;
+    text-align: center;
+    font-size: 2.2rem; /* Adattato per coerenza */
+
+    @media (max-width: 768px) {
+      font-size: 1.8rem;
+    }
+  }
+
+  .faq-item {
+    margin-bottom: 12px;
+    background-color: rgba(
+      255,
+      255,
+      255,
+      0.08
+    ); /* Sfondo più scuro per l'item FAQ */
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+
+    .faq-question {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      font-size: 16px5rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      background-color: rgba(
+        255,
+        255,
+        255,
+        0.02
+      ); /* Sfondo più chiaro all'interno dell'accordion item */
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .faq-toggle-icon {
+        transition: transform 0.3s ease;
+        min-width: 24px;
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
+
+      @media (max-width: 600px) {
+        padding: 12px 12px 8px 12px;
+        margin: 0px auto;
+        line-height: 22px;
+      }
+    }
+
+    .faq-answer-wrapper {
+      padding: 0 20px;
+      .faq-answer {
+        padding-bottom: 16px;
+        padding-top: 8px;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.6;
+
+        a {
+          color: #fff;
+          text-decoration: underline;
+          &:hover {
+            text-decoration: none;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* KEY FEATURES SECTION STYLES (Copiati dal Glossary) */
+.key-features-section {
+  max-width: 1200px;
+  margin: 64px auto 52px auto;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 3px 6cqh rgba(0, 0, 0, 0.1);
+  text-align: center;
+
+  @media (max-width: 600px) {
+    padding: 8px;
+    gap: 12px;
+  }
+
+  h3 {
+    color: #fff;
+    font-size: 1.6rem;
+    margin: 30px 16px;
+    font-weight: 600;
+  }
+
+  .feature-item {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    @media (max-width: 600px) {
+      padding: 8px;
+    }
+    mat-icon {
+      font-size: 3rem;
+      width: 3rem;
+      height: 3rem;
+      color: white; /* Colore blu per le icone delle features */
+      margin-bottom: 15px;
+    }
+
+    p {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.5;
+      margin: 0;
+    }
+    a {
+      color: #fff !important;
+      text-decoration: underline !important;
+
+      &:hover {
+        text-decoration: none !important;
+      }
+    }
+  }
+
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25px;
+  justify-items: center;
+
+  .feature-icon {
+    font-size: 34px;
+    margin: 8px 0 16px 0;
+    width: 40px;
+    height: 40px;
+    background-color: #80808022;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 30px;
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Media Queries for Filters Accordion responsiveness (Copiati dal Glossary) */
+@media (min-width: 768px) {
+  .filters-accordion .accordion-content-wrapper {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .filter-group {
+    flex: 1 1 calc(33.33% - 16px);
+    max-width: calc(33.33% - 16px);
+  }
+
+  .filter-group.filter-button-row {
+    flex: 0 0 auto;
+    width: auto;
+    margin-bottom: 0;
+  }
+}
+
+/* Specific rules for mobile (Copiati dal Glossary) */
+@media (max-width: 767px) {
+  .filter-group {
+    min-width: unset;
+  }
+
+  .filter-group.filter-button-row {
+    margin-top: 1.5rem;
+    align-self: center;
+    width: auto;
+  }
+}

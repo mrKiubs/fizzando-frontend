@@ -1,0 +1,357 @@
+/* Usiamo @use per importare gli stili di base dei cocktail.
+   Se cocktail-list.component.scss contiene classi CSS dirette (non solo variabili/mixin),
+   queste verranno incluse nel CSS finale del componente.
+   Se invece contiene variabili/mixin che vuoi riutilizzare, dovresti fare:
+   @use "../../cocktails/cocktail-list/cocktail-list.component.scss" as cocktail-list;
+   e poi usare cocktail-list.$variabile o @include cocktail-list.mixin.
+
+   Per ora, assumiamo che tu voglia importare gli stili CSS diretti e sovrascriverli.
+   La sintassi più semplice per includere stili da un altro file è:
+*/
+//@use "../../cocktails/cocktail-list/cocktail-list.component.scss";
+
+:host {
+  display: block;
+  // Assicurati che l'altezza minima sia sufficiente per contenere il contenuto,
+  // specialmente su schermi piccoli dove i cocktail non sono visibili inizialmente.
+  min-height: calc(
+    100vh - var(--navbar-height)
+  ); // Assuming --navbar-height is defined globally
+}
+
+/* Override/Adjustments for this specific page */
+.page-header-container {
+  padding-bottom: 0; // Reduce bottom padding
+}
+
+.search-bar-container {
+  padding: 0 0; // Add horizontal padding for smaller screens
+  max-width: 800px; // Limita la larghezza della search bar
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0 !important;
+}
+
+.ingredient-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  box-shadow: 0 0;
+  padding: 32px 0 0 0;
+  backdrop-filter: blur(0px);
+
+  .custom-search-input {
+    position: relative;
+    width: 100%;
+    display: flex;
+    padding: 0.75rem 1rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+
+    &:focus {
+      border-color: white;
+      box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.3);
+    }
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
+
+  .search-icon,
+  .clear-search-icon {
+    position: absolute;
+    right: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+  .clear-search-icon {
+    right: 40px; /* Spostato a sinistra dell'icona di ricerca */
+  }
+  .clear-search-icon:hover,
+  .search-icon:hover {
+    color: #fff;
+  }
+}
+
+.selected-ingredients-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 0 16px; // Align with search bar
+  justify-content: flex-start;
+  max-width: 800px; // Limita la larghezza
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 40px;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .filter-item {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1 1 0%;
+  }
+
+  button {
+    flex: 0 0 auto;
+  }
+}
+
+.ingredient-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 23px;
+  font-size: 14px;
+  white-space: nowrap;
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    padding: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .chip-remove-icon {
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+    transition: color 0.2s ease;
+    &:hover {
+      color: #ff6347; /* Un colore più vibrante per il remove */
+    }
+  }
+}
+
+.clear-all-button {
+  padding: 8px 16px;
+  font-size: 16px;
+  height: auto;
+  align-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: #87ceeb;
+  }
+
+  mat-icon {
+    font-size: 1.1rem;
+  }
+}
+
+.no-selection-message {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 42px;
+  text-align: center;
+  width: 100%;
+}
+
+.ingredient-suggestions {
+  position: relative;
+  margin: 16px auto 32px auto;
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10;
+
+  /* Glass Card Styles - Replicati o assicurati che siano importati */
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 768px) {
+    padding: 4px;
+  }
+}
+
+.suggestion-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  li {
+    flex: 0 1 calc(25% - 12px);
+
+    @media (max-width: 768px) {
+      flex: 1 1 calc(33% - 8px);
+    }
+
+    @media (max-width: 600px) {
+      flex: 1 1 calc(50% - 4px);
+    }
+  }
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  input[type="checkbox"] {
+    margin-right: 4px;
+    accent-color: #87ceeb;
+    min-width: 16px; /* Assicura che la checkbox sia cliccabile */
+    min-height: 16px;
+  }
+}
+
+.no-suggestions-message,
+.loading-inline {
+  text-align: center;
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+hr {
+  border: 0;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin: 32px auto;
+  max-width: 800px;
+}
+
+.cocktail-results-section {
+  margin-bottom: 32px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 16px; /* Aumentato padding per sezione */
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  @media (max-width: 600px) {
+    padding: 8px;
+  }
+}
+
+.section-title {
+  font-size: 26px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 16px;
+  line-height: 30px;
+}
+
+.section-description {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 1.5rem;
+}
+
+/* Ensure cocktail-list grid behavior is consistent */
+.cocktail-list {
+  margin-top: 1rem;
+  display: grid;
+  gap: 16px;
+  grid-auto-rows: minmax(180px, auto);
+  grid-auto-flow: dense;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+  .cocktail-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .cocktail-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .cocktail-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .cocktail-list {
+    gap: 8px;
+    grid-auto-rows: minmax(80px, auto);
+  }
+}
+
+.no-results-message {
+  margin-top: 2rem;
+  font-size: 1.1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 2rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Media Queries for better responsiveness */
+@media (min-width: 768px) {
+  .search-bar-container,
+  .selected-ingredients-container {
+    padding: 0; // Remove horizontal padding as max-width handles centering
+  }
+  .ingredient-suggestions {
+    width: 100%; // Match max-width of search bar
+  }
+
+  .selected-ingredients-container {
+    //justify-content: flex-start; // Align chips to left on larger screens
+  }
+}
+h2 {
+  text-align: center;
+}
