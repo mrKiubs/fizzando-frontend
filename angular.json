@@ -30,7 +30,10 @@
               }
             ],
             "styles": ["src/styles.scss"],
-            "scripts": []
+            "scripts": [],
+            "server": "src/main.server.ts",
+            "prerender": false,
+            "ssr": { "entry": "src/server.ts" }
           },
           "configurations": {
             "production": {
@@ -52,25 +55,24 @@
                   "replace": "src/app/config/env.ts",
                   "with": "src/app/config/env.prod.ts"
                 }
-              ]
+              ],
+              "prerender": false,
+              "ssr": { "entry": "src/server.ts" }
             },
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "prerender": false
             }
           },
-          "defaultConfiguration": "production"
+          "defaultConfiguration": "development"
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
-            "production": {
-              "buildTarget": "cocktail-app:build:production"
-            },
-            "development": {
-              "buildTarget": "cocktail-app:build:development"
-            }
+            "production": { "buildTarget": "cocktail-app:build:production" },
+            "development": { "buildTarget": "cocktail-app:build:development" }
           },
           "defaultConfiguration": "development"
         },
@@ -86,10 +88,7 @@
             "assets": [
               "src/favicon.ico",
               "src/assets",
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
+              { "glob": "**/*", "input": "public" }
             ],
             "styles": ["src/styles.scss"],
             "scripts": []

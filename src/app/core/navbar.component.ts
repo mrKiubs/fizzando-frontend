@@ -1,4 +1,14 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+// src/app/navbar/navbar.component.ts
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  inject,
+  PLATFORM_ID,
+  NgZone,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import {
   Router,
   ActivatedRoute,
@@ -17,16 +27,16 @@ import {
   catchError,
 } from 'rxjs/operators';
 
-// Assicurati che i percorsi e i nomi dei servizi siano corretti per il tuo progetto
 import { CocktailService, Cocktail } from '../services/strapi.service';
 import { IngredientService, Ingredient } from '../services/ingredient.service';
 import { ArticleService, Article } from '../services/article.service';
-import { QuizService, Quiz } from '../services/quiz.service'; // <--- AGGIUNTO: Import QuizService
+import { QuizService, Quiz } from '../services/quiz.service';
 import { BreadcrumbsComponent } from '../assets/design-system/breadcrumbs/breadcrumbs.component';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
+  host: { ngSkipHydration: 'true' },
   imports: [
     CommonModule,
     FormsModule,
@@ -38,32 +48,35 @@ import { BreadcrumbsComponent } from '../assets/design-system/breadcrumbs/breadc
   styleUrls: ['./navbar.component.scss'],
 })
 export class NavbarComponent implements OnInit, OnDestroy {
-  isMenuOpen: boolean = false;
-  isScrolled: boolean = false;
-  overlaySearchTerm: string = '';
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly ngZone = inject(NgZone);
 
-  isSearchInputFocused: boolean = false;
+  isMenuOpen = false;
+  isScrolled = false;
+  overlaySearchTerm = '';
+
+  isSearchInputFocused = false;
   private blurTimeout: any;
 
-  selectedCocktailCategory: string = '';
-  selectedIngredientType: string = '';
-  selectedArticleCategory: string = '';
+  selectedCocktailCategory = '';
+  selectedIngredientType = '';
+  selectedArticleCategory = '';
 
-  activeCocktailCategoryInUrl: string = '';
-  activeIngredientTypeInUrl: string = '';
-  activeArticleCategoryInUrl: string = '';
+  activeCocktailCategoryInUrl = '';
+  activeIngredientTypeInUrl = '';
+  activeArticleCategoryInUrl = '';
 
-  // Variabili per la ricerca live
-  liveSearchLoading: boolean = false;
+  liveSearchLoading = false;
   liveCocktailResults: Cocktail[] = [];
   liveIngredientResults: Ingredient[] = [];
   liveArticleResults: Article[] = [];
-  liveQuizResults: Quiz[] = []; // <--- AGGIUNTO: Proprietà per i risultati dei quiz
+  liveQuizResults: Quiz[] = [];
 
   private searchTerms = new Subject<string>();
 
-  private routerSubscription: Subscription | undefined;
-  private searchSubscription: Subscription | undefined;
+  private routerSubscription?: Subscription;
+  private searchSubscription?: Subscription;
 
   constructor(
     private router: Router,
@@ -71,7 +84,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private cocktailService: CocktailService,
     private ingredientService: IngredientService,
     private articleService: ArticleService,
-    private quizService: QuizService // <--- AGGIUNTO: Inietta QuizService
+    private quizService: QuizService
   ) {}
 
   ngOnInit(): void {
@@ -84,7 +97,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
         if (urlParts[0].includes('/cocktails')) {
           this.selectedCocktailCategory = urlParams.get('category') || '';
-          this.activeCocktailCategoryInUrl = urlParams.get('category') || '';
+          this.activeCocktailCategoryInUrl = this.selectedCocktailCategory;
         } else {
           this.selectedCocktailCategory = '';
           this.activeCocktailCategoryInUrl = '';
@@ -92,7 +105,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
         if (urlParts[0].includes('/ingredients')) {
           this.selectedIngredientType = urlParams.get('type') || '';
-          this.activeIngredientTypeInUrl = urlParams.get('type') || '';
+          this.activeIngredientTypeInUrl = this.selectedIngredientType;
         } else {
           this.selectedIngredientType = '';
           this.activeIngredientTypeInUrl = '';
@@ -100,14 +113,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
         if (urlParts[0].includes('/articles')) {
           this.selectedArticleCategory = urlParams.get('category') || '';
-          this.activeArticleCategoryInUrl = urlParams.get('category') || '';
+          this.activeArticleCategoryInUrl = this.selectedArticleCategory;
         } else {
           this.selectedArticleCategory = '';
           this.activeArticleCategoryInUrl = '';
         }
       });
-
-    window.addEventListener('scroll', this.onWindowScroll, true);
 
     this.searchSubscription = this.searchTerms
       .pipe(
@@ -117,32 +128,24 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.liveCocktailResults = [];
           this.liveIngredientResults = [];
           this.liveArticleResults = [];
-          this.liveQuizResults = []; // <--- AGGIUNTO: Pulisci i risultati dei quiz
+          this.liveQuizResults = [];
           this.liveSearchLoading = false;
 
-          if (term.length < 3 && !this.isSearchInputFocused) {
-            return of(null);
-          }
-          if (term.length < 3) {
-            return of(null);
-          }
+          if (term.length < 3 && !this.isSearchInputFocused) return of(null);
+          if (term.length < 3) return of(null);
 
           this.liveSearchLoading = true;
 
           return forkJoin({
-            cocktails: this.cocktailService.searchCocktailsByName(term).pipe(
-              catchError((err) => {
-                console.error('Errore nella ricerca cocktail:', err);
-                return of([]);
-              })
-            ),
+            cocktails: this.cocktailService
+              .searchCocktailsByName(term)
+              .pipe(catchError(() => of<Cocktail[]>([]))),
             ingredients: this.ingredientService
               .getIngredients(1, 10, term)
               .pipe(
-                catchError((err) => {
-                  console.error('Errore nella ricerca ingredienti:', err);
-                  return of({
-                    data: [],
+                catchError(() =>
+                  of({
+                    data: [] as Ingredient[],
                     meta: {
                       pagination: {
                         page: 1,
@@ -151,14 +154,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
                         total: 0,
                       },
                     },
-                  });
-                })
+                  })
+                )
               ),
             articles: this.articleService.getArticles(1, 10, term).pipe(
-              catchError((err) => {
-                console.error('Errore nella ricerca articoli:', err);
-                return of({
-                  data: [],
+              catchError(() =>
+                of({
+                  data: [] as Article[],
                   meta: {
                     pagination: {
                       page: 1,
@@ -167,77 +169,63 @@ export class NavbarComponent implements OnInit, OnDestroy {
                       total: 0,
                     },
                   },
-                });
-              })
+                })
+              )
             ),
-            // <--- AGGIUNTO: Chiamata al servizio per la ricerca dei quiz
-            quizzes: this.quizService.getQuizzes(1, 10, term).pipe(
-              catchError((err) => {
-                console.error('Errore nella ricerca quiz:', err);
-                return of({
-                  quizzes: [],
-                  total: 0,
-                });
-              })
-            ),
-          }).pipe(
-            catchError((err) => {
-              console.error('Errore generale nella ricerca live:', err);
-              return of(null);
-            })
-          );
+            quizzes: this.quizService
+              .getQuizzes(1, 10, term)
+              .pipe(catchError(() => of({ quizzes: [] as Quiz[], total: 0 }))),
+          }).pipe(catchError(() => of(null)));
         })
       )
       .subscribe((results) => {
         this.liveSearchLoading = false;
-
         if (results) {
           this.liveCocktailResults = results.cocktails;
-
           this.liveIngredientResults = results.ingredients.data;
           this.liveArticleResults = results.articles.data;
-          this.liveQuizResults = results.quizzes.quizzes; // <--- AGGIUNTO: Popola i risultati dei quiz
+          this.liveQuizResults = results.quizzes.quizzes;
         }
       });
   }
 
   ngOnDestroy(): void {
-    window.removeEventListener('scroll', this.onWindowScroll, true);
     this.routerSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
-    clearTimeout(this.blurTimeout);
+    if (this.blurTimeout) clearTimeout(this.blurTimeout);
   }
 
-  @HostListener('window:scroll', ['$event'])
-  onWindowScroll(event: Event) {
-    this.isScrolled = window.pageYOffset > 0;
+  @HostListener('window:scroll')
+  onWindowScroll() {
+    if (!this.isBrowser) return;
+    const y =
+      (typeof window !== 'undefined' && window.pageYOffset) ||
+      (typeof document !== 'undefined' &&
+        document.documentElement?.scrollTop) ||
+      0;
+    this.isScrolled = y > 0;
   }
 
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
-
+    if (this.isBrowser)
+      document.body.style.overflow = this.isMenuOpen ? 'hidden' : '';
     if (this.isMenuOpen) {
-      document.body.style.overflow = 'hidden';
       this.overlaySearchTerm = '';
       this.clearSearchResults();
     } else {
-      document.body.style.overflow = '';
       this.isSearchInputFocused = false;
-      this.searchTerms.next(''); // Interrompe eventuali debounce
+      this.searchTerms.next('');
     }
   }
 
   closeMenu(): void {
     this.isMenuOpen = false;
-    document.body.style.overflow = '';
+    if (this.isBrowser) document.body.style.overflow = '';
     this.overlaySearchTerm = '';
-    this.liveCocktailResults = [];
-    this.liveIngredientResults = [];
-    this.liveArticleResults = [];
-    this.liveQuizResults = []; // <--- AGGIUNTO: Pulisci i risultati dei quiz
-    this.liveSearchLoading = false;
+    this.clearSearchResults();
     this.isSearchInputFocused = false;
-    clearTimeout(this.blurTimeout);
+    if (this.blurTimeout) clearTimeout(this.blurTimeout);
   }
 
   onSearchTermChange(): void {
@@ -245,7 +233,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   onSearchInputFocus(): void {
-    clearTimeout(this.blurTimeout);
+    if (this.blurTimeout) clearTimeout(this.blurTimeout);
     this.isSearchInputFocused = true;
     if (this.overlaySearchTerm.length >= 3) {
       this.searchTerms.next(this.overlaySearchTerm);
@@ -253,23 +241,21 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   onSearchInputBlur(): void {
-    this.blurTimeout = setTimeout(() => {
-      this.isSearchInputFocused = false;
-    }, 150);
+    // ⬇️ fuori da Angular: non blocca isStable
+    this.ngZone.runOutsideAngular(() => {
+      this.blurTimeout = setTimeout(() => {
+        this.ngZone.run(() => (this.isSearchInputFocused = false));
+      }, 150);
+    });
   }
 
   clearSearchTerm(event?: Event): void {
-    if (event) {
-      event.stopPropagation(); // Evita che il click sul bottone scateni il blur dell'input
-    }
+    if (event) event.stopPropagation();
     this.overlaySearchTerm = '';
-    this.searchTerms.next(''); // Invia un termine vuoto per azzerare la ricerca
-    this.clearSearchResults(); // Pulisci i risultati immediatamente
-    // Potresti voler rimettere il focus sull'input dopo aver cancellato, ma non è sempre necessario
-    // Dipende dall'esperienza utente che desideri
+    this.searchTerms.next('');
+    this.clearSearchResults();
   }
 
-  // NUOVO METODO: Per pulire tutti gli array dei risultati
   private clearSearchResults(): void {
     this.liveCocktailResults = [];
     this.liveIngredientResults = [];
@@ -279,24 +265,27 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   goCocktailCategory(): void {
-    const category = this.selectedCocktailCategory;
-    const queryParams = category ? { category: category } : {};
+    const queryParams = this.selectedCocktailCategory
+      ? { category: this.selectedCocktailCategory }
+      : {};
     this.router
       .navigate(['/cocktails'], { queryParams })
       .then(() => this.closeMenu());
   }
 
   goIngredientType(): void {
-    const type = this.selectedIngredientType;
-    const queryParams = type ? { type: type } : {};
+    const queryParams = this.selectedIngredientType
+      ? { type: this.selectedIngredientType }
+      : {};
     this.router
       .navigate(['/ingredients'], { queryParams })
       .then(() => this.closeMenu());
   }
 
   goArticleCategory(): void {
-    const category = this.selectedArticleCategory;
-    const queryParams = category ? { category: category } : {};
+    const queryParams = this.selectedArticleCategory
+      ? { category: this.selectedArticleCategory }
+      : {};
     this.router
       .navigate(['/articles'], { queryParams })
       .then(() => this.closeMenu());
