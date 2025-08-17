@@ -1,4 +1,5 @@
 export const env = {
   production: true,
-  apiUrl: 'http://127.0.0.1:1337',
+  apiBaseUrl: 'https://fizzando-backend-production.up.railway.app',
+  apiUrl: 'https://fizzando-backend-production.up.railway.app', // alias
 };
