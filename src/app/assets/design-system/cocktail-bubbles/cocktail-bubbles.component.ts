@@ -1,61 +1,69 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { interval, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+// src/app/.../cocktail-bubbles.component.ts
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  AfterViewInit,
+  inject,
+  PLATFORM_ID,
+  NgZone,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 
 interface Bubble {
   left: number;
   size: number;
-  duration: number; // Durata dell'animazione in secondi
-  delay: number; // Ritardo prima che l'animazione inizi
-  spiralAmplitude: number; // Ampiezza della deviazione laterale della spirale
+  duration: number;
+  delay: number;
+  spiralAmplitude: number;
 }
 
 @Component({
   selector: 'app-cocktail-bubbles',
   standalone: true,
+  host: { ngSkipHydration: 'true' },
   templateUrl: './cocktail-bubbles.component.html',
   styleUrls: ['./cocktail-bubbles.component.scss'],
   imports: [CommonModule],
 })
-export class CocktailBubblesComponent implements OnInit, OnDestroy {
+export class CocktailBubblesComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly ngZone = inject(NgZone);
+
   bubbles: Bubble[] = [];
-  private destroy$ = new Subject<void>();
-  private isGenerating: boolean = false;
+  private isGenerating = false;
   private currentGenerationInterval: any;
   private currentCycleTimeout: any;
+  private currentStopTimeout: any;
 
-  // Parametri per controllare l'intermittenza
-  private readonly GENERATION_DURATION_MS = 5000; // Durata della "raffica" di bollicine (5 secondi)
-  private readonly BUBBLE_SPAWN_RATE_MS = 300; // Frequenza di spawn durante la generazione attiva
+  private readonly GENERATION_DURATION_MS = 5000;
+  private readonly BUBBLE_SPAWN_RATE_MS = 300;
+  private readonly MIN_PAUSE_MS = 25000;
+  private readonly MAX_PAUSE_MS = 35000;
 
-  // Parametri per la pausa randomica
-  private readonly MIN_PAUSE_MS = 25000; // Pausa minima (25 secondi)
-  private readonly MAX_PAUSE_MS = 35000; // Pausa massima (35 secondi)
+  ngOnInit(): void {}
 
-  ngOnInit(): void {
-    // 1. Avvia la prima generazione immediatamente all'apertura
-    this.startGenerationPeriod();
+  ngAfterViewInit(): void {
+    if (!this.isBrowser) return;
 
-    // 2. Imposta il timer per avviare il ciclo intermittente randomico
-    this.scheduleNextCycle();
+    // Avvia scheduling totalmente fuori da Angular (non blocca isStable)
+    this.ngZone.runOutsideAngular(() => {
+      this.startGenerationPeriod();
+      this.scheduleNextCycle();
+    });
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-    if (this.currentGenerationInterval) {
+    if (this.currentGenerationInterval)
       clearInterval(this.currentGenerationInterval);
-    }
-    if (this.currentCycleTimeout) {
-      clearTimeout(this.currentCycleTimeout);
-    }
+    if (this.currentCycleTimeout) clearTimeout(this.currentCycleTimeout);
+    if (this.currentStopTimeout) clearTimeout(this.currentStopTimeout);
   }
 
-  /**
-   * Genera una pausa randomica tra MIN_PAUSE_MS e MAX_PAUSE_MS.
-   * @returns {number} La durata della pausa in millisecondi.
-   */
   private getRandomPauseDuration(): number {
     return (
       Math.random() * (this.MAX_PAUSE_MS - this.MIN_PAUSE_MS) +
@@ -63,45 +71,34 @@ export class CocktailBubblesComponent implements OnInit, OnDestroy {
     );
   }
 
-  /**
-   * Pianifica il prossimo ciclo di generazione delle bollicine.
-   */
   private scheduleNextCycle(): void {
+    if (!this.isBrowser) return;
     const pauseBeforeNextCycle = this.getRandomPauseDuration();
-    console.log(`Prossimo ciclo tra ${pauseBeforeNextCycle / 1000} secondi.`);
 
-    if (this.currentCycleTimeout) {
-      clearTimeout(this.currentCycleTimeout);
-    }
-
+    if (this.currentCycleTimeout) clearTimeout(this.currentCycleTimeout);
     this.currentCycleTimeout = setTimeout(() => {
       this.startGenerationPeriod();
       this.scheduleNextCycle();
     }, this.GENERATION_DURATION_MS + pauseBeforeNextCycle);
   }
 
-  // Avvia il periodo di generazione delle bollicine
   private startGenerationPeriod(): void {
-    if (this.isGenerating) return;
+    if (!this.isBrowser || this.isGenerating) return;
 
-    console.log('Inizio generazione bollicine...');
     this.isGenerating = true;
     this.currentGenerationInterval = setInterval(() => {
-      this.addBubble();
+      // Rientriamo in Angular solo per aggiornare l’array (trigger change detection)
+      this.ngZone.run(() => this.addBubble());
     }, this.BUBBLE_SPAWN_RATE_MS);
 
-    setTimeout(() => {
-      if (this.isGenerating) {
-        this.stopGenerationPeriod();
-      }
+    this.currentStopTimeout = setTimeout(() => {
+      if (this.isGenerating) this.stopGenerationPeriod();
     }, this.GENERATION_DURATION_MS);
   }
 
-  // Ferma il periodo di generazione delle bollicine
   private stopGenerationPeriod(): void {
-    if (!this.isGenerating) return;
+    if (!this.isBrowser || !this.isGenerating) return;
 
-    console.log('Stop generazione bollicine.');
     this.isGenerating = false;
     if (this.currentGenerationInterval) {
       clearInterval(this.currentGenerationInterval);
@@ -109,19 +106,36 @@ export class CocktailBubblesComponent implements OnInit, OnDestroy {
     }
   }
 
-  addBubble(): void {
-    const newBubble: Bubble = {
-      left: Math.random() * window.innerWidth,
-      size: Math.random() * (20 - 5) + 5, // Grandezza tra 5px e 20px
-      duration: Math.random() * (12 - 8) + 8, // Durata animazione tra 8 e 12 secondi (più lunga per fluidità)
-      delay: Math.random() * 3, // Ritardo per farle partire in momenti diversi (0-3 secondi)
-      spiralAmplitude: Math.random() * (10 - 3) + 3, // Ampiezza della deviazione laterale tra 3px e 10px (più sottile)
-    };
-    this.bubbles.push(newBubble);
+  private viewportWidth(): number {
+    return this.isBrowser ? window.innerWidth : 1200;
+  }
 
-    // Rimuovi la bollicina dopo la sua animazione + un piccolo buffer
-    setTimeout(() => {
-      this.bubbles = this.bubbles.filter((bubble) => bubble !== newBubble);
-    }, newBubble.duration * 1000 + newBubble.delay * 1000 + 500);
+  private addBubble(): void {
+    if (!this.isBrowser) return;
+
+    const newBubble: Bubble = {
+      left: Math.random() * this.viewportWidth(),
+      size: Math.random() * (20 - 5) + 5,
+      duration: Math.random() * (12 - 8) + 8,
+      delay: Math.random() * 3,
+      spiralAmplitude: Math.random() * (10 - 3) + 3,
+    };
+
+    // Inserimento nello stato: rientro in Angular solo qui
+    this.ngZone.run(() => {
+      this.bubbles.push(newBubble);
+    });
+
+    // ⬇️ Programmo la rimozione COMPLETAMENTE fuori da Angular
+    const removeAfter =
+      newBubble.duration * 1000 + newBubble.delay * 1000 + 500;
+    this.ngZone.runOutsideAngular(() => {
+      setTimeout(() => {
+        // rientro un attimo in Angular solo per aggiornare l’array
+        this.ngZone.run(() => {
+          this.bubbles = this.bubbles.filter((b) => b !== newBubble);
+        });
+      }, removeAfter);
+    });
   }
 }

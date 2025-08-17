@@ -1,25 +1,21 @@
 import { ApplicationConfig, ErrorHandler } from '@angular/core';
+import { provideServerRendering } from '@angular/platform-server';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideHttpClient, withFetch } from '@angular/common/http';
-import { provideAnimations } from '@angular/platform-browser/animations';
-import {
-  provideClientHydration,
-  withEventReplay,
-  withHttpTransferCacheOptions,
-} from '@angular/platform-browser';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
 import { MatIconRegistry } from '@angular/material/icon';
 import { DOCUMENT } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 
-export const appConfig: ApplicationConfig = {
+export const config: ApplicationConfig = {
   providers: [
+    provideServerRendering(),
     provideRouter(routes),
     provideHttpClient(withFetch()),
-    provideClientHydration(withEventReplay(), withHttpTransferCacheOptions({})),
-    provideAnimations(),
+    provideNoopAnimations(),
 
     {
       provide: MatIconRegistry,
@@ -35,15 +31,10 @@ export const appConfig: ApplicationConfig = {
           document,
           errorHandler
         );
-        // Default font set (per <mat-icon>menu</mat-icon> o fontIcon="menu")
+        // SSR: niente fetch di SVG. Usa le ligatures come default.
         reg.setDefaultFontSetClass('material-icons');
-
-        // SOLO lato client puoi caricare sprite SVG (se lo usi davvero).
-        // Assicurati che 'assets/icons/mdi.svg' esista e contenga i simboli richiesti.
-        reg.addSvgIconSet(
-          sanitizer.bypassSecurityTrustResourceUrl('assets/icons/mdi.svg')
-        );
-
+        reg.registerFontClassAlias('material-icons-outlined', 'material-icons');
+        reg.registerFontClassAlias('material-icons-round', 'material-icons');
         return reg;
       },
       deps: [HttpClient, DomSanitizer, DOCUMENT, ErrorHandler],

@@ -1,5 +1,13 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  inject,
+  PLATFORM_ID,
+  NgZone,
+} from '@angular/core';
+import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
@@ -12,7 +20,8 @@ import {
   animate,
 } from '@angular/animations';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, tap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+
 import {
   CocktailService,
   Cocktail as BaseCocktail,
@@ -22,14 +31,20 @@ import { CocktailCardComponent } from '../cocktail-card/cocktail-card.component'
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
 import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
 
-// Interfacce (rimangono invariate)
+// --- Interfacce ---
 interface CocktailWithLayout extends BaseCocktail {
   isTall?: boolean;
   isWide?: boolean;
 }
-
 interface FaqItemState {
   isExpanded: boolean;
+}
+interface ProductItem {
+  title: string;
+  imageUrl: string;
+  price: string;
+  link: string;
+  showPlaceholder: boolean;
 }
 
 @Component({
@@ -47,7 +62,6 @@ interface FaqItemState {
   templateUrl: './cocktail-list.component.html',
   styleUrls: ['./cocktail-list.component.scss'],
   animations: [
-    // La logica delle animazioni rimane invariata, puoi lasciarla così
     trigger('accordionAnimation', [
       state('closed', style({ height: '0', opacity: 0, overflow: 'hidden' })),
       state('open', style({ height: '*', opacity: 1, overflow: 'hidden' })),
@@ -64,7 +78,12 @@ interface FaqItemState {
   ],
 })
 export class CocktailListComponent implements OnInit, OnDestroy {
-  // --- Proprietà del Componente ---
+  // --- SSR / Browser env ---
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly ngZone = inject(NgZone);
+
+  // --- Stato ---
   cocktails: CocktailWithLayoutAndMatch[] = [];
   loading = false;
   error: string | null = null;
@@ -77,10 +96,9 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   totalPages: number = 0;
   isExpanded: boolean = false;
   isMobile: boolean = false;
-  // Aggiungi una proprietà per il range di pagine nel paginatore
   readonly paginationRange = 2;
 
-  // --- Dati statici (possono essere spostati in un servizio se necessario) ---
+  // --- Dati statici ---
   categories: string[] = [
     'Classic',
     'Tropical',
@@ -110,7 +128,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     { isExpanded: false },
   ];
 
-  productList = [
+  productList: ProductItem[] = [
     {
       title: 'Libbey Mixologist 9-Piece Cocktail Set',
       imageUrl:
@@ -153,7 +171,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     },
   ];
 
-  productListRobot = [
+  productListRobot: ProductItem[] = [
     {
       title: 'Bartesian Professional Cocktail Machine',
       imageUrl:
@@ -195,7 +213,8 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       showPlaceholder: true,
     },
   ];
-  // --- Subject e Subscriptions per gestire la logica reattiva ---
+
+  // --- Rx ---
   private searchTerms = new Subject<string>();
   private subscriptions = new Subscription();
 
@@ -205,19 +224,18 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router
   ) {
-    this.checkScreenWidth();
+    if (this.isBrowser) this.checkScreenWidth();
   }
 
-  // --- Lifecycle Hooks ---
+  // --- Lifecycle ---
   ngOnInit(): void {
     this.titleService.setTitle(
       'Cocktail Explorer: Recipes, Ingredients & Guides | [Your App Name]'
     );
 
-    // Unifica le sottoscrizioni per una gestione più semplice in ngOnDestroy
+    // reagisci ai parametri di query
     this.subscriptions.add(
       this.route.queryParams.subscribe((params) => {
-        // Estrai i parametri dalla URL e aggiorna lo stato del componente
         this.searchTerm = params['search'] || '';
         this.selectedCategory = params['category'] || '';
         this.selectedAlcoholic = params['alcoholic'] || '';
@@ -226,11 +244,11 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       })
     );
 
+    // live search con debounce
     this.subscriptions.add(
       this.searchTerms
         .pipe(debounceTime(300), distinctUntilChanged())
         .subscribe(() => {
-          // Naviga con i nuovi parametri di ricerca, resettando la pagina a 1
           this.router.navigate([], {
             relativeTo: this.route,
             queryParams: { search: this.searchTerm || null, page: 1 },
@@ -241,17 +259,10 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // De-sottoscrizione pulita
     this.subscriptions.unsubscribe();
   }
 
-  // --- Metodi per la gestione dei dati e della UI ---
-  // All'interno della classe CocktailListComponent
-
-  // All'interno della classe CocktailListComponent
-
-  // All'interno della classe CocktailListComponent
-
+  // --- Data/UI ---
   loadCocktails(): void {
     this.loading = true;
     this.error = null;
@@ -267,15 +278,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (res) => {
-          // Controllo robusto per i dati
-          if (
-            res &&
-            res.data &&
-            Array.isArray(res.data) &&
-            res.data.length > 0
-          ) {
-            // Mappa i cocktail aggiungendo le proprietà di layout e di matching.
-            // Questa riga è FONDAMENTALE per far funzionare il componente figlio.
+          if (res?.data?.length) {
             this.cocktails = res.data.map((cocktail) => {
               const randomValue = Math.random();
               const isTall = randomValue < 0.2;
@@ -284,10 +287,9 @@ export class CocktailListComponent implements OnInit, OnDestroy {
                 ...cocktail,
                 isTall,
                 isWide,
-                matchedIngredientCount: 0, // Valore di default
+                matchedIngredientCount: 0,
               } as CocktailWithLayoutAndMatch;
             });
-
             this.totalItems = res.meta.pagination.total;
             this.totalPages = res.meta.pagination.pageCount;
           } else {
@@ -297,9 +299,17 @@ export class CocktailListComponent implements OnInit, OnDestroy {
           }
 
           this.loading = false;
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+
+          // Scroll-to-top solo nel browser e fuori da Angular (non blocca hydration)
+          if (this.isBrowser) {
+            this.ngZone.runOutsideAngular(() => {
+              requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              });
+            });
+          }
         },
-        error: (err: any) => {
+        error: () => {
           this.error = 'Impossibile caricare i cocktail. Riprova più tardi.';
           this.loading = false;
           this.totalItems = 0;
@@ -314,7 +324,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
-    // Naviga con tutti i filtri, resettando la pagina a 1
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
@@ -328,13 +337,11 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   }
 
   clearFilters(): void {
-    // Resetta le proprietà locali
     this.searchTerm = '';
     this.selectedCategory = '';
     this.selectedAlcoholic = '';
     this.searchTerms.next('');
 
-    // Naviga rimuovendo tutti i filtri dall'URL
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
@@ -348,7 +355,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   }
 
   goToPage(page: number): void {
-    // Assicurati che il numero di pagina sia valido
     if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
       this.router.navigate([], {
         relativeTo: this.route,
@@ -358,14 +364,13 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     }
   }
 
-  trackByCocktailId(index: number, cocktail: CocktailWithLayout): number {
+  trackByCocktailId(_index: number, cocktail: CocktailWithLayout): number {
     return cocktail.id;
   }
 
   toggleExpansion(): void {
     this.isExpanded = !this.isExpanded;
   }
-
   toggleFaq(faqItem: FaqItemState): void {
     faqItem.isExpanded = !faqItem.isExpanded;
   }
@@ -375,41 +380,34 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     if (this.searchTerm) activeFilters.push(`"${this.searchTerm}"`);
     if (this.selectedCategory) activeFilters.push(this.selectedCategory);
     if (this.selectedAlcoholic) activeFilters.push(this.selectedAlcoholic);
-    return activeFilters.length > 0
+    return activeFilters.length
       ? activeFilters.join(', ')
       : 'No filters active';
   }
 
-  // --- Metodi per il Paginatore avanzato ---
+  // --- Paginatore ---
   getVisiblePages(): number[] {
-    const pages = [];
+    const pages: number[] = [];
     const startPage = Math.max(2, this.currentPage - this.paginationRange);
     const endPage = Math.min(
       this.totalPages - 1,
       this.currentPage + this.paginationRange
     );
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
+    for (let i = startPage; i <= endPage; i++) pages.push(i);
     return pages;
   }
-
   showFirstPage(): boolean {
     return this.totalPages > 1 && this.currentPage > this.paginationRange;
   }
-
   showFirstEllipsis(): boolean {
     return this.totalPages > 1 && this.currentPage > this.paginationRange + 1;
   }
-
   showLastEllipsis(): boolean {
     return (
       this.totalPages > 1 &&
       this.currentPage < this.totalPages - this.paginationRange
     );
   }
-
   showLastPage(): boolean {
     return (
       this.totalPages > 1 &&
@@ -417,13 +415,14 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     );
   }
 
-  // --- Gestione della reattività dello schermo ---
-  @HostListener('window:resize', ['$event'])
+  // --- Responsiveness ---
+  @HostListener('window:resize')
   onResize(): void {
-    this.checkScreenWidth();
+    if (this.isBrowser) this.checkScreenWidth();
   }
 
-  checkScreenWidth(): void {
+  private checkScreenWidth(): void {
+    if (!this.isBrowser) return;
     this.isMobile = window.innerWidth <= 600;
   }
 }

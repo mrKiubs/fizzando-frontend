@@ -1,12 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
-
-// Importa le interfacce corrette dal quiz.service
 import {
   QuizService,
   Quiz,
@@ -22,6 +20,8 @@ import { HttpErrorResponse } from '@angular/common/http';
   styleUrls: ['./quiz-detail.component.scss'],
 })
 export class QuizDetailComponent implements OnInit, OnDestroy {
+  private readonly ngZone = inject(NgZone);
+
   quiz: Quiz | undefined;
   loading = true;
   error: string | null = null;
@@ -38,6 +38,7 @@ export class QuizDetailComponent implements OnInit, OnDestroy {
   currentQuestion: QuizQuestionContent | undefined;
 
   private destroy$ = new Subject<void>();
+  private nextQuestionTimeout: any;
 
   constructor(
     private route: ActivatedRoute,
@@ -59,6 +60,7 @@ export class QuizDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.nextQuestionTimeout) clearTimeout(this.nextQuestionTimeout);
   }
 
   private shuffleArray<T>(array: T[]): T[] {
@@ -79,7 +81,6 @@ export class QuizDetailComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (quizData) => {
           this.quiz = quizData;
-
           if (
             !this.quiz ||
             !this.quiz.quizData ||
@@ -96,8 +97,6 @@ export class QuizDetailComponent implements OnInit, OnDestroy {
             this.quiz.quizData.questions
           );
 
-          // Calcolo maxScore:
-          // Se scoreValue esiste e valido, usa quello, altrimenti conta risposte corrette
           this.maxScore = this.quiz.quizData.questions.reduce((sum, q) => {
             if (typeof q.scoreValue === 'number' && !isNaN(q.scoreValue)) {
               return sum + q.scoreValue;
@@ -108,103 +107,67 @@ export class QuizDetailComponent implements OnInit, OnDestroy {
             return sum;
           }, 0);
 
-          console.log('DEBUG: Max Score Calculated:', this.maxScore);
           this.setCurrentQuestion();
-
           this.loading = false;
         },
         error: (err: HttpErrorResponse) => {
           this.loading = false;
           this.error = 'Failed to load quiz details. Please try again later.';
-          console.error('DEBUG: Error loading quiz by slug:', err);
+          console.error('Error loading quiz by slug:', err);
         },
       });
   }
 
   setCurrentQuestion(): void {
     if (!this.quiz || !this.quiz.quizData?.questions) return;
-
     this.currentQuestion =
       this.quiz.quizData.questions[this.currentQuestionIndex];
-
-    console.log('DEBUG: --- Setting Current Question ---');
-    console.log('DEBUG: Current Question Index:', this.currentQuestionIndex);
-    console.log('DEBUG: Question Text:', this.currentQuestion.questionText);
-    console.log(
-      'DEBUG: Options:',
-      this.currentQuestion.options.map((o) => o.optionText)
-    );
-    console.log(
-      'DEBUG: Correct Option Indices:',
-      this.currentQuestion.correctOptionIndices
-    );
-    console.log('DEBUG: --- End Setting Current Question ---');
-
     this.selectedOptions = [];
   }
 
   onOptionChange(optionIndex: number): void {
     if (this.showResult) return;
-
-    const index = this.selectedOptions.indexOf(optionIndex);
-    if (index > -1) {
-      this.selectedOptions.splice(index, 1);
-    } else {
-      this.selectedOptions.push(optionIndex);
-    }
+    const idx = this.selectedOptions.indexOf(optionIndex);
+    if (idx > -1) this.selectedOptions.splice(idx, 1);
+    else this.selectedOptions.push(optionIndex);
     this.selectedOptions.sort((a, b) => a - b);
-
-    console.log('DEBUG: User selected options:', this.selectedOptions);
   }
 
   checkAnswer(): void {
-    if (this.selectedOptions.length === 0) {
-      console.warn('Please select at least one option.');
-      return;
-    }
-
-    if (!this.currentQuestion) return;
+    if (this.selectedOptions.length === 0 || !this.currentQuestion) return;
 
     const correctIndices = [
       ...(this.currentQuestion.correctOptionIndices || []),
     ].sort((a, b) => a - b);
 
-    const correctlySelectedOptions = this.selectedOptions.filter((i) =>
+    const correctlySelected = this.selectedOptions.filter((i) =>
       correctIndices.includes(i)
     );
-    const incorrectlySelectedOptions = this.selectedOptions.filter(
+    const incorrectlySelected = this.selectedOptions.filter(
       (i) => !correctIndices.includes(i)
     );
 
-    console.log('DEBUG: Correctly Selected:', correctlySelectedOptions);
-    console.log('DEBUG: Incorrectly Selected:', incorrectlySelectedOptions);
-
-    // Calcolo punti: +1 ogni risposta corretta selezionata, -1 ogni errata selezionata, min 0, max scoreValue
-    let points =
-      correctlySelectedOptions.length - incorrectlySelectedOptions.length;
+    let points = correctlySelected.length - incorrectlySelected.length;
     points = Math.max(0, points);
 
-    // Usa scoreValue se definito, altrimenti il numero di risposte corrette
     const maxPerQuestion =
       typeof this.currentQuestion.scoreValue === 'number'
         ? this.currentQuestion.scoreValue
         : correctIndices.length;
 
-    points = Math.min(points, maxPerQuestion);
-
-    console.log(
-      `DEBUG: Score for this question: ${points} / Max: ${maxPerQuestion}`
-    );
-
-    this.score += points;
+    this.score += Math.min(points, maxPerQuestion);
     this.showResult = true;
 
-    setTimeout(() => this.nextQuestion(), 1500);
+    // ⬇️ fuori da Angular: non tiene vivo lo zone
+    this.ngZone.runOutsideAngular(() => {
+      this.nextQuestionTimeout = setTimeout(() => {
+        this.ngZone.run(() => this.nextQuestion());
+      }, 1500);
+    });
   }
 
   nextQuestion(): void {
     if (!this.quiz || !this.quiz.quizData?.questions) return;
-
     this.showResult = false;
     this.selectedOptions = [];
     this.currentQuestionIndex++;
@@ -219,27 +182,17 @@ export class QuizDetailComponent implements OnInit, OnDestroy {
   finishQuiz(): void {
     this.quizCompleted = true;
     this.feedbackMessage = this.getFeedbackMessage(this.score);
-    console.log('DEBUG: Quiz Finished. Final Score:', this.score);
-    console.log('DEBUG: Feedback Message:', this.feedbackMessage);
   }
 
   getFeedbackMessage(currentScore: number): string {
-    if (
-      !this.quiz ||
-      !this.quiz.quizData?.scoreFeedback ||
-      this.quiz.quizData.scoreFeedback.length === 0
-    ) {
+    if (!this.quiz?.quizData?.scoreFeedback?.length) {
       return 'Quiz completed! No specific feedback available.';
     }
-
-    const sortedFeedback = [...this.quiz.quizData.scoreFeedback].sort(
+    const sorted = [...this.quiz.quizData.scoreFeedback].sort(
       (a, b) => b.minScore - a.minScore
     );
-
-    for (const feedback of sortedFeedback) {
-      if (currentScore >= feedback.minScore) {
-        return feedback.comment;
-      }
+    for (const f of sorted) {
+      if (currentScore >= f.minScore) return f.comment;
     }
     return 'Quiz completed! Keep practicing!';
   }
@@ -257,6 +210,5 @@ export class QuizDetailComponent implements OnInit, OnDestroy {
       this.error = 'Cannot restart quiz: slug not found.';
       this.loading = false;
     }
-    console.log('DEBUG: Quiz Restarted. Score reset to 0.');
   }
 }

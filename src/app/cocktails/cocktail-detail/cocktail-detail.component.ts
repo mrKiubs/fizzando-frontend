@@ -1,3 +1,4 @@
+// src/app/cocktails/cocktail-detail/cocktail-detail.component.ts
 import {
   Component,
   OnInit,
@@ -7,8 +8,17 @@ import {
   AfterViewInit,
   Renderer2,
   Inject,
+  inject,
+  NgZone,
+  PLATFORM_ID,
+  HostListener,
 } from '@angular/core';
-import { CommonModule, DOCUMENT } from '@angular/common';
+import {
+  CommonModule,
+  DOCUMENT,
+  isPlatformBrowser,
+  Location,
+} from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import {
   CocktailService,
@@ -20,9 +30,16 @@ import { Subscription } from 'rxjs';
 import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-card.component';
 import { env } from '../../config/env';
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
-import { HostListener } from '@angular/core';
 import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
 import { Title, Meta } from '@angular/platform-browser';
+
+interface ProductItem {
+  title: string;
+  imageUrl: string;
+  price: string;
+  link: string;
+  showPlaceholder: boolean;
+}
 
 @Component({
   selector: 'app-cocktail-detail',
@@ -41,17 +58,24 @@ import { Title, Meta } from '@angular/platform-browser';
 export class CocktailDetailComponent
   implements OnInit, OnDestroy, AfterViewInit
 {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly ngZone = inject(NgZone);
+
   cocktail: Cocktail | undefined;
   loading = true;
   error: string | null = null;
   allCocktails: Cocktail[] = [];
-  currentCocktailIndex: number = -1;
-  isMobile: boolean = false;
-  private siteBaseUrl: string = '';
+  currentCocktailIndex = -1;
+  isMobile = false;
+  private siteBaseUrl = '';
   private cocktailSchemaScript: HTMLScriptElement | undefined;
 
   @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
-  productList = [
+  private wheelListenerCleanup?: () => void;
+
+  // ⬇️ Tipizzati per evitare "type never"
+  productList: ProductItem[] = [
     {
       title: 'Libbey Mixologist 9-Piece Cocktail Set',
       imageUrl:
@@ -93,7 +117,8 @@ export class CocktailDetailComponent
       showPlaceholder: true,
     },
   ];
-  productListRobot = [
+
+  productListRobot: ProductItem[] = [
     {
       title: 'Bartesian Professional Cocktail Machine',
       imageUrl:
@@ -149,10 +174,11 @@ export class CocktailDetailComponent
     slug: string;
   } | null = null;
   similarCocktails: CocktailWithLayoutAndMatch[] = [];
-  private routeSubscription: Subscription | undefined;
-  private allCocktailsSubscription: Subscription | undefined;
-  private similarCocktailsSubscription: Subscription | undefined;
-  private cocktailDetailSubscription: Subscription | undefined;
+
+  private routeSubscription?: Subscription;
+  private allCocktailsSubscription?: Subscription;
+  private similarCocktailsSubscription?: Subscription;
+  private cocktailDetailSubscription?: Subscription;
 
   constructor(
     private route: ActivatedRoute,
@@ -161,20 +187,33 @@ export class CocktailDetailComponent
     private renderer: Renderer2,
     @Inject(DOCUMENT) private document: Document,
     private titleService: Title,
-    private metaService: Meta
+    private metaService: Meta,
+    private location: Location
   ) {
-    this.checkScreenWidth();
-    this.siteBaseUrl = window.location.origin;
+    if (this.isBrowser) {
+      this.checkScreenWidth();
+      this.siteBaseUrl = window.location.origin;
+    } else {
+      this.siteBaseUrl = '';
+    }
   }
 
   ngAfterViewInit(): void {
-    if (this.affiliateCardList) {
-      const listElement = this.affiliateCardList.nativeElement;
-      listElement.addEventListener('wheel', (event: WheelEvent) => {
+    if (!this.isBrowser || !this.affiliateCardList) return;
+
+    const listElement = this.affiliateCardList.nativeElement as HTMLElement;
+
+    // Listener fuori da Angular per non tenere vivo lo zone
+    this.ngZone.runOutsideAngular(() => {
+      const handler = (event: WheelEvent) => {
         event.preventDefault();
         listElement.scrollLeft += event.deltaY;
-      });
-    }
+      };
+      listElement.addEventListener('wheel', handler, { passive: false });
+      this.wheelListenerCleanup = () => {
+        listElement.removeEventListener('wheel', handler as any);
+      };
+    });
   }
 
   ngOnInit(): void {
@@ -187,8 +226,7 @@ export class CocktailDetailComponent
           );
           this.subscribeToRouteParams();
         },
-        error: (err: any) => {
-          console.error('Error loading all cocktails for navigation:', err);
+        error: () => {
           this.error = 'Could not load all cocktails for navigation.';
           this.subscribeToRouteParams();
         },
@@ -196,19 +234,11 @@ export class CocktailDetailComponent
   }
 
   ngOnDestroy(): void {
-    if (this.routeSubscription) {
-      this.routeSubscription.unsubscribe();
-    }
-    if (this.allCocktailsSubscription) {
-      this.allCocktailsSubscription.unsubscribe();
-    }
-    if (this.similarCocktailsSubscription) {
-      this.similarCocktailsSubscription.unsubscribe();
-    }
-    if (this.cocktailDetailSubscription) {
-      this.cocktailDetailSubscription.unsubscribe();
-    }
-    // Pulizia completa dei meta tag e dello schema JSON-LD
+    this.routeSubscription?.unsubscribe();
+    this.allCocktailsSubscription?.unsubscribe();
+    this.similarCocktailsSubscription?.unsubscribe();
+    this.cocktailDetailSubscription?.unsubscribe();
+    if (this.wheelListenerCleanup) this.wheelListenerCleanup();
     this.cleanupSeo();
   }
 
@@ -228,7 +258,7 @@ export class CocktailDetailComponent
     this.loading = true;
     this.error = null;
     this.similarCocktails = [];
-    this.cleanupSeo(); // Pulisci i tag precedenti prima di caricare i nuovi dati
+    this.cleanupSeo();
 
     const cachedCocktail = this.allCocktails.find((c) => c.slug === slug);
     if (cachedCocktail) {
@@ -236,7 +266,6 @@ export class CocktailDetailComponent
       this.loading = false;
       this.setNavigationCocktails(this.cocktail.external_id);
       this.loadSimilarCocktails();
-      // Genera e inietta tutti gli elementi SEO
       this.setSeoTagsAndSchema();
     } else {
       this.cocktailDetailSubscription = this.cocktailService
@@ -252,11 +281,9 @@ export class CocktailDetailComponent
             this.loading = false;
             this.setNavigationCocktails(this.cocktail.external_id);
             this.loadSimilarCocktails();
-            // Genera e inietta tutti gli elementi SEO
             this.setSeoTagsAndSchema();
           },
-          error: (err: any) => {
-            console.error('Error loading cocktail details from API:', err);
+          error: () => {
             this.error = 'Could not load cocktail details from API.';
             this.loading = false;
           },
@@ -275,18 +302,14 @@ export class CocktailDetailComponent
         next: (res: Cocktail[]) => {
           this.similarCocktails = res as CocktailWithLayoutAndMatch[];
         },
-        error: (err: any) => {
-          console.error('Error loading similar cocktails:', err);
+        error: () => {
           this.similarCocktails = [];
         },
       });
   }
 
   setNavigationCocktails(currentExternalId: string): void {
-    if (!this.allCocktails || this.allCocktails.length === 0) {
-      console.warn('allCocktails not loaded, navigation might be incomplete.');
-      return;
-    }
+    if (!this.allCocktails?.length) return;
     this.currentCocktailIndex = this.allCocktails.findIndex(
       (c) => c.external_id === currentExternalId
     );
@@ -313,45 +336,41 @@ export class CocktailDetailComponent
   }
 
   goBack(): void {
-    window.history.back();
+    this.location.back();
   }
 
   getCocktailImageUrl(cocktail: Cocktail | undefined): string {
-    if (cocktail && cocktail.image?.url) {
-      if (cocktail.image.url.startsWith('http')) {
-        return cocktail.image.url;
-      }
-      return env.apiUrl + cocktail.image.url;
+    if (cocktail?.image?.url) {
+      return cocktail.image.url.startsWith('http')
+        ? cocktail.image.url
+        : env.apiUrl + cocktail.image.url;
     }
     return 'assets/no-image.png';
   }
 
   getIngredientImageUrl(ingredientEntry: any): string {
     if (ingredientEntry?.ingredient?.image?.url) {
-      if (ingredientEntry.ingredient.image.url.startsWith('http')) {
-        return ingredientEntry.ingredient.image.url;
-      }
-      return env.apiUrl + ingredientEntry.ingredient.image.url;
+      return ingredientEntry.ingredient.image.url.startsWith('http')
+        ? ingredientEntry.ingredient.image.url
+        : env.apiUrl + ingredientEntry.ingredient.image.url;
     }
     return 'assets/no-image.png';
   }
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onResize(): void {
     this.checkScreenWidth();
   }
 
   checkScreenWidth(): void {
-    this.isMobile = window.innerWidth <= 768;
+    this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
   }
 
   getCocktailsAndAds(): any[] {
-    const items: any = [];
+    const items: any[] = [];
     this.similarCocktails.forEach((cocktail, index) => {
       items.push(cocktail);
-      if ((index + 1) % 4 === 0) {
-        items.push({ isAd: true });
-      }
+      if ((index + 1) % 4 === 0) items.push({ isAd: true });
     });
     return items;
   }
@@ -365,9 +384,7 @@ export class CocktailDetailComponent
   }
 
   private setSeoTagsAndSchema(): void {
-    if (!this.cocktail) {
-      return;
-    }
+    if (!this.cocktail) return;
 
     const cocktailName = this.cocktail.name;
     const cocktailDescription =
@@ -375,16 +392,12 @@ export class CocktailDetailComponent
     const cocktailImageUrl = this.getCocktailImageUrl(this.cocktail);
     const cocktailUrl = this.getFullSiteUrl(this.router.url);
 
-    // Imposta il titolo della pagina
     this.titleService.setTitle(`${cocktailName} | Fizzando`);
-
-    // Imposta la meta description per il SEO
     this.metaService.updateTag({
       name: 'description',
       content: cocktailDescription,
     });
 
-    // Imposta il Canonical URL per prevenire problemi di contenuti duplicati
     const canonicalTag: HTMLLinkElement | null = this.document.querySelector(
       'link[rel="canonical"]'
     );
@@ -397,7 +410,6 @@ export class CocktailDetailComponent
       this.renderer.appendChild(this.document.head, linkTag);
     }
 
-    // Imposta i meta tag Open Graph (per social media)
     this.metaService.updateTag({ property: 'og:title', content: cocktailName });
     this.metaService.updateTag({
       property: 'og:description',
@@ -414,7 +426,6 @@ export class CocktailDetailComponent
       content: 'Fizzando',
     });
 
-    // Imposta i meta tag Twitter Card (per Twitter)
     this.metaService.updateTag({
       name: 'twitter:card',
       content: 'summary_large_image',
@@ -432,18 +443,13 @@ export class CocktailDetailComponent
       content: cocktailImageUrl,
     });
 
-    // Aggiungi lo schema JSON-LD
     this.addJsonLdSchema();
   }
 
   private addJsonLdSchema(): void {
-    if (!this.cocktail) {
-      return;
-    }
-    // Rimuove lo schema precedente se esiste
+    if (!this.cocktail) return;
     this.cleanupJsonLd();
 
-    // Crea il nuovo script
     this.cocktailSchemaScript = this.renderer.createElement('script');
     this.renderer.setAttribute(
       this.cocktailSchemaScript,
@@ -465,7 +471,6 @@ export class CocktailDetailComponent
   }
 
   private cleanupSeo(): void {
-    // Pulisci i meta tag dinamici
     this.metaService.removeTag("property='og:title'");
     this.metaService.removeTag("property='og:description'");
     this.metaService.removeTag("property='og:image'");
@@ -476,8 +481,6 @@ export class CocktailDetailComponent
     this.metaService.removeTag("name='twitter:title'");
     this.metaService.removeTag("name='twitter:description'");
     this.metaService.removeTag("name='twitter:image'");
-
-    // Pulisci lo schema JSON-LD
     this.cleanupJsonLd();
   }
 
@@ -500,10 +503,7 @@ export class CocktailDetailComponent
       name: cocktail.name,
       image: [imageUrl],
       description: cocktail.ai_description || cocktail.instructions,
-      author: {
-        '@type': 'Organization',
-        name: 'Fizzando',
-      },
+      author: { '@type': 'Organization', name: 'Fizzando' },
       datePublished: cocktail.createdAt,
       recipeCategory: cocktail.category || 'Cocktail',
       recipeCuisine: 'Contemporary',
@@ -520,16 +520,11 @@ export class CocktailDetailComponent
         '@type': 'NutritionInformation',
         calories: 'Approx 180 calories',
       },
-      recipeIngredient: cocktail.ingredients_list.map((i: any) => {
-        return i.measure
-          ? `${i.measure} ${i.ingredient.name}`
-          : i.ingredient.name;
-      }),
+      recipeIngredient: cocktail.ingredients_list.map((i: any) =>
+        i.measure ? `${i.measure} ${i.ingredient.name}` : i.ingredient.name
+      ),
       recipeInstructions: [
-        {
-          '@type': 'HowToStep',
-          text: cocktail.instructions,
-        },
+        { '@type': 'HowToStep', text: cocktail.instructions },
       ],
       comment: [
         cocktail.ai_pairing && {
@@ -565,10 +560,7 @@ export class CocktailDetailComponent
           text: `Alcohol Content: ${cocktail.ai_alcohol_content}`,
         },
       ].filter(Boolean),
-      mainEntityOfPage: {
-        '@type': 'WebPage',
-        '@id': pageUrl,
-      },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
     };
   }
 }
