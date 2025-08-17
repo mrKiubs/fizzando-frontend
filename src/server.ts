@@ -5,8 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bootstrap from './main.server';
 
-// (opzionale ma consigliato) gzip
-// npm i compression
+// opzionale ma consigliato: gzip
 // import compression from 'compression';
 
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
@@ -16,37 +15,53 @@ const indexHtml = join(serverDistFolder, 'index.server.html');
 const app = express();
 const commonEngine = new CommonEngine();
 
-// Se usi compression, abilitala qui
-// app.use(compression());
-
-// Siamo dietro proxy (Railway), così req.protocol/host sono corretti
 app.set('trust proxy', 1);
 
-// Servi file statici ma **senza** index di default, così non bypassi SSR
+// if you enable it: app.use(compression());
+
+// 1) NOINDEX su dominio di staging (deve stare in alto)
+app.use((req, res, next) => {
+  const host = (req.headers.host || '').toLowerCase();
+  if (host.includes('.up.railway.app')) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  }
+  next();
+});
+
+// 2) robots.txt dinamico (prima del catch-all)
+app.get('/robots.txt', (req, res) => {
+  const host = (req.headers.host || '').toLowerCase();
+  if (host.includes('.up.railway.app')) {
+    res.type('text/plain').send('User-agent: *\nDisallow: /');
+  } else {
+    res
+      .type('text/plain')
+      .send(
+        'User-agent: *\nAllow: /\nSitemap: https://www.fizzando.com/sitemap.xml'
+      );
+  }
+});
+
+// opzionale: healthcheck
+app.get('/healthz', (_req, res) => res.status(200).send('OK'));
+
+// 3) static (ok senza index, così non salti l’SSR)
 app.use(
   express.static(browserDistFolder, {
     maxAge: '1y',
-    index: false, // <— fondamentale: non rispondere con index.html
+    index: false,
   })
 );
 
-// Healthcheck semplice
-app.get('/healthz', (_req, res) => res.status(200).send('OK'));
-
-/**
- * Tutte le altre richieste renderizzano via SSR.
- */
+// 4) SSR catch-all (dopo robots/static)
 app.get('*', (req, res, next) => {
-  // Recupera protocollo/host corretti anche dietro proxy
   const xfProto = (req.headers['x-forwarded-proto'] as string)?.split(',')[0];
   const xfHost = (req.headers['x-forwarded-host'] as string)?.split(',')[0];
-
   const protocol = xfProto || req.protocol;
   const host = xfHost || req.headers.host;
-
   const absoluteUrl = `${protocol}://${host}${req.originalUrl}`;
 
-  // Evita caching dell'HTML SSR (gli asset statici sono già cache-ati 1y sopra)
+  // niente cache per l’HTML SSR
   res.setHeader('Cache-Control', 'no-store');
 
   commonEngine
@@ -61,7 +76,7 @@ app.get('*', (req, res, next) => {
     .catch((err) => next(err));
 });
 
-// Error handler minimale
+// error handler
 app.use(
   (
     err: unknown,
@@ -76,9 +91,10 @@ app.use(
 
 if (isMainModule(import.meta.url)) {
   const port = process.env['PORT'] || 4000;
-  app.listen(port, () => {
-    console.log(`Node Express server listening on http://localhost:${port}`);
+  app.listen(port as number, '0.0.0.0', () => {
+    console.log(`SSR listening on http://0.0.0.0:${port}`);
   });
 }
 
+// export per Angular SSR adapter
 export default app;
