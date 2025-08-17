@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "cocktail-app": {
+    "fizzando": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/cocktail-app",
+            "outputPath": "dist/fizzando",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -51,8 +51,8 @@
               "outputHashing": "all",
               "fileReplacements": [
                 {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.production.ts"
+                  "replace": "src/app/config/env.ts",
+                  "with": "src/app/config/env.prod.ts"
                 }
               ],
               "prerender": false,
@@ -70,8 +70,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
-            "production": { "buildTarget": "cocktail-app:build:production" },
-            "development": { "buildTarget": "cocktail-app:build:development" }
+            "production": { "buildTarget": "fizzando:build:production" },
+            "development": { "buildTarget": "fizzando:build:development" }
           },
           "defaultConfiguration": "development"
         },
