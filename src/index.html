@@ -1,47 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="utf-8" />
-    <title>CocktailApp</title>
+    <title>Fizzando</title>
     <base href="/" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="color-scheme" content="light dark" />
 
-    <link rel="preconnect" href="http://192.168.1.241:1337" />
-
+    <!-- PRECONNECT: Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
+    <!-- FAVICON -->
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
+    <!-- Text fonts -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500&display=swap"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500&display=swap"
+      />
+    </noscript>
 
+    <!-- Material Icons (solo se davvero le usi) -->
     <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap"
+      />
+    </noscript>
 
-    <script>
-      // Disabilita pinch‑to‑zoom su iOS (utile per la UX, non tocca le prestazioni)
-      document.addEventListener("gesturestart", function (e) {
-        e.preventDefault();
-      });
-      document.addEventListener(
-        "touchmove",
-        function (e) {
-          if (e.scale && e.scale !== 1) {
-            e.preventDefault();
-          }
-        },
-        { passive: false }
-      );
-    </script>
+    <!-- Se davvero usi anche Outlined/Round, riattivali e lascia display=swap:
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round&display=swap" rel="stylesheet" />
+    -->
   </head>
-  <body class="">
+
+  <body>
     <app-root></app-root>
+
+    <!-- (OPZIONALE) Se vuoi ancora bloccare il pinch-zoom, sposta qui e non nel <head>:
+    <script>
+      requestIdleCallback?.(() => {
+        document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+        document.addEventListener('touchmove', e => {
+          if (e.scale && e.scale !== 1) e.preventDefault();
+        }, { passive: false });
+      });
+    </script>
+    -->
   </body>
 </html>
