@@ -6,10 +6,6 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bootstrap from './main.server';
 
-
-// opzionale ma consigliato: gzip
-// import compression from 'compression';
-
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
 const browserDistFolder = resolve(serverDistFolder, '../browser');
 const indexHtml = join(serverDistFolder, 'index.server.html');
@@ -19,12 +15,8 @@ const commonEngine = new CommonEngine();
 
 app.set('trust proxy', 1);
 
-
 // gzip
 app.use(compression());
-
-// if you enable it: app.use(compression());
-
 
 // 1) NOINDEX su dominio di staging (deve stare in alto)
 app.use((req, res, next) => {
@@ -53,7 +45,6 @@ app.get('/robots.txt', (req, res) => {
 app.get('/healthz', (_req, res) => res.status(200).send('OK'));
 
 // 3) static (ok senza index, così non salti l’SSR)
-
 //    con cache policy: hashed => 1y immutable, svg non hashati => 1h, altri asset non hashati => 7d, fallback 1h
 app.use(
   express.static(browserDistFolder, {
@@ -91,50 +82,8 @@ function evictOneIfNeeded() {
   if (!first.done) {
     const key = first.value as string;
     htmlCache.delete(key);
-
-app.use(
-  express.static(browserDistFolder, {
-    maxAge: '1y',
-    index: false,
-  })
-);
-
-// 4) SSR catch-all (dopo robots/static)
-app.get('*', (req, res, next) => {
-  const xfProto = (req.headers['x-forwarded-proto'] as string)?.split(',')[0];
-  const xfHost = (req.headers['x-forwarded-host'] as string)?.split(',')[0];
-  const protocol = xfProto || req.protocol;
-  const host = xfHost || req.headers.host;
-  const absoluteUrl = `${protocol}://${host}${req.originalUrl}`;
-
-  // niente cache per l’HTML SSR
-  res.setHeader('Cache-Control', 'no-store');
-
-  commonEngine
-    .render({
-      bootstrap,
-      documentFilePath: indexHtml,
-      url: absoluteUrl,
-      publicPath: browserDistFolder,
-      providers: [{ provide: APP_BASE_HREF, useValue: req.baseUrl }],
-    })
-    .then((html) => res.send(html))
-    .catch((err) => next(err));
-});
-
-// error handler
-app.use(
-  (
-    err: unknown,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction
-  ) => {
-    console.error(err);
-    res.status(500).send('Server error');
-
   }
-)
+}
 
 /* ---------------------- SSR catch-all (dopo robots/static) ---------------------- */
 
@@ -226,13 +175,8 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 if (isMainModule(import.meta.url)) {
-
   const port = Number(process.env['PORT'] || 4000);
   app.listen(port, '0.0.0.0', () => {
-
-  const port = process.env['PORT'] || 4000;
-  app.listen(port as number, '0.0.0.0', () => {
-
     console.log(`SSR listening on http://0.0.0.0:${port}`);
   });
 }
