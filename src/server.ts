@@ -134,7 +134,7 @@ app.use(
     res.status(500).send('Server error');
 
   }
-}
+)
 
 /* ---------------------- SSR catch-all (dopo robots/static) ---------------------- */
 
