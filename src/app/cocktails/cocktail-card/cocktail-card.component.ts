@@ -42,7 +42,7 @@ export class CocktailCardComponent implements OnInit {
   @Input() cocktail!: CocktailWithLayoutAndMatch;
   @Input() totalSelectedIngredientsCount: number = 0;
   @Input() lazyLoadImage: boolean = true;
-
+  @Input() isLcp = false;
   mainIngredientsFormatted: string[] = [];
   private apiUrl = env.apiUrl;
 

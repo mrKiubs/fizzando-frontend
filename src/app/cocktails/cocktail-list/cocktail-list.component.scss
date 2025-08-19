@@ -491,6 +491,8 @@ hr {
   }
 }
 
+/* === AFFILIATE STRIP (versione snella, zero-duplicazioni) === */
+
 .affiliate-card-list {
   padding-bottom: 20px;
   overflow-x: auto;
@@ -510,17 +512,93 @@ hr {
   }
 }
 
+/* Contenitore elementi scorrevoli */
 .scrollerdiv {
   display: flex;
   gap: 16px;
-
-  /* Scrolling più gradevole e “a scatti” card-by-card */
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x mandatory; /* snap card-by-card */
+  /* nessun overflow qui, gestione nello stesso parent */
+  &::-webkit-scrollbar {
+    display: none;
+  } /* nasconde su iOS/Android */
 }
 
 .scrollerdiv > * {
-  /* il tuo set */
   scroll-snap-align: start;
+  flex: 0 0 220px; /* card fissa 220px */
+  max-width: 220px;
+}
+
+/* Wrapper per dare altezza “visiva” uniforme alla card affiliata */
+.aff-item {
+  flex: 0 0 220px;
+  max-width: 220px;
+  min-height: 320px; /* allinea all’altezza media card cocktail */
+  display: block;
+
+  /* forza il layout stabile dentro il web component */
+  app-affiliate-product {
+    display: block;
+    width: 100%;
+  }
+
+  /* Immagini: zero-CLS e copertura piena */
+  app-affiliate-product img {
+    width: 100% !important;
+    height: auto !important;
+    display: block;
+    aspect-ratio: 1 / 1;
+    object-fit: cover; /* 'contain' se preferisci tutta l’immagine visibile */
+  }
+
+  /* Se il componente ha un wrapper immagine */
+  app-affiliate-product .image,
+  app-affiliate-product figure,
+  app-affiliate-product .img-wrap {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 10px;
+  }
+}
+
+/* Nasconde la scrollbar su device touch */
+@media (hover: none) and (pointer: coarse) {
+  .affiliate-card-list::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Desktop largo: tieni lo scroll orizzontale attivo (più semplice e leggero)
+   Se vuoi davvero la griglia fissa desktop, abilita la versione GRID commentata. */
+@media (min-width: 1260px) {
+  .affiliate-card-list {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* niente flex-wrap: così resta una “striscia” scorrevole */
+  }
+}
+
+/* --- Versione alternativa GRID per desktop (se vuoi evitare lo scroll) ---
+@media (min-width: 1260px) {
+  .affiliate-card-list {
+    overflow-x: visible;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+  }
+  .scrollerdiv { display: contents; }
+  .affiliate-card-list > * { max-width: none; flex: none; }
+}
+*/
+
+/* Disclaimer */
+.affiliate-bottom {
+  text-align: center;
+  font-size: 14px;
+  color: #87cfeb8f;
+  font-style: italic;
+  margin-top: 12px;
 }
 
 /* NEW: wrapper per dimensionare ogni card in modo coerente */

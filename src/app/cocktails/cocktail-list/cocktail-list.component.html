@@ -130,7 +130,10 @@
       trackBy: trackByCocktailId
     "
   >
-    <app-cocktail-card [cocktail]="cocktail"></app-cocktail-card>
+    <app-cocktail-card
+      [cocktail]="cocktail"
+      [isLcp]="i === 0"
+    ></app-cocktail-card>
 
     <ng-container *ngIf="i > 0 && (i + 1) % 6 === 0">
       <div *ngIf="isMobile">
