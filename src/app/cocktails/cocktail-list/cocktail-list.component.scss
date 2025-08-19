@@ -494,9 +494,9 @@ hr {
 .affiliate-card-list {
   padding-bottom: 20px;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch; /* Migliora lo scorrimento su iOS */
+  -webkit-overflow-scrolling: touch;
 
-  /* Stili della scrollbar per desktop */
+  /* Scrollbar desktop */
   &::-webkit-scrollbar {
     height: 8px;
   }
@@ -508,6 +508,62 @@ hr {
   &::-webkit-scrollbar-track {
     background: transparent;
   }
+}
+
+.scrollerdiv {
+  display: flex;
+  gap: 16px;
+
+  /* Scrolling più gradevole e “a scatti” card-by-card */
+  scroll-snap-type: x mandatory;
+}
+
+.scrollerdiv > * {
+  /* il tuo set */
+  scroll-snap-align: start;
+}
+
+/* NEW: wrapper per dimensionare ogni card in modo coerente */
+.aff-item {
+  flex: 0 0 220px;
+  max-width: 220px;
+
+  /* Altezza “visiva” minima: allinea la card affiliate alle altre */
+  /* Se le tue altre card sono più alte, alza questa misura. */
+  min-height: 320px;
+
+  display: block;
+}
+
+/* NEW: stile del tag host del componente per forzare il layout stabile */
+.aff-item app-affiliate-product {
+  display: block;
+  width: 100%;
+  /* Se l’interno ha padding/margini, questa regola mantiene la card compattata */
+}
+
+/* --- Opzionali ma utili per zero-CLS sull’immagine --- */
+/* Se l’immagine dentro il componente non ha width/height fissati,
+   possiamo forzare un riquadro quadrato in cui l’immagine “entra” */
+
+.aff-item app-affiliate-product img {
+  width: 100% !important;
+  height: auto !important; /* fallback */
+  display: block;
+  /* Riserva spazio quadrato: */
+  aspect-ratio: 1 / 1;
+  object-fit: cover; /* o 'contain' se vuoi vedere tutta l’immagine */
+}
+
+/* Se dentro il componente l’immagine è avvolta da un contenitore, puoi aggiungere: */
+.aff-item app-affiliate-product .image,       /* se hai una classe */
+.aff-item app-affiliate-product figure,       /* se c'è un figure */
+.aff-item app-affiliate-product .img-wrap {
+  /* o un wrapper generico */
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 10px; /* opzionale, allinea allo stile delle card */
 }
 
 .scrollerdiv {

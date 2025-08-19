@@ -221,14 +221,16 @@
   <div class="affiliate-card-list" #affiliateCardList>
     <div class="scrollerdiv">
       <ng-container *ngFor="let product of productList; let i = index">
-        <app-affiliate-product
-          [title]="product.title"
-          [imageUrl]="product.imageUrl"
-          [price]="product.price"
-          [link]="product.link"
-          [showPlaceholder]="product.showPlaceholder"
-        >
-        </app-affiliate-product>
+        <div class="aff-item">
+          <app-affiliate-product
+            [title]="product.title"
+            [imageUrl]="product.imageUrl"
+            [price]="product.price"
+            [link]="product.link"
+            [showPlaceholder]="product.showPlaceholder"
+          >
+          </app-affiliate-product>
+        </div>
       </ng-container>
     </div>
   </div>
