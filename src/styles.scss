@@ -1,8 +1,83 @@
 // Custom Theming for Angular Material
 // For more information: https://material.angular.dev/guide/theming
 //@use "@angular/material" as mat;
+
 @use "app/assets/style/main.scss" as *;
 
+/* ====== Base font stack ====== */
+:root {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --font-display: "Bebas Neue", "Impact", "Arial Black", system-ui, sans-serif;
+}
+
+html,
+body {
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ====== Titoli con Bebas Neue (display) ====== */
+h1,
+h2 {
+  font-family: var(--font-display);
+  /* i tuoi valori */
+  font-weight: 600;
+  letter-spacing: 0.5px; /* Bebas gradisce un pelo di tracking */
+}
+
+/* ====== Riduzione CLS: allinea x-height tra fallback e webfont ====== */
+@supports (font-size-adjust: 1) {
+  body,
+  p,
+  .page-subtitle,
+  .cocktail-card-title,
+  .cocktail-chips-container {
+    font-size-adjust: 0.56; /* valido per Inter: base solida */
+  }
+  h1,
+  h2,
+  .hero-title {
+    font-size-adjust: 0.68; /* Bebas Neue approx; regola fine se serve */
+  }
+}
+
+/* ====== (Opzionale) fallback universale del “contorno” titolo cross-browser ====== */
+/* Evita -webkit-text-stroke: usa un leggero text-shadow visibile su Firefox */
+
+/* ====== Mantieni il tuo background ====== */
 html {
   background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdab2d);
-} /* You can add global styles to this file, and also import other style files */
+}
+.page-header-container h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 34px; /* ↑ più grande su mobile */
+  line-height: 38px;
+  margin: 0;
+
+  /* anti-CLS: riserva 1 riga finché i font non sono pronti */
+  min-height: 38px;
+}
+
+.page-header-container h2 {
+  text-align: center;
+}
+
+/* Desktop / tablet */
+@media (min-width: 768px) {
+  .page-header-container h1 {
+    font-size: 46px; /* come prima */
+    line-height: 50px;
+
+    /* anti-CLS desktop */
+    min-height: 50px;
+  }
+}
+
+/* quando i font sono caricati, togli la riserva */
+.cocktails-page.fonts-loaded .page-header-container h1 {
+  min-height: 0;
+}

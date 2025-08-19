@@ -1,4 +1,3 @@
-// src/app/navbar/navbar.component.ts
 import {
   Component,
   OnInit,
@@ -7,6 +6,9 @@ import {
   inject,
   PLATFORM_ID,
   NgZone,
+  ViewChild,
+  ElementRef,
+  Renderer2,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import {
@@ -52,6 +54,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly ngZone = inject(NgZone);
 
+  @ViewChild('overlaySearchInput')
+  overlaySearchInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('overlayRoot') overlayRoot!: ElementRef<HTMLElement>;
+  @ViewChild('menuToggle') menuToggleBtn!: ElementRef<HTMLButtonElement>;
+
   isMenuOpen = false;
   isScrolled = false;
   overlaySearchTerm = '';
@@ -77,6 +84,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   private routerSubscription?: Subscription;
   private searchSubscription?: Subscription;
+  private lastFocused: HTMLElement | null = null;
 
   constructor(
     private router: Router,
@@ -84,7 +92,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private cocktailService: CocktailService,
     private ingredientService: IngredientService,
     private articleService: ArticleService,
-    private quizService: QuizService
+    private quizService: QuizService,
+    private renderer: Renderer2
   ) {}
 
   ngOnInit(): void {
@@ -193,6 +202,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.routerSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
     if (this.blurTimeout) clearTimeout(this.blurTimeout);
+    // rimuovi inert/aria-hidden se rimaste
+    this.setBackgroundInert(false);
+    if (this.isBrowser) {
+      document.body.style.overflow = '';
+    }
   }
 
   @HostListener('window:scroll')
@@ -206,16 +220,74 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.isScrolled = y > 0;
   }
 
+  // Focus trap + ESC globale
+  @HostListener('document:keydown', ['$event'])
+  handleGlobalKeydown(e: KeyboardEvent) {
+    if (!this.isMenuOpen) return;
+
+    if (e.key === 'Escape') {
+      this.closeMenu();
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      const focusables = this.getFocusableInOverlay();
+      if (!focusables.length) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement;
+
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+
+  private getFocusableInOverlay(): HTMLElement[] {
+    if (!this.overlayRoot) return [];
+    const selectors = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(',');
+    const root = this.overlayRoot.nativeElement;
+    return Array.from(root.querySelectorAll<HTMLElement>(selectors)).filter(
+      (el) =>
+        !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length)
+    );
+  }
+
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
     if (this.isBrowser)
       document.body.style.overflow = this.isMenuOpen ? 'hidden' : '';
+
     if (this.isMenuOpen) {
       this.overlaySearchTerm = '';
       this.clearSearchResults();
+
+      // salva focus precedente e porta il focus nella barra di ricerca
+      this.lastFocused = document.activeElement as HTMLElement;
+      setTimeout(() => this.overlaySearchInput?.nativeElement?.focus(), 0);
+
+      // disabilita il resto della pagina
+      this.setBackgroundInert(true);
     } else {
       this.isSearchInputFocused = false;
       this.searchTerms.next('');
+
+      // riabilita la pagina e restituisci focus
+      this.setBackgroundInert(false);
+      (this.menuToggleBtn?.nativeElement ?? this.lastFocused)?.focus?.();
+      this.lastFocused = null;
     }
   }
 
@@ -226,6 +298,28 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.clearSearchResults();
     this.isSearchInputFocused = false;
     if (this.blurTimeout) clearTimeout(this.blurTimeout);
+
+    this.setBackgroundInert(false);
+    (this.menuToggleBtn?.nativeElement ?? this.lastFocused)?.focus?.();
+    this.lastFocused = null;
+  }
+
+  private setBackgroundInert(enable: boolean): void {
+    if (!this.isBrowser) return;
+    const overlayEl = this.overlayRoot?.nativeElement;
+    const container = overlayEl?.parentElement || document.body;
+    const siblings = Array.from(container.children) as HTMLElement[];
+
+    siblings.forEach((el) => {
+      if (el === overlayEl) return;
+      if (enable) {
+        this.renderer.setAttribute(el, 'inert', '');
+        this.renderer.setAttribute(el, 'aria-hidden', 'true');
+      } else {
+        this.renderer.removeAttribute(el, 'inert');
+        this.renderer.removeAttribute(el, 'aria-hidden');
+      }
+    });
   }
 
   onSearchTermChange(): void {
@@ -241,7 +335,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   onSearchInputBlur(): void {
-    // ⬇️ fuori da Angular: non blocca isStable
+    // fuori da Angular per non sporcare la stabilità
     this.ngZone.runOutsideAngular(() => {
       this.blurTimeout = setTimeout(() => {
         this.ngZone.run(() => (this.isSearchInputFocused = false));

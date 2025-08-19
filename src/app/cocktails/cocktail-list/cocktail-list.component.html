@@ -1,4 +1,4 @@
-<div class="page-header-container">
+<div class="page-header-container" [class.fonts-loaded]="fontsLoaded">
   <h1>Cocktail Explorer</h1>
   <h2>Your Ultimate Cocktail Guide: Search, Filter, and Discover New Drinks</h2>
 
@@ -10,26 +10,28 @@
   </p>
 </div>
 
+<!-- SEARCH (senza FormsModule) -->
 <div class="custom-search-input-wrapper">
   <input
-    type="text"
+    type="search"
     class="custom-search-input"
     placeholder="Search cocktails by name..."
-    [(ngModel)]="searchTerm"
-    (input)="onSearchTermChange()"
+    [value]="searchTerm()"
+    (input)="onSearchInput($event)"
     aria-label="Search cocktails by name"
   />
   <mat-icon
     class="clear-search-icon"
-    *ngIf="searchTerm"
-    (click)="clearFilters(); searchTerm = ''"
+    *ngIf="searchTerm()"
+    (click)="clearFilters(); setSearch('')"
     svgIcon="close"
     aria-label="Clear search"
   ></mat-icon>
   <mat-icon class="search-icon" svgIcon="search" aria-hidden="true"></mat-icon>
 </div>
 
-<div class="filters-accordion" [class.expanded]="isExpanded">
+<!-- FILTERS -->
+<div class="filters-accordion" [class.expanded]="isExpanded()">
   <div class="accordion-header" (click)="toggleExpansion()">
     <h3 class="accordion-title">
       <mat-icon
@@ -39,23 +41,21 @@
       ></mat-icon>
       Filters
     </h3>
-    <span class="active-filters-summary" *ngIf="!isExpanded">
+    <span class="active-filters-summary" *ngIf="!isExpanded()">
       ({{ getActiveFiltersText() }})
     </span>
   </div>
 
-  <div
-    class="accordion-content"
-    [@accordionAnimation]="isExpanded ? 'open' : 'closed'"
-  >
+  @defer (when isExpanded()) {
+  <div class="accordion-content">
     <div class="filter-group">
       <label for="category-select" class="filter-label">Category</label>
       <div class="custom-select-wrapper">
         <select
           id="category-select"
           class="custom-select"
-          [(ngModel)]="selectedCategory"
-          (change)="applyFilters()"
+          [value]="selectedCategory()"
+          (change)="onCategoryChange($event)"
           (click)="$event.stopPropagation()"
           aria-label="Filter by category"
         >
@@ -80,8 +80,8 @@
         <select
           id="alcoholic-select"
           class="custom-select"
-          [(ngModel)]="selectedAlcoholic"
-          (change)="applyFilters()"
+          [value]="selectedAlcoholic()"
+          (change)="onAlcoholicChange($event)"
           (click)="$event.stopPropagation()"
           aria-label="Filter by alcoholic type"
         >
@@ -109,6 +109,7 @@
       </button>
     </div>
   </div>
+  }
 </div>
 
 <hr />
@@ -136,12 +137,23 @@
     ></app-cocktail-card>
 
     <ng-container *ngIf="i > 0 && (i + 1) % 6 === 0">
-      <div *ngIf="isMobile">
+      <div
+        *ngIf="isMobile"
+        class="mobile-ad-container"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
         <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
       </div>
 
-      <div class="ad-desktop-card" *ngIf="!isMobile">
-        <p>Sponsored”/“Ad</p>
+      <div
+        class="ad-desktop-card"
+        *ngIf="!isMobile"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
         <app-dev-ads [type]="'square'"></app-dev-ads>
       </div>
     </ng-container>
@@ -221,6 +233,7 @@
 
 <section class="glass-card">
   <h2 class="section-title">🛒 Craft Cocktails with the Right Tools</h2>
+  @defer (on viewport) {
   <div class="affiliate-card-list" #affiliateCardList>
     <div class="scrollerdiv">
       <ng-container *ngFor="let product of productList; let i = index">
@@ -237,6 +250,15 @@
       </ng-container>
     </div>
   </div>
+  } @placeholder {
+  <div class="affiliate-card-list placeholder" aria-hidden="true">
+    <div class="scrollerdiv">
+      <div class="aff-item skeleton"></div>
+      <div class="aff-item skeleton"></div>
+      <div class="aff-item skeleton"></div>
+    </div>
+  </div>
+  }
   <p class="affiliate-bottom">
     We may receive a small commission if you purchase through these links — it
     helps keep the shaker shaking! 🙌🍸
@@ -278,172 +300,167 @@
   </div>
 </div>
 
+@defer (on viewport) {
 <div class="bottom-container">
   <div class="faq-section">
-    <h2>Frequently Asked Questions about Cocktails</h2>
+    <h2>Frequently Asked Questions about Ingredients</h2>
 
     <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
-      <h3 class="faq-question" (click)="toggleFaq(faqs[0])">
-        What types of cocktails can I find here?
-        <mat-icon
-          class="faq-toggle-icon"
-          [class.rotated]="faqs[0].isExpanded"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </h3>
+      <button
+        class="faq-question"
+        type="button"
+        (click)="toggleFaq(faqs[0])"
+        [attr.aria-expanded]="faqs[0].isExpanded"
+      >
+        <span>What types of ingredients can I find here?</span>
+        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+      </button>
       <div
+        #a0
         class="faq-answer-wrapper"
-        [@faqAccordionAnimation]="faqs[0].isExpanded ? 'expanded' : 'collapsed'"
+        [style.maxHeight.px]="faqs[0].isExpanded ? a0.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Our archive covers a wide range, including
-          <b>classic cocktails</b> (e.g., Old Fashioned, Daiquiri),
-          <b>modern creations</b>, <b>tropical drinks</b>, refreshing
-          <b>long drinks</b>, and refined <b>short drinks</b>. Use the filters
-          to explore specific types.
+          Our comprehensive ingredient database includes
+          <b>alcoholic bases</b> (like spirits and liqueurs),
+          <b>non-alcoholic mixers</b> (such as juices, syrups, and sodas), and
+          various <b>garnishes</b>. You can use our filters to narrow down your
+          search.
         </p>
       </div>
     </div>
 
     <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
-      <h3 class="faq-question" (click)="toggleFaq(faqs[1])">
-        How can I find a specific cocktail by name?
-        <mat-icon
-          class="faq-toggle-icon"
-          [class.rotated]="faqs[1].isExpanded"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </h3>
+      <button
+        class="faq-question"
+        type="button"
+        (click)="toggleFaq(faqs[1])"
+        [attr.aria-expanded]="faqs[1].isExpanded"
+      >
+        <span>How can I search for a specific ingredient?</span>
+        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+      </button>
       <div
+        #a1
         class="faq-answer-wrapper"
-        [@faqAccordionAnimation]="faqs[1].isExpanded ? 'expanded' : 'collapsed'"
+        [style.maxHeight.px]="faqs[1].isExpanded ? a1.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Use the <b>“Search cocktails by name…”</b> bar at the top of the page.
-          Start typing and we’ll narrow down the results as you type.
+          Use the <b>"Search ingredient by name..." bar</b> at the top of the
+          page. Simply type the name of the ingredient you're looking for, and
+          we'll help you find it quickly.
         </p>
       </div>
     </div>
 
     <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
-      <h3 class="faq-question" (click)="toggleFaq(faqs[2])">
-        What detailed information is available for each cocktail?
-        <mat-icon
-          class="faq-toggle-icon"
-          [class.rotated]="faqs[2].isExpanded"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </h3>
+      <button
+        class="faq-question"
+        type="button"
+        (click)="toggleFaq(faqs[2])"
+        [attr.aria-expanded]="faqs[2].isExpanded"
+      >
+        <span>What information is available for each ingredient?</span>
+        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+      </button>
       <div
+        #a2
         class="faq-answer-wrapper"
-        [@faqAccordionAnimation]="faqs[2].isExpanded ? 'expanded' : 'collapsed'"
+        [style.maxHeight.px]="faqs[2].isExpanded ? a2.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Cards display the <b>image</b>, <b>category</b>, estimated <b>ABV</b>,
-          <b>key ingredients</b>, and the <b>recommended glass</b>. Clicking a
-          cocktail reveals full details: <b>step-by-step instructions</b>,
-          <b>precise measurements</b>, <b>origin</b>,
-          <b>sensory description</b>, <b>food pairings</b>,
-          <b>ideal occasions</b>, <b>personality</b>, and possible
-          <b>variations</b>.
+          Each ingredient card displays its <b>image</b> and whether it's
+          <b>alcoholic or non-alcoholic</b>. Clicking on an ingredient provides
+          in-depth details such as its <b>description</b>, common
+          <b>uses in cocktails</b>, its <b>origin</b>, and relevant
+          <b>tips for storage or usage</b>.
         </p>
       </div>
     </div>
 
     <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
-      <h3 class="faq-question" (click)="toggleFaq(faqs[3])">
-        Can I filter cocktails based on specific criteria?
-        <mat-icon
-          class="faq-toggle-icon"
-          [class.rotated]="faqs[3].isExpanded"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </h3>
+      <button
+        class="faq-question"
+        type="button"
+        (click)="toggleFaq(faqs[3])"
+        [attr.aria-expanded]="faqs[3].isExpanded"
+      >
+        <span>Can I filter ingredients by alcoholic content?</span>
+        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+      </button>
       <div
+        #a3
         class="faq-answer-wrapper"
-        [@faqAccordionAnimation]="faqs[3].isExpanded ? 'expanded' : 'collapsed'"
+        [style.maxHeight.px]="faqs[3].isExpanded ? a3.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Absolutely. Filter by <b>category</b> (e.g., Before Dinner, After
-          Dinner), <b>alcoholic type</b> (Alcoholic, Non Alcoholic, Optional
-          Alcohol), or <b>glass type</b> (e.g., Martini glass, Highball glass)
-          to narrow your search.
+          Yes, absolutely! Use the <b>"Alcoholic / Non-Alcoholic" filter</b> to
+          quickly sort ingredients based on their alcohol content.
         </p>
       </div>
     </div>
 
     <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
-      <h3 class="faq-question" (click)="toggleFaq(faqs[4])">
-        How can I search for cocktails based on ingredients I have at home?
-        <mat-icon
-          class="faq-toggle-icon"
-          [class.rotated]="faqs[4].isExpanded"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </h3>
+      <button
+        class="faq-question"
+        type="button"
+        (click)="toggleFaq(faqs[4])"
+        [attr.aria-expanded]="faqs[4].isExpanded"
+      >
+        <span
+          >Where can I find cocktail recipes that use these ingredients?</span
+        >
+        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+      </button>
       <div
+        #a4
         class="faq-answer-wrapper"
-        [@faqAccordionAnimation]="faqs[4].isExpanded ? 'expanded' : 'collapsed'"
+        [style.maxHeight.px]="faqs[4].isExpanded ? a4.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Head to <a href="/find-by-ingredients"><b>Find by Ingredients</b></a
-          >, select what you have on hand, and we’ll show you what you can make.
+          To discover delicious cocktails, visit our
+          <b>"Cocktail Explorer"</b> section…
         </p>
       </div>
     </div>
 
     <div class="faq-item" [class.expanded]="faqs[5].isExpanded">
-      <h3 class="faq-question" (click)="toggleFaq(faqs[5])">
-        Where can I find information about individual ingredients?
-        <mat-icon
-          class="faq-toggle-icon"
-          [class.rotated]="faqs[5].isExpanded"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </h3>
+      <button
+        class="faq-question"
+        type="button"
+        (click)="toggleFaq(faqs[5])"
+        [attr.aria-expanded]="faqs[5].isExpanded"
+      >
+        <span>How can I find cocktails based on the ingredients I have?</span>
+        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+      </button>
       <div
+        #a5
         class="faq-answer-wrapper"
-        [@faqAccordionAnimation]="faqs[5].isExpanded ? 'expanded' : 'collapsed'"
+        [style.maxHeight.px]="faqs[5].isExpanded ? a5.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Visit <a href="/ingredients"><b>Ingredients</b></a> for details on
-          every component of your favorite drinks.
-        </p>
-      </div>
-    </div>
-
-    <div class="faq-item" [class.expanded]="faqs[6].isExpanded">
-      <h3 class="faq-question" (click)="toggleFaq(faqs[6])">
-        Is there a glossary for cocktail technical terms?
-        <mat-icon
-          class="faq-toggle-icon"
-          [class.rotated]="faqs[6].isExpanded"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </h3>
-      <div
-        class="faq-answer-wrapper"
-        [@faqAccordionAnimation]="faqs[6].isExpanded ? 'expanded' : 'collapsed'"
-      >
-        <p class="faq-answer">
-          Yes! Check out our <a href="/glossary"><b>Glossary</b></a> to master
-          key terms and techniques.
+          Check out our <b>"Find by Ingredients"</b> tool…
         </p>
       </div>
     </div>
   </div>
 
-  <div class="banner-container">
+  <div
+    class="banner-container"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
     <ng-container>
       <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
       <app-dev-ads *ngIf="!isMobile" [type]="'half-page'"></app-dev-ads>
     </ng-container>
   </div>
 </div>
+} @placeholder {
+<div class="bottom-container placeholder" aria-hidden="true">
+  <div class="faq-section skeleton"></div>
+  <div class="banner-container skeleton"></div>
+</div>
+}

@@ -4,26 +4,6 @@
   display: block;
 }
 
-.page-header-container {
-  text-align: center;
-  padding: 0 0 0 0;
-  max-width: 1200px;
-  margin: 0 auto;
-
-  .page-subtitle {
-    /* Made more concise */
-    font-size: 1.05rem;
-    color: rgba(255, 255, 255, 0.85);
-    margin-top: 14px;
-    line-height: 1.5;
-    max-width: 700px; /* Slightly wider to feel less dense for a short paragraph */
-    margin-left: auto;
-    margin-right: auto;
-    font-weight: 300;
-    margin-bottom: 30px; /* More space before search/filters */
-  }
-}
-
 /* Removed .search-guide-section styles as it's no longer needed */
 
 .custom-search-input-wrapper {
@@ -615,7 +595,7 @@ hr {
     flex-direction: column;
   }
   .faq-section {
-    margin: 0;
+    margin: 0 0 24px 0;
   }
 
   .banner-container {
@@ -631,4 +611,36 @@ hr {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+}
+.ad-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: min-content;
+}
+.mobile-ad-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ad-card,
+.ad-desktop-card,
+.mobile-ad-container,
+.banner-container {
+  min-height: 320px; /* o l’altezza media delle tue cocktail-card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: 600px) {
+    min-height: 130px;
+  }
 }

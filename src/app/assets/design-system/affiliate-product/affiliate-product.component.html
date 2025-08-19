@@ -1,36 +1,66 @@
 <ng-container *ngIf="showPlaceholder; else realAd">
-  <div class="affiliate-card">
+  <div
+    class="affiliate-card"
+    role="complementary"
+    aria-label="Sponsored product"
+  >
+    <span class="ad-badge">Ad</span>
+
     <img
       [src]="imageUrl"
-      alt="Product image"
+      [alt]="title || 'Product image'"
       width="200"
       height="200"
-      style="aspect-ratio: 1 / 1; object-fit: cover"
+      loading="lazy"
+      decoding="async"
+      style="aspect-ratio: 1 / 1; object-fit: cover; display: block"
     />
+
     <div class="info">
-      <h4>{{ title }}</h4>
-      <a [href]="link" target="_blank" rel="nofollow sponsored"
-        >Shop on Amazon</a
+      <h4 class="product-title">{{ title }}</h4>
+      <a
+        class="product-link"
+        [href]="link"
+        target="_blank"
+        rel="sponsored nofollow noopener"
+        [attr.aria-label]="
+          'Shop ' + (title || 'product') + ' on Amazon (opens in a new tab)'
+        "
       >
+        Shop on Amazon
+      </a>
     </div>
   </div>
 </ng-container>
 
 <ng-template #realAd>
   <div
+    class="ad-iframe-wrapper"
+    role="complementary"
+    aria-label="Sponsored advertisement"
     style="
       width: 120px;
       height: 240px;
       border: 1px solid #ddd;
       background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
     "
   >
+    <span class="ad-badge" style="position: absolute; top: 6px; left: 6px"
+      >Ad</span
+    >
     <iframe
       [src]="link"
+      title="Advertisement"
       width="120"
       height="240"
       style="border: none"
       scrolling="no"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
     ></iframe>
   </div>
 </ng-template>
