@@ -308,10 +308,17 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (!this.isBrowser) return;
     const overlayEl = this.overlayRoot?.nativeElement;
     const container = overlayEl?.parentElement || document.body;
-    const siblings = Array.from(container.children) as HTMLElement[];
 
+    // prendi l'header per escluderlo
+    const headerEl = document.querySelector(
+      'header.app-header'
+    ) as HTMLElement | null;
+
+    const siblings = Array.from(container.children) as HTMLElement[];
     siblings.forEach((el) => {
-      if (el === overlayEl) return;
+      // non toccare overlay e header
+      if (el === overlayEl || el === headerEl) return;
+
       if (enable) {
         this.renderer.setAttribute(el, 'inert', '');
         this.renderer.setAttribute(el, 'aria-hidden', 'true');

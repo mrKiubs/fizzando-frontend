@@ -1,4 +1,3 @@
-/* src/app/cocktails/cocktail-detail/cocktail-detail.component.scss */
 @use "../../assets/style/mixins" as m;
 
 :host {
@@ -6,14 +5,14 @@
 }
 
 .cocktail-detail-wrapper {
-  max-width: 1200px; /* Max width similar to lists */
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Centra orizzontalmente gli elementi figli */
+  align-items: center;
 }
 
-/* Base Glass Card Styles - Reused */
+/* Base Glass Card Styles */
 .glass-card {
   background-color: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(8px);
@@ -25,20 +24,14 @@
   color: #fff;
   width: 100%;
   box-sizing: border-box;
-
   @media (max-width: 600px) {
     padding: 8px;
   }
 }
 
-/* Mini Glass Card for AI Details - Slightly more distinct */
+/* Mini Glass Card */
 .glass-card-mini {
-  background-color: rgba(
-    255,
-    255,
-    255,
-    0.08
-  ); /* Slightly more opaque for inner blocks */
+  background-color: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -53,40 +46,38 @@
   }
 }
 
-/* Glass Button Styles - Reused */
+/* Glass Button */
 .glass-button {
   padding: 0.75rem 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
-  outline: none;
+  outline: 0;
   transition: all 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-
   &.primary {
-    background-color: rgba(0, 123, 255, 0.3);
+    background: rgba(0, 123, 255, 0.3);
     color: #fff;
     &:hover {
-      background-color: rgba(0, 123, 255, 0.5);
+      background: rgba(0, 123, 255, 0.5);
       border-color: rgba(255, 255, 255, 0.6);
     }
   }
-
   &.secondary {
-    background-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
     color: #fff;
     &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.2);
       border-color: rgba(255, 255, 255, 0.6);
     }
   }
 }
 
-/* Loading and Error Messages */
+/* Loading / Error */
 .loading-message,
 .error-message {
   text-align: center;
@@ -98,7 +89,6 @@
   justify-content: center;
   gap: 1rem;
 }
-
 .error-message {
   color: #f44336;
   mat-icon {
@@ -107,59 +97,50 @@
   }
 }
 
-/* Basic loading icon style */
+/* Loading icon */
 .loading-icon {
   font-size: 3rem;
   color: #87ceeb;
   animation: spin 2s linear infinite;
 }
-
 @keyframes spin {
   0% {
-    transform: rotate(0deg);
+    transform: rotate(0);
   }
   100% {
     transform: rotate(360deg);
   }
 }
 
-/* Titolo e Sottotitolo */
-
+/* Title / Subtitle */
 .cocktail-subtitle {
   font-size: 1.2rem;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 400;
   margin-top: 0;
-  margin-bottom: 1.5rem; /* Spazio sotto il sottotitolo e prima della card principale */
-  text-align: center; /* Centra il testo */
+  margin-bottom: 1.5rem;
+  text-align: center;
   width: 100%;
-  max-width: 800px; /* Limita la larghezza massima */
+  max-width: 800px;
 }
-
-/* Stile per il separatore nel sottotitolo */
 .cocktail-subtitle .separator {
   margin: 0 0.5rem;
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Nuovo contenitore principale per i dettagli del cocktail */
+/* Main content */
 .cocktail-main-content {
 }
-
-/* Griglia interna per immagine, descrizione/istruzioni, ingredienti */
 .main-content-grid {
   display: grid;
-  gap: 16px; /* Spazio tra le colonne */
-  grid-template-columns: 1fr; /* Default: 1 colonna per mobile */
-
+  gap: 16px;
+  grid-template-columns: 1fr;
   @media (min-width: 768px) {
-    grid-template-columns: 1fr 2fr; /* 2 colonne: immagine a sx, desc/ingr a dx */
+    grid-template-columns: 1fr 2fr;
   }
-
   @media (min-width: 1024px) {
-    grid-template-columns: 1fr 1.5fr 1fr; /* 3 colonne: immagine, desc/instr, ingredienti */
+    grid-template-columns: 1fr 1.5fr 1fr;
   }
-
   .cocktail-description-instructions-column {
     padding: 8px 20px;
   }
@@ -168,7 +149,6 @@
 .cocktail-ingredients-column {
   @include m.glass-card;
   padding: 16px 16px 8px 16px;
-
   @media (min-width: 768px) {
     grid-column: 1 / span 2;
   }
@@ -177,43 +157,36 @@
   }
 }
 
-/* Stili per le colonne */
+/* Columns */
 .cocktail-image-column {
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Allinea l'immagine in alto */
-
-  @media (min-width: 768px) {
-    padding-bottom: 0; /* Rimuovi padding su desktop */
-  }
+  align-items: flex-start;
 }
-
 .image-wrapper {
   width: 100%;
-
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(0, 0, 0, 0.1); /* Sfondo per immagini trasparenti */
-
-  /* STILI PER RENDERE L'IMMAGINE QUADRATA */
-  position: relative; /* Necessario per posizionare l'immagine al suo interno */
-  padding-top: 100%; /* Crea un'altezza uguale alla larghezza (rapporto 1:1) */
-  height: 0; /* Annulla l'altezza esplicita se impostata */
-  display: block; /* Assicura che div si comporti come un blocco per padding-top */
+  background: rgba(0, 0, 0, 0.1);
+  position: relative;
+  padding-top: 100%;
+  height: 0;
+  display: block; /* square wrapper */
 }
-
 .detail-image {
-  position: absolute; /* Posiziona l'immagine rispetto al wrapper */
+  position: absolute;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Copre l'area mantenendo il rapporto d'aspetto, tagliando se necessario */
+  object-fit: cover;
   display: block;
 }
 
-/* Sezioni interne alle colonne (Descrizione, Istruzioni, Ingredienti) */
+/* Sections */
 .section-title {
   color: rgba(255, 255, 255, 0.85);
   margin-top: 0;
@@ -222,13 +195,11 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 26px;
-
   mat-icon {
     font-size: 1.6rem;
     color: rgba(255, 255, 255, 0.7);
   }
 }
-
 .description-section p,
 .instructions-section p {
   font-size: 1rem;
@@ -237,7 +208,7 @@
   margin-bottom: 1rem;
 }
 
-/* Ingredient List Styling - AGRRAZIATO E ALLINEATO */
+/* Ingredient List */
 .ingredient-list {
   list-style: none;
   padding: 0;
@@ -245,92 +216,70 @@
   display: flex;
   flex-direction: column;
 }
-
 .ingredient-list li {
-  margin-bottom: 0;
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.9);
-  padding: 0px 0px 8px 0;
+  padding: 0 0 8px 0;
   margin-bottom: 8px;
-
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
-  justify-content: space-between; /* SPINGE GLI ELEMENTI AGLI ESTREMI */
+  justify-content: space-between;
   position: relative;
-  /* AGGIUNTO: Un sottile gradiente di background che si muove all'hover per un effetto "connessione" */
-
   transition: background-position 0.4s ease, box-shadow 0.3s ease,
     border-color 0.3s ease, transform 0.1s ease;
   gap: 8px;
-  &:hover {
-  }
-
   &:last-child {
-    margin-bottom: 0px;
+    margin-bottom: 0;
     border-bottom: none;
   }
 }
-
 .ingredient-measure {
-  font-weight: 700; /* Più grassetto */
-  font-size: 0.75rem; /* Leggermente più grande */
-  color: #8be9fd; /* Colore più brillante per la misura */
-  white-space: nowrap; /* Previene il wrap del testo */
-  flex-shrink: 0; /* Impedisce che si restringa */
-  text-align: right; /* Allinea a destra all'interno del suo spazio */
-  order: 2; /* Sposta la misura a destra nell'ordine flex */
-  z-index: 2; /* Assicura che sia sopra la linea centrale */
-  /* AGGIUNTO: Sottile ombra per dare profondità */
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #8be9fd;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
+  order: 2;
+  z-index: 2;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
-
 .ingredient-link {
-  color: #add8e6; /* Azzurro cielo chiaro per i link */
+  color: #add8e6;
   text-decoration: none;
-  font-weight: 600; /* Più grassetto per i link */
-  font-size: 1.1rem; /* Leggermente più grande dei normali ingredienti */
+  font-weight: 600;
+  font-size: 1.1rem;
   transition: color 0.2s ease;
-  flex-grow: 1; /* Permette al nome dell'ingrediente di occupare lo spazio rimanente a sinistra */
-  text-align: left; /* Allinea a sinistra */
-  order: 1; /* Sposta l'ingrediente a sinistra nell'ordine flex */
-  z-index: 2; /* Assicura che sia sopra la linea centrale */
+  flex-grow: 1;
+  text-align: left;
+  order: 1;
+  z-index: 2;
   line-height: 20px;
   &:hover {
-    color: #fff; /* Bianco puro all'hover */
+    color: #fff;
     text-decoration: underline;
   }
 }
-
-/* Stile per il nome dell'ingrediente non cliccabile */
-.ingredient-list li span:not(.ingredient-measure) {
-  color: rgba(255, 255, 255, 0.9); /* Bianco leggermente trasparente */
-  font-weight: 500; /* Medio grassetto */
-  font-size: 1.05rem; /* Coerente con la misura */
-  flex-grow: 1;
-  text-align: left;
-  order: 1; /* Mantiene l'ordine a sinistra */
-  z-index: 2; /* Assicura che sia sopra la linea centrale */
-}
-
-/* Stile per il nome dell'ingrediente non cliccabile */
 .ingredient-list li span:not(.ingredient-measure) {
   color: rgba(255, 255, 255, 0.9);
-  flex-grow: 1; /* Anche questo per gli ingredienti non linkabili */
-  text-align: left; /* Allinea a sinistra */
+  font-weight: 500;
+  font-size: 1.05rem;
+  flex-grow: 1;
+  text-align: left;
+  order: 1;
+  z-index: 2;
 }
 
-/* Stili per la sezione "Additional Details" - rimane a tutta larghezza */
+/* AI Details */
 .ai-details-section {
   padding: 16px;
 }
-
 .ai-blocks-grid {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
-
 .ai-detail-block {
   .ai-block-title {
     font-size: 1.2rem;
@@ -356,11 +305,11 @@
   margin-top: 1.5rem;
 }
 
-/* Adjustments for very small screens */
+/* Small screens */
 @media (max-width: 600px) {
   .cocktail-subtitle {
     font-size: 1rem;
-    margin-bottom: 1rem; /* Riduci il margine per schermi piccoli */
+    margin-bottom: 1rem;
   }
   .glass-card {
     padding: 8px;
@@ -368,17 +317,15 @@
   .section-title {
     font-size: 22px;
   }
-  .image-wrapper {
-    /* Rimosso height: 200px; da qui, ora è gestito dal padding-top */
-  }
 }
 
-/* Media query per un layout a 2 colonne su schermi medi per i dettagli aggiuntivi */
+/* AI title bump */
 @media (min-width: 600px) {
   .ai-details-section .section-title {
     font-size: 1.6rem;
   }
 }
+
 .image-ingredient-wrapper {
   position: relative;
   width: 60px;
@@ -389,13 +336,14 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
-  background-color: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 4px;
 }
 
+/* Navigation */
 .navigation-bar {
   width: 100%;
   max-width: 1200px;
@@ -403,7 +351,6 @@
   flex-direction: column;
   gap: 32px;
   margin-bottom: 32px;
-
   .nav-top {
     display: flex;
     align-items: center;
@@ -414,38 +361,32 @@
     letter-spacing: 0.05em;
     text-transform: uppercase;
     font-size: 20px;
-
-    a {
-      .cocktail-image-wrapper {
-        width: 36px;
-        height: 36px;
-        border-radius: 4px;
-        overflow: hidden;
-      }
+    a .cocktail-image-wrapper {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      overflow: hidden;
     }
-
     @media (max-width: 600px) {
       flex-direction: column;
       justify-content: center;
       gap: 16px;
     }
   }
-
   .nav-bottom {
     display: flex;
     justify-content: center;
   }
 }
 
-/* NUOVI STILI PER LA SEZIONE DEI COCKTAIL CORRELATI */
+/* Related */
 .related-cocktails-section {
   @include m.glass-card;
-  max-width: 1200px; /* Riferimento al max-width del detail-wrapper */
+  max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
   width: 100%;
 }
-
 .related-cocktail-cards-grid {
   display: grid;
   gap: 16px;
@@ -453,32 +394,26 @@
 }
 @media (max-width: 600px) {
   .related-cocktail-cards-grid {
-    gap: 8px; /* 2 colonne */
+    gap: 8px;
   }
 }
-/* Responsive Grid Layouts - AGGIORNATO per Full Width e 4 colonne */
 @media (min-width: 600px) {
   .related-cocktail-cards-grid {
-    grid-template-columns: repeat(2, 1fr); /* 2 colonne */
+    grid-template-columns: repeat(2, 1fr);
   }
 }
-
 @media (min-width: 900px) {
   .related-cocktail-cards-grid {
-    grid-template-columns: repeat(3, 1fr); /* 3 colonne */
+    grid-template-columns: repeat(3, 1fr);
   }
 }
-
 @media (min-width: 1200px) {
   .related-cocktail-cards-grid {
-    grid-template-columns: repeat(4, 1fr); /* 4 colonne */
+    grid-template-columns: repeat(4, 1fr);
   }
 }
-
-/* Assicurati che le card dei cocktail (app-cocktail-card) siano responsive */
-/* Potrebbe non essere necessario se già definite globalmente o nel componente card */
 app-cocktail-card {
-  display: block; /* Le card sono elementi di blocco per grid */
+  display: block;
 }
 
 .ing-cocktail {
@@ -487,25 +422,24 @@ app-cocktail-card {
   flex-direction: column;
   a {
     text-transform: uppercase;
-    font-size: 22px;
+    font-size: 28px;
   }
 }
 .ing-type {
-  color: rgba(204, 204, 204, 0.5019607843) !important;
+  color: rgba(204, 204, 204, 0.5) !important;
   font-size: 13px !important;
 }
-/* Aggiungi questi stili al tuo file cocktail-detail.component.scss */
+
+/* Affiliate scroller */
 .affiliate-card-list {
   padding-bottom: 20px;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch; /* Migliora lo scorrimento su iOS */
-
-  /* Stili della scrollbar per desktop */
+  -webkit-overflow-scrolling: touch;
   &::-webkit-scrollbar {
     height: 8px;
   }
   &::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
@@ -513,48 +447,35 @@ app-cocktail-card {
     background: transparent;
   }
 }
-
 .scrollerdiv {
   display: flex;
   gap: 16px;
-  /* Lo scorrimento è gestito dal genitore, quindi non ha bisogno di overflow qui */
 }
-
 .scrollerdiv > * {
   scroll-snap-align: start;
   flex: 0 0 220px;
   max-width: 220px;
 }
-
-/* Nascondi la scrollbar su dispositivi mobile/touch */
 @media (hover: none) and (pointer: coarse) {
   .affiliate-card-list::-webkit-scrollbar {
     display: none;
   }
 }
-
-/* Regole per schermi grandi (desktop) */
 @media (min-width: 1260px) {
   .affiliate-card-list {
-    overflow-x: visible; /* Disabilita lo scorrimento per desktop */
-    display: grid; /* Passa a un layout a griglia */
-    grid-template-columns: repeat(5, 1fr);
-    gap: 20px; /* Aumenta il gap per desktop */
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
   }
-
-  .scrollerdiv {
-    display: contents; /* Rimuove il div intermedio dal layout flexbox */
-  }
-
   .affiliate-card-list > * {
+    flex: 1 1 calc(25% - 70px);
     max-width: none;
-    flex: none; /* Disabilita le regole flex */
   }
 }
 .scrollerdiv::-webkit-scrollbar {
-  display: none; /* nasconde scrollbar su mobile iOS e Android */
+  display: none;
 }
-
 .affiliate-bottom {
   text-align: center;
   font-size: 14px;
@@ -563,24 +484,55 @@ app-cocktail-card {
   margin-top: 12px;
 }
 
-@media (min-width: 1260px) {
-  .affiliate-card-list {
-    overflow-x: auto; /* Cambiato da 'visible' a 'auto' */
-    flex-wrap: nowrap; /* Aggiunto per evitare che gli elementi vadano a capo */
-    justify-content: flex-start; /* Opzionale, per allineare gli elementi a sinistra */
-    -webkit-overflow-scrolling: touch; /* Migliora lo scorrimento sui dispositivi Apple */
-  }
+/* ====== Banner styles (uniformi al listato) ====== */
+.mobile-ad-container,
+.ad-desktop-card,
+.banner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  position: relative;
+}
+.ad-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: min-content;
+}
+/* spazio riservato (anti-CLS) */
+.ad-card,
+.ad-desktop-card,
+.mobile-ad-container,
+.banner-container {
+  min-height: 135px; /* o l’altezza media delle tue cocktail-card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0;
 
-  .affiliate-card-list > * {
-    flex: 1 1 calc(25% - 70px);
-    max-width: none;
+  @media (max-width: 600px) {
+    min-height: 130px;
   }
 }
 
+/* legacy */
 .banner-disposition {
   display: flex;
   flex-wrap: wrap;
   align-content: space-between;
   flex-direction: column;
   height: 100%;
+}
+.amazon-section {
+  margin: 32px 0;
+}
+.mobile-ad-container {
+  margin: 16px 0;
 }

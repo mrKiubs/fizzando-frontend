@@ -1,4 +1,5 @@
 <div class="cocktail-detail-wrapper">
+  <!-- Loading / Error -->
   <div *ngIf="loading" class="loading-message glass-card">
     <p>Loading cocktail details...</p>
   </div>
@@ -11,6 +12,7 @@
     </button>
   </div>
 
+  <!-- Title / Subtitle -->
   <ng-container *ngIf="cocktail && !loading && !error">
     <h1 class="cocktail-title">{{ cocktail.name }}</h1>
     <h2 class="cocktail-subtitle">
@@ -21,26 +23,31 @@
     </h2>
   </ng-container>
 
-  <ng-container>
-    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
-  </ng-container>
-
+  <!-- Main card -->
   <div
     *ngIf="cocktail && !loading && !error"
     class="cocktail-main-content glass-card"
   >
     <div class="main-content-grid">
+      <!-- Image -->
       <div class="cocktail-image-column">
         <div class="image-wrapper">
+          <!-- ✅ LCP optimized hero -->
           <img
-            [src]="getCocktailImageUrl(cocktail)"
-            alt="{{ cocktail.name }}"
             class="detail-image"
+            [ngSrc]="getCocktailImageUrl(cocktail)"
+            alt="{{ cocktail.name }}"
+            width="800"
+            height="800"
+            priority
+            [attr.fetchpriority]="'high'"
+            decoding="async"
+            sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw"
           />
         </div>
       </div>
 
+      <!-- Description + Instructions + AD #1 -->
       <div class="cocktail-description-instructions-column">
         <section class="description-section">
           <p>{{ cocktail.ai_description || cocktail.instructions }}</p>
@@ -52,6 +59,7 @@
         </section>
       </div>
 
+      <!-- Ingredients -->
       <div class="cocktail-ingredients-column">
         <section class="ingredients-section">
           <h2 class="section-title">Ingredients</h2>
@@ -62,10 +70,15 @@
                   [src]="getIngredientImageUrl(item)"
                   [alt]="item.ingredient.name"
                   width="50"
+                  height="50"
+                  loading="lazy"
+                  decoding="async"
+                  [attr.fetchpriority]="'low'"
                 />
               </div>
 
               <span class="ingredient-measure">{{ item.measure }}</span>
+
               <ng-container
                 *ngIf="
                   item.ingredient.external_id &&
@@ -98,10 +111,28 @@
   </div>
 
   <ng-container>
-    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
+    <div
+      *ngIf="isMobile"
+      class="mobile-ad-container"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+    </div>
+
+    <div
+      class="ad-desktop-card"
+      *ngIf="!isMobile"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+    </div>
   </ng-container>
 
+  <!-- Deep Dive -->
   <section
     *ngIf="cocktail && !loading && !error"
     class="ai-details-section glass-card"
@@ -175,39 +206,47 @@
       </div>
     </div>
   </section>
-  <ng-container>
-    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
-  </ng-container>
-  <section class="glass-card">
+
+  <!-- AD #2 — subito DOPO il Deep Dive -->
+
+  <!-- ✅ UNA sola sezione Amazon -->
+  <section class="glass-card amazon-section">
     <h2 class="section-title">
       🛒 Craft {{ cocktail?.name }} with the Right Tools
     </h2>
+    @defer (on viewport) {
     <div class="affiliate-card-list" #affiliateCardList>
       <div class="scrollerdiv">
         <ng-container *ngFor="let product of productList; let i = index">
-          <app-affiliate-product
-            [title]="product.title"
-            [imageUrl]="product.imageUrl"
-            [price]="product.price"
-            [link]="product.link"
-            [showPlaceholder]="product.showPlaceholder"
-          >
-          </app-affiliate-product>
+          <div class="aff-item">
+            <app-affiliate-product
+              [title]="product.title"
+              [imageUrl]="product.imageUrl"
+              [price]="product.price"
+              [link]="product.link"
+              [showPlaceholder]="product.showPlaceholder"
+            >
+            </app-affiliate-product>
+          </div>
         </ng-container>
       </div>
     </div>
+    } @placeholder {
+    <div class="affiliate-card-list placeholder" aria-hidden="true">
+      <div class="scrollerdiv">
+        <div class="aff-item skeleton"></div>
+        <div class="aff-item skeleton"></div>
+        <div class="aff-item skeleton"></div>
+      </div>
+    </div>
+    }
     <p class="affiliate-bottom">
-      We may get a little kickback if you buy via these links — it helps keep
-      the shaker shaking! 🙌🍸
+      We may receive a small commission if you purchase through these links — it
+      helps keep the shaker shaking! 🙌🍸
     </p>
   </section>
 
-  <ng-container>
-    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
-  </ng-container>
-
+  <!-- Related: 1 ad ogni 6 card -->
   <section
     class="related-cocktails-section"
     *ngIf="similarCocktails.length > 0"
@@ -225,69 +264,54 @@
         </ng-container>
 
         <ng-template #adBlock>
-          <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-          <div class="banner-disposition" *ngIf="!isMobile">
-            <app-dev-ads [type]="'responsive'"></app-dev-ads>
-            <app-dev-ads [type]="'responsive'"></app-dev-ads>
+          <div
+            *ngIf="isMobile"
+            class="mobile-ad-container"
+            role="complementary"
+            aria-label="Sponsored content"
+          >
+            <span class="ad-badge">Ad</span>
+            <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+          </div>
+
+          <div
+            class="ad-desktop-card"
+            *ngIf="!isMobile"
+            role="complementary"
+            aria-label="Sponsored content"
+          >
+            <span class="ad-badge">Ad</span>
+            <app-dev-ads [type]="'square'"></app-dev-ads>
           </div>
         </ng-template>
       </ng-container>
     </div>
   </section>
+
+  <!-- Bottom banner (half-page su desktop) -->
   <ng-container>
-    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
-  </ng-container>
-  <section class="glass-card">
-    <h2 class="section-title">
-      🛒 Serve Your {{ cocktail?.name }} in the Perfect Glass
-    </h2>
-    <div class="affiliate-card-list" #affiliateCardList>
-      <div class="scrollerdiv">
-        <ng-container *ngFor="let product of productList; let i = index">
-          <app-affiliate-product
-            [title]="product.title"
-            [imageUrl]="product.imageUrl"
-            [price]="product.price"
-            [link]="product.link"
-            [showPlaceholder]="product.showPlaceholder"
-          >
-          </app-affiliate-product>
-        </ng-container>
-      </div>
+    <div
+      *ngIf="isMobile"
+      class="mobile-ad-container"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
     </div>
-    <p class="affiliate-bottom">
-      We may get a little kickback if you buy via these links — it helps keep
-      the shaker shaking! 🙌🍸
-    </p>
-  </section>
-  <ng-container>
-    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
-  </ng-container>
-  <section class="glass-card">
-    <h2 class="section-title">
-      🛒 Too Much Work? Let a Robot Make Your {{ cocktail?.name }} for You!
-    </h2>
-    <div class="affiliate-card-list" #affiliateCardList>
-      <div class="scrollerdiv">
-        <ng-container *ngFor="let product of productListRobot; let i = index">
-          <app-affiliate-product
-            [title]="product.title"
-            [imageUrl]="product.imageUrl"
-            [price]="product.price"
-            [link]="product.link"
-            [showPlaceholder]="product.showPlaceholder"
-          >
-          </app-affiliate-product>
-        </ng-container>
-      </div>
+
+    <div
+      class="ad-desktop-card"
+      *ngIf="!isMobile"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
     </div>
-    <p class="affiliate-bottom">
-      We may get a little kickback if you buy via these links — it helps keep
-      the shaker shaking! 🙌🍸
-    </p>
-  </section>
+  </ng-container>
+
+  <!-- Navigation -->
   <div class="navigation-bar" *ngIf="!loading && !error">
     <div class="nav-top">
       <a
@@ -301,6 +325,11 @@
             [src]="previousCocktail.imageUrl"
             alt="{{ previousCocktail.name }}"
             class="nav-cocktail-image"
+            width="36"
+            height="36"
+            loading="lazy"
+            decoding="async"
+            [attr.fetchpriority]="'low'"
           />
         </div>
         {{ previousCocktail.name }}
@@ -318,6 +347,11 @@
             [src]="nextCocktail.imageUrl"
             alt="{{ nextCocktail.name }}"
             class="nav-cocktail-image"
+            width="36"
+            height="36"
+            loading="lazy"
+            decoding="async"
+            [attr.fetchpriority]="'low'"
           />
         </div>
         <mat-icon svgIcon="chevron_right"></mat-icon>
@@ -330,8 +364,4 @@
       </button>
     </div>
   </div>
-  <ng-container>
-    <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-    <app-dev-ads *ngIf="!isMobile" [type]="'leaderboard'"></app-dev-ads>
-  </ng-container>
 </div>

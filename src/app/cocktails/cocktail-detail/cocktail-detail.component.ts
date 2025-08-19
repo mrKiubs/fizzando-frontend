@@ -1,4 +1,3 @@
-// src/app/cocktails/cocktail-detail/cocktail-detail.component.ts
 import {
   Component,
   OnInit,
@@ -18,6 +17,7 @@ import {
   DOCUMENT,
   isPlatformBrowser,
   Location,
+  NgOptimizedImage, // ✅ per ottimizzare l'LCP image
 } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import {
@@ -51,6 +51,7 @@ interface ProductItem {
     CocktailCardComponent,
     DevAdsComponent,
     AffiliateProductComponent,
+    NgOptimizedImage, // ✅
   ],
   templateUrl: './cocktail-detail.component.html',
   styleUrls: ['./cocktail-detail.component.scss'],
@@ -74,7 +75,7 @@ export class CocktailDetailComponent
   @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
   private wheelListenerCleanup?: () => void;
 
-  // ⬇️ Tipizzati per evitare "type never"
+  // ✅ Prodotti affiliate (una sola sezione in pagina)
   productList: ProductItem[] = [
     {
       title: 'Libbey Mixologist 9-Piece Cocktail Set',
@@ -118,6 +119,7 @@ export class CocktailDetailComponent
     },
   ];
 
+  // Conservata per compatibilità eventuale, ma non usata nel template
   productListRobot: ProductItem[] = [
     {
       title: 'Bartesian Professional Cocktail Machine',
@@ -203,7 +205,7 @@ export class CocktailDetailComponent
 
     const listElement = this.affiliateCardList.nativeElement as HTMLElement;
 
-    // Listener fuori da Angular per non tenere vivo lo zone
+    // Scorrimento orizzontale con wheel fuori da Angular
     this.ngZone.runOutsideAngular(() => {
       const handler = (event: WheelEvent) => {
         event.preventDefault();
@@ -366,17 +368,21 @@ export class CocktailDetailComponent
     this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
   }
 
+  /** ✅ Uniforme al listato: 1 ad ogni 6 card (evita ad finale “di coda”) */
   getCocktailsAndAds(): any[] {
     const items: any[] = [];
+    const len = this.similarCocktails.length;
     this.similarCocktails.forEach((cocktail, index) => {
       items.push(cocktail);
-      if ((index + 1) % 4 === 0) items.push({ isAd: true });
+      if ((index + 1) % 6 === 0 && index < len - 1) {
+        items.push({ isAd: true });
+      }
     });
     return items;
   }
 
   isCocktail(item: any): boolean {
-    return !item.isAd;
+    return item && !item.isAd;
   }
 
   private getFullSiteUrl(path: string): string {
@@ -389,7 +395,7 @@ export class CocktailDetailComponent
     const cocktailName = this.cocktail.name;
     const cocktailDescription =
       this.cocktail.ai_description || this.cocktail.instructions;
-    const cocktailImageUrl = this.getCocktailImageUrl(this.cocktail);
+    const cocktailImageUrl = this.getCocktailImageUrl(this.cocktail); // ✅ hero LCP
     const cocktailUrl = this.getFullSiteUrl(this.router.url);
 
     this.titleService.setTitle(`${cocktailName} | Fizzando`);
@@ -443,6 +449,24 @@ export class CocktailDetailComponent
       content: cocktailImageUrl,
     });
 
+    // ✅ PRELOAD hero LCP (evita duplicati)
+    const existing = this.document.querySelector<HTMLLinkElement>(
+      'link[rel="preload"][as="image"][data-preload-hero="1"]'
+    );
+    if (!existing && cocktailImageUrl) {
+      const preload = this.renderer.createElement('link') as HTMLLinkElement;
+      this.renderer.setAttribute(preload, 'rel', 'preload');
+      this.renderer.setAttribute(preload, 'as', 'image');
+      this.renderer.setAttribute(preload, 'href', cocktailImageUrl);
+      this.renderer.setAttribute(
+        preload,
+        'imagesizes',
+        '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw'
+      );
+      this.renderer.setAttribute(preload, 'data-preload-hero', '1');
+      this.renderer.appendChild(this.document.head, preload);
+    }
+
     this.addJsonLdSchema();
   }
 
@@ -482,6 +506,14 @@ export class CocktailDetailComponent
     this.metaService.removeTag("name='twitter:description'");
     this.metaService.removeTag("name='twitter:image'");
     this.cleanupJsonLd();
+
+    // ✅ rimuovi eventuale preload hero precedente
+    const oldPreload = this.document.querySelector(
+      'link[rel="preload"][as="image"][data-preload-hero="1"]'
+    );
+    if (oldPreload) {
+      this.renderer.removeChild(this.document.head, oldPreload);
+    }
   }
 
   private cleanupJsonLd(): void {
