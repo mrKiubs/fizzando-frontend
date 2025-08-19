@@ -32,20 +32,27 @@
             "scripts": [],
             "server": "src/main.server.ts",
             "prerender": false,
-            "ssr": { "entry": "src/server.ts" }
+            "ssr": { "entry": "src/server.ts" },
+            "budgets": [
+              {
+                "type": "anyComponentStyle",
+                "maximumWarning": "20kb",
+                "maximumError": "40kb"
+              }
+            ]
           },
           "configurations": {
             "production": {
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "20kB",
-                  "maximumError": "40kB"
+                  "maximumWarning": "20kb",
+                  "maximumError": "40kb"
                 }
               ],
               "outputHashing": "all",
@@ -57,10 +64,7 @@
               ],
               "optimization": {
                 "scripts": true,
-                "styles": {
-                  "minify": true,
-                  "inlineCritical": true
-                },
+                "styles": { "minify": true, "inlineCritical": true },
                 "fonts": true
               },
               "extractLicenses": true,
@@ -72,9 +76,18 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true,
-              "prerender": false
+              "prerender": false,
+
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "20kb",
+                  "maximumError": "40kb"
+                }
+              ]
             }
           },
+
           "defaultConfiguration": "development"
         },
         "serve": {
