@@ -55,6 +55,16 @@
                   "with": "src/app/config/env.prod.ts"
                 }
               ],
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": true
+                },
+                "fonts": true
+              },
+              "extractLicenses": true,
+              "sourceMap": false,
               "prerender": false,
               "ssr": { "entry": "src/server.ts" }
             },

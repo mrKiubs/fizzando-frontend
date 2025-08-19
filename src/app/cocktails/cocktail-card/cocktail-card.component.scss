@@ -5,7 +5,7 @@
 .cocktail-card-link-wrapper {
   display: block; /* Rende l'intero <a> un blocco cliccabile */
   text-decoration: none; /* Rimuove la sottolineatura del link */
-  color: inherit; /* Eredita il colore del testo */
+  color: rgba(255, 255, 255, 0.9);
   height: 100%; /* Assicura che il link occupi l'altezza della card */
   box-sizing: border-box; /* Include padding e border nella dimensione */
   cursor: pointer; /* Indica che l'elemento è cliccabile */
@@ -29,14 +29,22 @@
   }
 }
 
+.cocktail-card-image {
+  display: block;
+  width: 100%;
+  height: auto; /* insieme a width/height attr evita CLS */
+  aspect-ratio: 1 / 1; /* ulteriore riserva spazio */
+  object-fit: cover;
+}
+
 /* La card interna */
 .cocktail-card {
   @include m.glass-card;
 
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex-grow: 1;
+  min-height: 320px; /* usa la tua altezza media reale */
+  display: grid;
+  grid-template-rows: auto 1fr; /* immagine sopra, contenuto sotto */
+  gap: 12px;
   height: 100%;
 }
 
@@ -65,7 +73,7 @@
   .glassy-info {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
   }
 }
 
@@ -76,20 +84,29 @@
   flex-grow: 1;
 }
 
+/* default: riservo 2 righe => no CLS */
 .cocktail-card-title {
-  color: white;
   font-size: 38px;
-  margin: 0;
-  line-height: 40px;
+  line-height: 40px; /* 1.05 ≈ 40px */
   font-weight: 600;
-  white-space: normal;
-  word-break: break-word;
-  max-height: 3.6em;
+  margin: 0;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+
+  white-space: normal;
+  word-break: break-word;
+
+  /* riserva 2 righe finché il font non è pronto */
+  min-height: calc(2 * 40px);
+}
+
+/* quando i font sono caricati, togli la riserva */
+.fonts-loaded {
+  min-height: 0; /* torna naturale */
 }
 
 .cocktail-card-subtitle {
@@ -107,7 +124,7 @@
   align-items: center;
   padding: 4px 8px;
   border-radius: 50px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -230,9 +247,8 @@
     box-shadow: none; /* Rimuovi l'ombra iniziale in mobile se la card è già un link */
   }
   .cocktail-card {
-    flex-direction: row;
-    gap: 8px;
-    padding: 4px;
+    display: flex;
+    min-height: 100px;
     align-items: center;
   }
   .glassy-image-container {

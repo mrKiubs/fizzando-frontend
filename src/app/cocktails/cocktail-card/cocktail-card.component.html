@@ -12,12 +12,13 @@
         [attr.width]="250"
         [attr.height]="250"
         class="cocktail-card-image"
-        [attr.loading]="isLcp ? 'eager' : 'lazy'"
+        [attr.loading]="isLcp ? null : 'lazy'"
         [attr.fetchpriority]="isLcp ? 'high' : null"
+        decoding="async"
         [attr.srcset]="getCocktailCardImageSrcset(cocktail.image)"
         [attr.sizes]="'(max-width: 768px) 76px, 238px'"
-        decoding="async"
       />
+
       <!-- image-overlay rimosso completamente -->
       <span
         class="matched-ingredients-badge"
@@ -36,7 +37,9 @@
     </div>
     <div class="glassy-content-container">
       <div class="glassy-info">
-        <h3 class="cocktail-card-title">{{ cocktail.name }}</h3>
+        <h3 class="cocktail-card-title" [class.fonts-loaded]="fontsLoaded">
+          {{ cocktail.name }}
+        </h3>
 
         <div class="cocktail-chips-container">
           <span class="cocktail-chip category-chip">{{

@@ -5,12 +5,6 @@
 @use "variables" as *;
 @use "mixins" as *;
 
-// Importa tutti i temi
-// CORREZIONE: Aggiunto il prefisso '_' al nome della cartella del tema
-@use "_themes/theme-colorful" as *;
-@use "_themes/theme-light" as *;
-@use "_themes/theme-dark" as *;
-
 body {
   font-family: "Inter", sans-serif;
 }
@@ -37,23 +31,26 @@ h6,
 h1 {
   font-size: 46px;
   line-height: 50px;
-  text-align: center;
   font-weight: 600;
+  text-align: center;
   color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 0;
-  text-shadow: none;
-  -webkit-text-stroke: 0.01px rgba(255, 255, 255, 0.6);
-  text-stroke: 0.01px rgba(255, 255, 255, 0.6);
-  -webkit-background-clip: unset;
-  -webkit-text-fill-color: unset;
-  background: none;
-  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.1));
+  margin: 0;
+
+  /* fallback “outline” leggero visibile anche in Firefox */
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); /* ombra morbida */
 
   &.justify-left {
     text-align: left;
     @media (max-width: 600px) {
       text-align: center;
     }
+  }
+}
+
+@supports (-webkit-text-stroke: 1px rgba(255, 255, 255, 0.6)) {
+  h1 {
+    -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.35);
+    text-shadow: none; /* lascia solo lo stroke */
   }
 }
 
@@ -139,6 +136,7 @@ a.ingredient-link {
         0.02
       ); /* Sfondo più chiaro all'interno dell'accordion item */
       transition: background-color 0.2s ease;
+      width: 100%;
 
       &:hover {
         background-color: rgba(255, 255, 255, 0.1);

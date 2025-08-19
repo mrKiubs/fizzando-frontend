@@ -4,23 +4,6 @@
   display: block;
 }
 
-.page-header-container {
-  text-align: center;
-  max-width: 1200px;
-  margin: 0 auto;
-
-  .page-subtitle {
-    font-size: 16px; /* Slightly larger text for readability */
-    color: rgba(255, 255, 255, 0.7); /* Slightly lighter color */
-    margin-top: 14px; /* Space from the title */
-    line-height: 1.5; /* Line height for better readability */
-    max-width: 600px; /* Limit width to avoid overly long lines */
-    margin-left: auto; /* Center the text */
-    margin-right: auto; /* Center the text */
-    font-weight: 300;
-  }
-}
-
 .search-bar-container {
   padding: 0;
   max-width: 800px;
@@ -372,23 +355,6 @@ hr {
   }
 }
 
-.page-header-container {
-  text-align: center;
-  max-width: 1200px;
-  margin: 0 auto;
-
-  .page-subtitle {
-    font-size: 1.05rem; /* Slightly larger text for readability */
-    color: rgba(255, 255, 255, 0.85); /* Slightly lighter color */
-    margin-top: 14px; /* Space from the title */
-    line-height: 1.5; /* Line height for better readability */
-    max-width: 700px; /* Limit width to avoid overly long lines */
-    margin-left: auto; /* Center the text */
-    margin-right: auto; /* Center the text */
-    font-weight: 300;
-    margin-bottom: 30px; /* More space before search/filters */
-  }
-}
 /* --- DESKTOP-SPECIFIC RULES --- */
 @media (min-width: 768px) {
   .filters-accordion .accordion-content-wrapper {
@@ -432,4 +398,65 @@ p.ingredient-card-legend {
   margin: -15px auto 25px auto;
   max-width: 800px;
   line-height: 1.4;
+}
+
+/* FAQ container */
+.faq-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding-block: 0.5rem;
+}
+
+/* Titolo come bottone */
+.faq-question {
+  width: 100%;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+
+/* Wrapper della risposta: CHIUSO di default */
+.faq-answer-wrapper {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+/* APERTO */
+.faq-item.expanded .faq-answer-wrapper {
+  max-height: 1000px; /* valore alto per coprire il contenuto */
+  opacity: 1;
+}
+
+/* Icona che ruota */
+.faq-toggle-icon {
+  transition: transform 0.2s ease;
+}
+.faq-item.expanded .faq-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Riduci motion se richiesto dall’utente */
+@media (prefers-reduced-motion: reduce) {
+  .faq-answer-wrapper,
+  .faq-toggle-icon {
+    transition: none;
+  }
+}
+
+.filters-accordion .accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.filters-accordion.expanded .accordion-content {
+  max-height: 600px; /* regola in base all’altezza dei filtri */
 }

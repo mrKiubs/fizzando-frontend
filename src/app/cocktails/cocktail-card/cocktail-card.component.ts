@@ -43,8 +43,11 @@ export class CocktailCardComponent implements OnInit {
   @Input() totalSelectedIngredientsCount: number = 0;
   @Input() lazyLoadImage: boolean = true;
   @Input() isLcp = false;
+
   mainIngredientsFormatted: string[] = [];
   private apiUrl = env.apiUrl;
+
+  public fontsLoaded = false;
 
   // SSR-safe: verifichiamo se siamo in browser prima di usare window
   private readonly platformId = inject(PLATFORM_ID);
@@ -58,6 +61,16 @@ export class CocktailCardComponent implements OnInit {
         .map((item) => item.ingredient?.name)
         .filter((name): name is string => !!name)
         .slice(0, 3);
+    }
+    if (this.isBrowser && (document as any)?.fonts?.ready) {
+      (document as any).fonts.ready.then(() => {
+        this.fontsLoaded = true;
+      });
+    } else if (this.isBrowser) {
+      // fallback se Font Loading API non c'è
+      requestAnimationFrame(() => {
+        this.fontsLoaded = true;
+      });
     }
   }
 
