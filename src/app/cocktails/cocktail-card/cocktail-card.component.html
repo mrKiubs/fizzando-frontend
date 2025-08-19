@@ -12,9 +12,11 @@
         [attr.width]="250"
         [attr.height]="250"
         class="cocktail-card-image"
-        loading="lazy"
+        [attr.loading]="isLcp ? 'eager' : 'lazy'"
+        [attr.fetchpriority]="isLcp ? 'high' : null"
         [attr.srcset]="getCocktailCardImageSrcset(cocktail.image)"
-        [attr.sizes]="'(max-width: 768px) 76px, ' + '238px'"
+        [attr.sizes]="'(max-width: 768px) 76px, 238px'"
+        decoding="async"
       />
       <!-- image-overlay rimosso completamente -->
       <span
