@@ -78,7 +78,11 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   private _selectedCategory = signal<string>('');
   private _selectedAlcoholic = signal<string>('');
   private _isExpanded = signal<boolean>(false);
+  private frozenY = 0;
+  private isScrollFrozen = false;
 
+  // --- Fallback mobile: memorizzo la posizione senza freeze ---
+  private lastScrollYBeforeNav = 0;
   // getter per template
   searchTerm = this._searchTerm;
   selectedCategory = this._selectedCategory;
@@ -86,11 +90,18 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   isExpanded = this._isExpanded;
 
   // --- Freeze/Unfreeze scroll viewport + lock altezza lista ---
-  private frozenY = 0;
-  private isScrollFrozen = false;
+
   private prevScrollBehavior = '';
   private listHeightLocked = false;
   private preventTouchMove = (e: TouchEvent) => e.preventDefault();
+
+  private readonly isIOS =
+    this.isBrowser && /iP(ad|hone|od)/i.test(navigator.userAgent);
+  private readonly isAndroid =
+    this.isBrowser && /Android/i.test(navigator.userAgent);
+  private get freezeSafe(): boolean {
+    return !(this.isIOS || this.isAndroid);
+  }
 
   // setter helper + debounce search
   setSearch = (v: string) => {
@@ -410,15 +421,30 @@ export class CocktailListComponent implements OnInit, OnDestroy {
 
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
-      this.lockListHeight(); // ⬅️ blocca altezza corrente della lista (niente collasso)
-      this.freezeScroll(); // ⬅️ congela la viewport al pixel esatto
+      if (this.freezeSafe) {
+        this.freezeScroll(); // desktop
+      } else if (this.isBrowser) {
+        this.lastScrollYBeforeNav = window.scrollY; // mobile: solo memorizza
+      }
+
       this.pendingScroll = 'page';
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { page },
         queryParamsHandling: 'merge',
-        state: { suppressScroll: true }, // AppComponent rispetta questo
+        state: { suppressScroll: true },
       });
+
+      // mobile: ripristina subito per evitare flash
+      if (!this.freezeSafe && this.isBrowser) {
+        requestAnimationFrame(() =>
+          window.scrollTo({
+            top: this.lastScrollYBeforeNav,
+            left: 0,
+            behavior: 'auto',
+          })
+        );
+      }
     }
   }
 
@@ -860,7 +886,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
 
   // --- Freeze/unfreeze scroll viewport ---
   private freezeScroll(): void {
-    if (!this.isBrowser || this.isScrollFrozen) return;
+    if (!this.isBrowser || this.isScrollFrozen || !this.freezeSafe) return;
 
     this.frozenY = window.scrollY;
 
@@ -908,9 +934,8 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     window.removeEventListener('touchmove', this.preventTouchMove);
     this.isScrollFrozen = false;
 
-    if (restore) {
+    if (restore)
       window.scrollTo({ top: this.frozenY, left: 0, behavior: 'auto' });
-    }
   }
 
   // --- Scroll post-render controllato ---
@@ -918,10 +943,12 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     this.ngZone.runOutsideAngular(() => {
       requestAnimationFrame(() => {
         setTimeout(() => {
+          // sblocca sempre prima di calcolare il target
+          this.unfreezeScroll(true);
+
           const firstCard = document.querySelector(
             '.cocktail-list app-cocktail-card'
           ) as HTMLElement | null;
-
           const listEl =
             firstCard ||
             (document.querySelector('.cocktail-list') as HTMLElement | null) ||
@@ -932,23 +959,15 @@ export class CocktailListComponent implements OnInit, OnDestroy {
               '.page-header-container'
             ) as HTMLElement | null);
 
-          // 1) sblocca lo scroll ma tieni la lista lockata (niente collasso)
-          this.unfreezeScroll(true);
-
-          if (!listEl) {
-            setTimeout(() => this.unlockListHeight(), 200);
-            return;
-          }
+          if (!listEl) return;
 
           const targetY =
             listEl.getBoundingClientRect().top +
             window.scrollY -
             this.getScrollOffset();
 
-          // 2) smooth verso il target calcolato
           window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
 
-          // 3) micro-correzione senza animazione (se immagini cambiano altezza)
           setTimeout(() => {
             const correctedY =
               listEl.getBoundingClientRect().top +
@@ -960,11 +979,8 @@ export class CocktailListComponent implements OnInit, OnDestroy {
                 behavior: 'auto',
               });
             }
-          }, 280);
-
-          // 4) rilascia lock altezza quando l'animazione è partita
-          setTimeout(() => this.unlockListHeight(), 320);
-        }, 90); // piccolo delay per layout/immagini/font
+          }, 260);
+        }, 70);
       });
     });
   }
