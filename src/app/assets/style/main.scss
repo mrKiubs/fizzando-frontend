@@ -332,3 +332,18 @@ a.ingredient-link {
     width: auto;
   }
 }
+
+.app-main {
+  min-height: 100dvh;
+  contain: layout paint;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+html,
+body {
+  overscroll-behavior-y: none;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
