@@ -30,9 +30,10 @@
   <mat-icon class="search-icon" svgIcon="search" aria-hidden="true"></mat-icon>
 </div>
 
-<!-- FILTERS -->
+<!-- FILTERS (fix: defer solo per primo load, chiusura con *ngIf) -->
+<!-- FILTERS con @defer funzionante e minimo codice -->
 <div class="filters-accordion" [class.expanded]="isExpanded()">
-  <div class="accordion-header" (click)="toggleExpansion()">
+  <div class="accordion-header" #filtersToggle (click)="toggleExpansion()">
     <h3 class="accordion-title">
       <mat-icon
         class="accordion-icon"
@@ -46,8 +47,8 @@
     </span>
   </div>
 
-  @defer (when isExpanded()) {
-  <div class="accordion-content">
+  @defer (on interaction(filtersToggle); prefetch on idle) {
+  <div class="accordion-content" *ngIf="isExpanded()">
     <div class="filter-group">
       <label for="category-select" class="filter-label">Category</label>
       <div class="custom-select-wrapper">
@@ -109,6 +110,8 @@
       </button>
     </div>
   </div>
+  } @placeholder {
+  <div class="accordion-content placeholder" aria-hidden="true"></div>
   }
 </div>
 
@@ -122,6 +125,33 @@
 
 <div *ngIf="loading" class="loading-message">Loading cocktails...</div>
 <div *ngIf="error" class="error-message">{{ error }}</div>
+
+<!-- STATUS PAGINA / RISULTATI -->
+<div
+  class="page-status"
+  *ngIf="!loading && !error && totalItems > 0"
+  role="status"
+  aria-live="polite"
+>
+  <span class="page-status__page"
+    >Page {{ currentPage }} of {{ totalPages }}</span
+  >
+  <span class="page-status__sep" aria-hidden="true">•</span>
+  <span class="page-status__range">
+    Showing {{ pageStart }}–{{ pageEnd }} of {{ totalItems }}
+  </span>
+</div>
+
+<!-- Skeleton quando loading -->
+<div
+  class="page-status page-status--skeleton"
+  *ngIf="loading"
+  aria-hidden="true"
+>
+  <span class="skl w-28"></span>
+  <span class="skl w-6"></span>
+  <span class="skl w-48"></span>
+</div>
 
 <div class="cocktail-list" *ngIf="!error && cocktails.length > 0">
   <ng-container
@@ -176,48 +206,72 @@
     </button>
 
     <div class="page-numbers" role="navigation" aria-label="Pagination">
-      <a
-        *ngIf="showFirstPage()"
-        [routerLink]="[]"
-        [queryParams]="{ page: 1 }"
-        queryParamsHandling="merge"
-        class="page-number"
-        [ngClass]="{ active: currentPage === 1 }"
-        (click)="goToPage(1)"
-      >
-        1
-      </a>
+      <!-- Prima pagina -->
+      <ng-container *ngIf="totalPages > 1">
+        <span
+          *ngIf="currentPage === 1"
+          class="page-number active"
+          aria-current="page"
+        >
+          1
+        </span>
+        <a
+          *ngIf="currentPage !== 1"
+          [attr.href]="buildUrlWithParams({ page: 1 })"
+          class="page-number"
+          (click)="$event.preventDefault(); goToPage(1)"
+        >
+          1
+        </a>
+      </ng-container>
+
+      <!-- Ellissi sinistra -->
       <span *ngIf="showFirstEllipsis()" class="ellipsis" aria-hidden="true"
-        >...</span
+        >…</span
       >
 
+      <!-- Pagine centrali -->
       <ng-container *ngFor="let page of getVisiblePages()">
+        <span
+          *ngIf="page === currentPage"
+          class="page-number active"
+          aria-current="page"
+        >
+          {{ page }}
+        </span>
         <a
-          [routerLink]="[]"
-          [queryParams]="{ page: page }"
-          queryParamsHandling="merge"
+          *ngIf="page !== currentPage"
+          [attr.href]="buildUrlWithParams({ page: page })"
           class="page-number"
-          [ngClass]="{ active: currentPage === page }"
-          (click)="goToPage(page)"
+          (click)="$event.preventDefault(); goToPage(page)"
         >
           {{ page }}
         </a>
       </ng-container>
 
+      <!-- Ellissi destra -->
       <span *ngIf="showLastEllipsis()" class="ellipsis" aria-hidden="true"
-        >...</span
+        >…</span
       >
-      <a
-        *ngIf="showLastPage()"
-        [routerLink]="[]"
-        [queryParams]="{ page: totalPages }"
-        queryParamsHandling="merge"
-        class="page-number"
-        [ngClass]="{ active: currentPage === totalPages }"
-        (click)="goToPage(totalPages)"
-      >
-        {{ totalPages }}
-      </a>
+
+      <!-- Ultima pagina -->
+      <ng-container *ngIf="totalPages > 1">
+        <span
+          *ngIf="currentPage === totalPages"
+          class="page-number active"
+          aria-current="page"
+        >
+          {{ totalPages }}
+        </span>
+        <a
+          *ngIf="currentPage !== totalPages"
+          [attr.href]="buildUrlWithParams({ page: totalPages })"
+          class="page-number"
+          (click)="$event.preventDefault(); goToPage(totalPages)"
+        >
+          {{ totalPages }}
+        </a>
+      </ng-container>
     </div>
 
     <button
@@ -303,8 +357,9 @@
 @defer (on viewport) {
 <div class="bottom-container">
   <div class="faq-section">
-    <h2>Frequently Asked Questions about Ingredients</h2>
+    <h2>Frequently Asked Questions about Cocktails</h2>
 
+    <!-- CLASSICI -->
     <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
       <button
         class="faq-question"
@@ -312,24 +367,30 @@
         (click)="toggleFaq(faqs[0])"
         [attr.aria-expanded]="faqs[0].isExpanded"
       >
-        <span>What types of ingredients can I find here?</span>
+        <span>What are the most popular classic cocktails?</span>
         <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
       </button>
       <div
-        #a0
+        #c0
         class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[0].isExpanded ? a0.scrollHeight : 0"
+        [style.maxHeight.px]="faqs[0].isExpanded ? c0.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Our comprehensive ingredient database includes
-          <b>alcoholic bases</b> (like spirits and liqueurs),
-          <b>non-alcoholic mixers</b> (such as juices, syrups, and sodas), and
-          various <b>garnishes</b>. You can use our filters to narrow down your
-          search.
+          Timeless <b>classic cocktails</b> include the
+          <a [routerLink]="['/cocktails', 'daiquiri']"><b>Daiquiri</b></a
+          >, <a [routerLink]="['/cocktails', 'manhattan']"><b>Manhattan</b></a
+          >, <a [routerLink]="['/cocktails', 'sidecar']"><b>Sidecar</b></a
+          >,
+          <a [routerLink]="['/cocktails', 'boulevardier']"
+            ><b>Boulevardier</b></a
+          >, and
+          <a [routerLink]="['/cocktails', 'pisco-sour']"><b>Pisco Sour</b></a
+          >.
         </p>
       </div>
     </div>
 
+    <!-- BICCHIERI -->
     <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
       <button
         class="faq-question"
@@ -337,22 +398,28 @@
         (click)="toggleFaq(faqs[1])"
         [attr.aria-expanded]="faqs[1].isExpanded"
       >
-        <span>How can I search for a specific ingredient?</span>
+        <span>How can I choose the right glass for each cocktail?</span>
         <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
       </button>
       <div
-        #a1
+        #c1
         class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[1].isExpanded ? a1.scrollHeight : 0"
+        [style.maxHeight.px]="faqs[1].isExpanded ? c1.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Use the <b>"Search ingredient by name..." bar</b> at the top of the
-          page. Simply type the name of the ingredient you're looking for, and
-          we'll help you find it quickly.
+          Use a <b>coupe</b> for shaken, citrusy drinks like the
+          <a [routerLink]="['/cocktails', 'daiquiri']">Daiquiri</a>, a
+          <b>Collins</b> glass for tall, fizzy serves like the
+          <a [routerLink]="['/cocktails', 'tom-collins']">Tom Collins</a>, and a
+          <b>rocks glass</b> for stiff, spirit-forward classics like the
+          <a [routerLink]="['/cocktails', 'sazerac']"><b>Sazerac</b></a> or a
+          <b>julep cup</b> for the
+          <a [routerLink]="['/cocktails', 'mint-julep']">Mint Julep</a>.
         </p>
       </div>
     </div>
 
+    <!-- FACILI -->
     <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
       <button
         class="faq-question"
@@ -360,24 +427,27 @@
         (click)="toggleFaq(faqs[2])"
         [attr.aria-expanded]="faqs[2].isExpanded"
       >
-        <span>What information is available for each ingredient?</span>
+        <span>Which cocktails are best for beginners?</span>
         <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
       </button>
       <div
-        #a2
+        #c2
         class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[2].isExpanded ? a2.scrollHeight : 0"
+        [style.maxHeight.px]="faqs[2].isExpanded ? c2.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Each ingredient card displays its <b>image</b> and whether it's
-          <b>alcoholic or non-alcoholic</b>. Clicking on an ingredient provides
-          in-depth details such as its <b>description</b>, common
-          <b>uses in cocktails</b>, its <b>origin</b>, and relevant
-          <b>tips for storage or usage</b>.
+          Try simple, high-success mixes like the
+          <a [routerLink]="['/cocktails', 'aperol-spritz']"
+            ><b>Aperol Spritz</b></a
+          >, <a [routerLink]="['/cocktails', 'cuba-libre']"><b>Cuba Libre</b></a
+          >, <a [routerLink]="['/cocktails', 'bellini']"><b>Bellini</b></a
+          >, or <a [routerLink]="['/cocktails', 'paloma']"><b>Paloma</b></a
+          >.
         </p>
       </div>
     </div>
 
+    <!-- ABV -->
     <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
       <button
         class="faq-question"
@@ -385,21 +455,23 @@
         (click)="toggleFaq(faqs[3])"
         [attr.aria-expanded]="faqs[3].isExpanded"
       >
-        <span>Can I filter ingredients by alcoholic content?</span>
+        <span>How do I calculate the alcohol content (ABV) of a cocktail?</span>
         <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
       </button>
       <div
-        #a3
+        #c3
         class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[3].isExpanded ? a3.scrollHeight : 0"
+        [style.maxHeight.px]="faqs[3].isExpanded ? c3.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Yes, absolutely! Use the <b>"Alcoholic / Non-Alcoholic" filter</b> to
-          quickly sort ingredients based on their alcohol content.
+          ABV depends on the spirits’ strength, volumes, and dilution. Our
+          cocktail cards include an <b>estimated ABV</b> so you can compare
+          drink strength before mixing.
         </p>
       </div>
     </div>
 
+    <!-- MOCKTAILS / SWITCH -->
     <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
       <button
         class="faq-question"
@@ -408,22 +480,35 @@
         [attr.aria-expanded]="faqs[4].isExpanded"
       >
         <span
-          >Where can I find cocktail recipes that use these ingredients?</span
+          >Can I switch any classic cocktail to a non-alcoholic (mocktail)
+          version?</span
         >
         <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
       </button>
       <div
-        #a4
+        #c4
         class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[4].isExpanded ? a4.scrollHeight : 0"
+        [style.maxHeight.px]="faqs[4].isExpanded ? c4.scrollHeight : 0"
       >
         <p class="faq-answer">
-          To discover delicious cocktails, visit our
-          <b>"Cocktail Explorer"</b> section…
+          Many cocktails can become <b>mocktails</b> by replacing spirits with
+          <b>zero-proof alternatives</b> or rebalancing mixers. For example, a
+          <a [routerLink]="['/cocktails', 'mojito']">Mojito</a> can turn into a
+          Virgin Mojito by omitting rum, while a
+          <a [routerLink]="['/cocktails', 'pina-colada']">Piña Colada</a> works
+          great without alcohol. Explore
+          <a
+            [routerLink]="['/cocktails']"
+            [queryParams]="{ alcoholic: 'Non Alcoholic' }"
+          >
+            <b>Non-Alcoholic Cocktails</b>
+          </a>
+          for ready-to-mix ideas.
         </p>
       </div>
     </div>
 
+    <!-- TENDENZE / MODERNI -->
     <div class="faq-item" [class.expanded]="faqs[5].isExpanded">
       <button
         class="faq-question"
@@ -431,16 +516,24 @@
         (click)="toggleFaq(faqs[5])"
         [attr.aria-expanded]="faqs[5].isExpanded"
       >
-        <span>How can I find cocktails based on the ingredients I have?</span>
+        <span>Where can I discover new cocktail ideas and trends?</span>
         <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
       </button>
       <div
-        #a5
+        #c5
         class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[5].isExpanded ? a5.scrollHeight : 0"
+        [style.maxHeight.px]="faqs[5].isExpanded ? c5.scrollHeight : 0"
       >
         <p class="faq-answer">
-          Check out our <b>"Find by Ingredients"</b> tool…
+          Modern favorites include the
+          <a [routerLink]="['/cocktails', 'french-75']"><b>French 75</b></a
+          >, <a [routerLink]="['/cocktails', 'mai-tai']"><b>Mai Tai</b></a
+          >, <a [routerLink]="['/cocktails', 'caipirinha']"><b>Caipirinha</b></a
+          >, and
+          <a [routerLink]="['/cocktails', 'espresso-martini']"
+            ><b>Espresso Martini</b></a
+          >. We keep the archive updated with seasonal drinks and
+          bartender-driven innovations.
         </p>
       </div>
     </div>
@@ -451,11 +544,13 @@
     role="complementary"
     aria-label="Sponsored content"
   >
-    <span class="ad-badge">Ad</span>
-    <ng-container>
-      <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-      <app-dev-ads *ngIf="!isMobile" [type]="'half-page'"></app-dev-ads>
-    </ng-container>
+    <div class="banner-content">
+      <span class="ad-badge">Ad</span>
+      <ng-container>
+        <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+        <app-dev-ads *ngIf="!isMobile" [type]="'half-page'"></app-dev-ads>
+      </ng-container>
+    </div>
   </div>
 </div>
 } @placeholder {

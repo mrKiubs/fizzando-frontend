@@ -11,6 +11,10 @@
   --font-display: "Bebas Neue", "Impact", "Arial Black", system-ui, sans-serif;
 }
 
+html {
+  scroll-behavior: auto;
+}
+
 html,
 body {
   font-family: var(--font-sans);
@@ -48,9 +52,7 @@ h2 {
 /* Evita -webkit-text-stroke: usa un leggero text-shadow visibile su Firefox */
 
 /* ====== Mantieni il tuo background ====== */
-html {
-  background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdab2d);
-}
+
 .page-header-container h1 {
   font-family: var(--font-display);
   font-weight: 600;
