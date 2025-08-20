@@ -85,6 +85,13 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   selectedAlcoholic = this._selectedAlcoholic;
   isExpanded = this._isExpanded;
 
+  // --- Freeze/Unfreeze scroll viewport + lock altezza lista ---
+  private frozenY = 0;
+  private isScrollFrozen = false;
+  private prevScrollBehavior = '';
+  private listHeightLocked = false;
+  private preventTouchMove = (e: TouchEvent) => e.preventDefault();
+
   // setter helper + debounce search
   setSearch = (v: string) => {
     this._searchTerm.set(v);
@@ -104,6 +111,9 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   totalPages = 0;
   isMobile = false;
   readonly paginationRange = 2;
+
+  // --- Intento di scroll per UX condizionale ---
+  private pendingScroll: 'none' | 'filter' | 'search' | 'page' = 'none';
 
   // --- Dati statici ---
   categories: string[] = [
@@ -294,7 +304,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   loadCocktails(): void {
     this.loading = true;
     this.error = null;
-    this.cocktails = [];
 
     this.cocktailService
       .getCocktails(
@@ -308,9 +317,9 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         next: (res) => {
           if (res?.data?.length) {
             this.cocktails = res.data.map((cocktail) => {
-              const randomValue = Math.random();
-              const isTall = randomValue < 0.2;
-              const isWide = !isTall && randomValue < 0.35;
+              const rnd = Math.random();
+              const isTall = rnd < 0.2;
+              const isWide = !isTall && rnd < 0.35;
               return {
                 ...cocktail,
                 isTall,
@@ -328,16 +337,13 @@ export class CocktailListComponent implements OnInit, OnDestroy {
 
           this.loading = false;
 
-          // Scroll-to-top solo nel browser e fuori da Angular
-          if (this.isBrowser) {
-            this.ngZone.runOutsideAngular(() => {
-              requestAnimationFrame(() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              });
-            });
+          // Scroll condizionale
+          const intent = this.pendingScroll;
+          this.pendingScroll = 'none';
+          if (this.isBrowser && intent === 'page') {
+            this.scrollToFirstCardAfterRender();
           }
 
-          // ⬇️ Aggiorna SEO dopo il caricamento dei dati
           this.setSeoTagsAndSchemaList();
         },
         error: () => {
@@ -345,8 +351,11 @@ export class CocktailListComponent implements OnInit, OnDestroy {
           this.loading = false;
           this.totalItems = 0;
           this.totalPages = 0;
-          this.cocktails = [];
-          this.setSeoTagsAndSchemaList(); // aggiornati comunque per stato errore
+          // evita collasso improvviso della lista in errore, ma se vuoi puoi svuotare:
+          // this.cocktails = [];
+          this.unfreezeScroll(true);
+          this.unlockListHeight();
+          this.setSeoTagsAndSchemaList();
         },
       });
   }
@@ -355,15 +364,18 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   private debounceNavigateForSearch(): void {
     if (this.searchDebounceHandle) clearTimeout(this.searchDebounceHandle);
     this.searchDebounceHandle = setTimeout(() => {
+      this.pendingScroll = 'search'; // niente scroll
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { search: this._searchTerm() || null, page: 1 },
         queryParamsHandling: 'merge',
+        state: { suppressScroll: true }, // AppComponent rispetta questo
       });
     }, 300);
   }
 
   applyFilters(): void {
+    this.pendingScroll = 'filter'; // niente scroll
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
@@ -373,10 +385,12 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         page: 1,
       },
       queryParamsHandling: 'merge',
+      state: { suppressScroll: true },
     });
   }
 
   clearFilters(): void {
+    this.pendingScroll = 'filter'; // niente scroll
     this._searchTerm.set('');
     this._selectedCategory.set('');
     this._selectedAlcoholic.set('');
@@ -390,15 +404,20 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         page: null,
       },
       queryParamsHandling: 'merge',
+      state: { suppressScroll: true },
     });
   }
 
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+      this.lockListHeight(); // ⬅️ blocca altezza corrente della lista (niente collasso)
+      this.freezeScroll(); // ⬅️ congela la viewport al pixel esatto
+      this.pendingScroll = 'page';
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { page },
         queryParamsHandling: 'merge',
+        state: { suppressScroll: true }, // AppComponent rispetta questo
       });
     }
   }
@@ -480,9 +499,8 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     return this.getFullSiteUrl('/assets/no-image.png');
   }
 
-  private buildUrlWithParams(
-    patch: Record<string, string | number | null>
-  ): string {
+  // Public perché lo usi nel template per costruire href
+  buildUrlWithParams(patch: Record<string, string | number | null>): string {
     const path = this.getCurrentPath();
     const current = { ...this.route.snapshot.queryParams } as Record<
       string,
@@ -755,9 +773,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     this.addJsonLdCollectionPageAndBreadcrumbs(title, description);
   }
 
-  // === SEO: cleanup al destroy ===
   private cleanupSeo(): void {
-    // Rimuovi OG/Twitter
     this.metaService.removeTag("property='og:title'");
     this.metaService.removeTag("property='og:description'");
     this.metaService.removeTag("property='og:image'");
@@ -769,7 +785,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     this.metaService.removeTag("name='twitter:description'");
     this.metaService.removeTag("name='twitter:image'");
 
-    // Prev/Next
     const head = this.doc?.head;
     if (head) {
       head
@@ -777,9 +792,190 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         .forEach((el) => this.renderer.removeChild(head, el));
     }
 
-    // JSON-LD
     this.cleanupJsonLdScript(this.itemListSchemaScript);
     this.cleanupJsonLdScript(this.collectionSchemaScript);
     this.cleanupJsonLdScript(this.breadcrumbsSchemaScript);
+  }
+
+  // --- Offset per header sticky (se presente) ---
+  // --- Offset per header/menu fixed ---
+  private getScrollOffset(): number {
+    if (!this.isBrowser) return 0;
+
+    // candidati comuni per header fixed/sticky
+    const candidates = [
+      document.querySelector('app-navbar'),
+      document.querySelector('.site-header'),
+      document.querySelector('header.sticky'),
+      document.querySelector('.app-toolbar'),
+      document.querySelector('header'),
+    ].filter(Boolean) as HTMLElement[];
+
+    // prendi il PRIMO che è realmente fixed/sticky e visibile
+    const header = candidates.find((el) => {
+      const cs = getComputedStyle(el);
+      const pos = cs.position;
+      const rect = el.getBoundingClientRect();
+      return (
+        (pos === 'fixed' || pos === 'sticky') &&
+        rect.height > 0 &&
+        // tocchi o quasi il top dello schermo
+        Math.abs(rect.top) < 4
+      );
+    });
+
+    const headerH = header
+      ? Math.round(header.getBoundingClientRect().height)
+      : 0;
+
+    // padding extra per stare un filo più sotto al menu
+    const extra = this.isMobile ? 130 : 130; // ↑ aumenta/diminuisci a gusto
+
+    return headerH + extra;
+  }
+
+  // --- Lock/unlock altezza lista per evitare scatti di layout ---
+  private lockListHeight(): void {
+    if (!this.isBrowser || this.listHeightLocked) return;
+    const list = document.querySelector('.cocktail-list') as HTMLElement | null;
+    if (!list) return;
+    const h = list.offsetHeight || list.getBoundingClientRect().height || 0;
+    if (h <= 0) return;
+    list.style.minHeight = h + 'px';
+    list.style.maxHeight = h + 'px';
+    list.style.overflow = 'hidden';
+    this.listHeightLocked = true;
+  }
+
+  private unlockListHeight(): void {
+    if (!this.isBrowser || !this.listHeightLocked) return;
+    const list = document.querySelector('.cocktail-list') as HTMLElement | null;
+    if (list) {
+      list.style.minHeight = '';
+      list.style.maxHeight = '';
+      list.style.overflow = '';
+    }
+    this.listHeightLocked = false;
+  }
+
+  // --- Freeze/unfreeze scroll viewport ---
+  private freezeScroll(): void {
+    if (!this.isBrowser || this.isScrollFrozen) return;
+
+    this.frozenY = window.scrollY;
+
+    const html = document.documentElement as HTMLElement;
+    this.prevScrollBehavior = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    html.style.overflow = 'hidden';
+
+    // Compensa la scomparsa scrollbar (evita salto orizzontale)
+    const sbw = window.innerWidth - document.documentElement.clientWidth;
+
+    const body = document.body as HTMLBodyElement;
+    body.style.position = 'fixed';
+    body.style.top = `-${this.frozenY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    if (sbw > 0) body.style.paddingRight = `${sbw}px`;
+
+    // blocca gesture touch (iOS)
+    window.addEventListener('touchmove', this.preventTouchMove, {
+      passive: false,
+    });
+
+    this.isScrollFrozen = true;
+  }
+
+  private unfreezeScroll(restore = true): void {
+    if (!this.isBrowser || !this.isScrollFrozen) return;
+
+    const body = document.body as HTMLBodyElement;
+    body.style.position = '';
+    body.style.top = '';
+    body.style.left = '';
+    body.style.right = '';
+    body.style.width = '';
+    body.style.overflow = '';
+    body.style.paddingRight = '';
+
+    const html = document.documentElement as HTMLElement;
+    html.style.overflow = '';
+    html.style.scrollBehavior = this.prevScrollBehavior || '';
+
+    window.removeEventListener('touchmove', this.preventTouchMove);
+    this.isScrollFrozen = false;
+
+    if (restore) {
+      window.scrollTo({ top: this.frozenY, left: 0, behavior: 'auto' });
+    }
+  }
+
+  // --- Scroll post-render controllato ---
+  private scrollToFirstCardAfterRender(): void {
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const firstCard = document.querySelector(
+            '.cocktail-list app-cocktail-card'
+          ) as HTMLElement | null;
+
+          const listEl =
+            firstCard ||
+            (document.querySelector('.cocktail-list') as HTMLElement | null) ||
+            (document.querySelector(
+              '.cocktail-card-legend'
+            ) as HTMLElement | null) ||
+            (document.querySelector(
+              '.page-header-container'
+            ) as HTMLElement | null);
+
+          // 1) sblocca lo scroll ma tieni la lista lockata (niente collasso)
+          this.unfreezeScroll(true);
+
+          if (!listEl) {
+            setTimeout(() => this.unlockListHeight(), 200);
+            return;
+          }
+
+          const targetY =
+            listEl.getBoundingClientRect().top +
+            window.scrollY -
+            this.getScrollOffset();
+
+          // 2) smooth verso il target calcolato
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+
+          // 3) micro-correzione senza animazione (se immagini cambiano altezza)
+          setTimeout(() => {
+            const correctedY =
+              listEl.getBoundingClientRect().top +
+              window.scrollY -
+              this.getScrollOffset();
+            if (Math.abs(correctedY - targetY) > 8) {
+              window.scrollTo({
+                top: Math.max(0, correctedY),
+                behavior: 'auto',
+              });
+            }
+          }, 280);
+
+          // 4) rilascia lock altezza quando l'animazione è partita
+          setTimeout(() => this.unlockListHeight(), 320);
+        }, 90); // piccolo delay per layout/immagini/font
+      });
+    });
+  }
+
+  // Range visibile (1-based). Se non ci sono risultati torna 0–0.
+  get pageStart(): number {
+    return this.totalItems > 0 ? (this.currentPage - 1) * this.pageSize + 1 : 0;
+  }
+  get pageEnd(): number {
+    return this.totalItems > 0
+      ? Math.min(this.currentPage * this.pageSize, this.totalItems)
+      : 0;
   }
 }

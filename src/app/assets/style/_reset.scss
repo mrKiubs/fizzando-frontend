@@ -3,12 +3,6 @@
 // Un reset CSS semplice e moderno, basato su principi comuni per "normalizzare" il browser
 // e fornire una base pulita per i tuoi stili.
 
-// 1. Box-sizing per tutti gli elementi (border-box per un layout più intuitivo)
-html {
-  box-sizing: border-box;
-  -webkit-text-size-adjust: 100%; // Impedisce la regolazione automatica del testo su Safari Mobile
-}
-
 *,
 *::before,
 *::after {

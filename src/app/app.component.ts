@@ -115,11 +115,28 @@ export class AppComponent {
   private viewportScroller = inject(ViewportScroller);
 
   constructor() {
+    this.viewportScroller.setHistoryScrollRestoration('manual'); // ⬅️ importantissimo
+
+    let lastPath = '';
     this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe(() => {
-        // Questa parte gestisce lo scroll a inizio pagina, lasciala
-        this.viewportScroller.scrollToPosition([0, 0]);
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => {
+        const path = e.urlAfterRedirects.split('?')[0];
+        const pathChanged = lastPath !== path;
+        lastPath = path;
+
+        if (!pathChanged) return; // stesso /cocktails, solo query → NIENTE TOP
+
+        const isBrowser = typeof window !== 'undefined';
+        const nav = this.router.getCurrentNavigation();
+        const state =
+          (nav?.extras?.state as any) ||
+          (isBrowser ? window.history.state : null) ||
+          {};
+
+        if (state.suppressScroll) return; // rispetta soppressione
+
+        this.viewportScroller.scrollToPosition([0, 0]); // cambio pagina “vera”
       });
   }
 
