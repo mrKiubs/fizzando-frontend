@@ -4,11 +4,15 @@
   class="cocktail-card-link-wrapper"
   [@cardAnimation]
 >
-  <div class="cocktail-card">
+  <div class="cocktail-card" role="article">
     <div class="glassy-image-container">
       <img
         [src]="getCocktailCardImageUrl(cocktail.image)"
-        [alt]="cocktail.name"
+        [alt]="
+          cocktail?.name
+            ? 'Photo of ' + cocktail.name + ' cocktail'
+            : 'Cocktail photo'
+        "
         [attr.width]="250"
         [attr.height]="250"
         class="cocktail-card-image"
@@ -19,7 +23,7 @@
         [attr.sizes]="'(max-width: 768px) 76px, 238px'"
       />
 
-      <!-- image-overlay rimosso completamente -->
+      <!-- badge reso “decorativo” agli screen reader -->
       <span
         class="matched-ingredients-badge"
         [ngClass]="{
@@ -27,6 +31,7 @@
             cocktail.matchedIngredientCount === cocktail.ingredients_list.length
         }"
         *ngIf="matchedIngredientsBadgeText"
+        aria-hidden="true"
       >
         <span class="desktop">{{ matchedIngredientsBadgeText.desktop }}</span>
         <span
@@ -35,19 +40,20 @@
         ></span>
       </span>
     </div>
+
     <div class="glassy-content-container">
       <div class="glassy-info">
         <h3 class="cocktail-card-title" [class.fonts-loaded]="fontsLoaded">
           {{ cocktail.name }}
         </h3>
 
-        <div class="cocktail-chips-container">
+        <div class="cocktail-chips-container" aria-hidden="true">
           <span class="cocktail-chip category-chip">{{
             cocktail.category
           }}</span>
-          <span class="cocktail-chip abv-chip"
-            >ABV: {{ cocktail.ai_alcohol_content }}</span
-          >
+          <span class="cocktail-chip abv-chip">
+            ABV: {{ cocktail.ai_alcohol_content }}
+          </span>
         </div>
 
         <div
@@ -68,13 +74,14 @@
                 cocktail.ingredients_list &&
                 cocktail.ingredients_list.length > 3
               "
+              aria-hidden="true"
               >...</span
             >
           </div>
         </div>
       </div>
 
-      <div class="cocktail-extra-info">
+      <div class="cocktail-extra-info" aria-hidden="true">
         <div class="info-item" *ngIf="cocktail.glass">
           <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
           <span>{{ cocktail.glass }}</span>

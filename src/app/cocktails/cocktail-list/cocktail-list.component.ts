@@ -726,7 +726,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       '@type': 'BreadcrumbList',
       itemListElement: crumbs.map((c, i) => ({
         '@type': 'ListItem',
-        position: i + 1,
+        position: i,
         name: c.name,
         item: c.url,
       })),
@@ -808,6 +808,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     // JSON-LD
     this.addJsonLdItemList();
     this.addJsonLdCollectionPageAndBreadcrumbs(title, description);
+    this.addJsonLdFaqPage();
   }
 
   private faqSchemaScript?: HTMLScriptElement;
@@ -907,6 +908,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     this.cleanupJsonLdScript(this.itemListSchemaScript);
     this.cleanupJsonLdScript(this.collectionSchemaScript);
     this.cleanupJsonLdScript(this.breadcrumbsSchemaScript);
+    this.cleanupJsonLdScript(this.faqSchemaScript);
   }
 
   // --- Offset per header sticky (se presente) ---

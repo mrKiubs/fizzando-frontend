@@ -73,7 +73,7 @@
   .glassy-info {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
 }
 
@@ -87,7 +87,7 @@
 /* default: riservo 2 righe => no CLS */
 .cocktail-card-title {
   font-size: 38px;
-  line-height: 40px; /* 1.05 ≈ 40px */
+  line-height: 32px; /* 1.05 ≈ 40px */
   font-weight: 600;
   margin: 0;
 
@@ -259,13 +259,12 @@
     flex-shrink: 0;
   }
   .cocktail-card-title {
-    font-size: 32px;
-    line-height: 22px;
+    font-size: 30px;
+    line-height: 24px;
   }
   .cocktail-chips-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 5px;
     scrollbar-width: none;
     &::-webkit-scrollbar {
       display: none;
