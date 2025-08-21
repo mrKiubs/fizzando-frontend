@@ -338,6 +338,11 @@ a.ingredient-link {
   contain: layout paint;
   backface-visibility: hidden;
   will-change: transform, opacity;
+  padding: 16px;
+
+  @media (max-width: 767px) {
+    padding: 16px 8px;
+  }
 }
 
 html,

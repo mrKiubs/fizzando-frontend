@@ -632,6 +632,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   }
 
   // === SEO: JSON-LD ===
+  // === SEO: JSON-LD ===
   private addJsonLdItemList(): void {
     const head = this.doc?.head;
     if (!head) return;
@@ -645,20 +646,30 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     const pageAbsUrl = this.getFullSiteUrl(this.router.url);
     const itemListId = pageAbsUrl + '#itemlist';
 
+    // posizione globale corretta (pagina 2 → parte da 21, ecc.)
+    const startIndex = this.pageStart || 1;
+
     const itemList = {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       '@id': itemListId,
       name: 'Cocktail Explorer',
+      inLanguage: 'en',
       itemListOrder: 'https://schema.org/ItemListOrderAscending',
-      numberOfItems: this.cocktails.length,
+      // totale risultati (non solo la pagina corrente)
+      numberOfItems: this.totalItems,
+      startIndex,
       url: pageAbsUrl,
       itemListElement: this.cocktails.map((c, i) => ({
         '@type': 'ListItem',
-        position: i + 1,
-        url: this.getFullSiteUrl(`/cocktails/${c.slug}`),
-        name: c.name,
-        image: this.getCocktailImageUrl(c),
+        position: startIndex + i,
+        item: {
+          '@type': 'Recipe', // tipizzo l’item come Recipe (cocktail)
+          '@id': this.getFullSiteUrl(`/cocktails/${c.slug}`),
+          url: this.getFullSiteUrl(`/cocktails/${c.slug}`),
+          name: c.name,
+          image: this.getCocktailImageUrl(c), // assoluta
+        },
       })),
     };
 
@@ -797,6 +808,81 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     // JSON-LD
     this.addJsonLdItemList();
     this.addJsonLdCollectionPageAndBreadcrumbs(title, description);
+  }
+
+  private faqSchemaScript?: HTMLScriptElement;
+
+  private addJsonLdFaqPage(): void {
+    const head = this.doc?.head;
+    if (!head) return;
+
+    this.cleanupJsonLdScript(this.faqSchemaScript);
+
+    const script = this.renderer.createElement('script');
+    this.renderer.setAttribute(script, 'type', 'application/ld+json');
+    this.renderer.setAttribute(script, 'id', 'faq-schema');
+
+    const faq = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'What are the most popular classic cocktails?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Timeless classic cocktails include Daiquiri, Manhattan, Sidecar, Boulevardier, and Pisco Sour.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How can I choose the right glass for each cocktail?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Use a coupe for shaken citrus drinks (e.g., Daiquiri), a Collins glass for tall fizzy serves (Tom Collins), and a rocks glass for spirit-forward classics (Sazerac).',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Which cocktails are best for beginners?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Aperol Spritz, Cuba Libre, Bellini and Paloma are simple, high-success options for beginners.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How do I calculate the alcohol content (ABV) of a cocktail?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'ABV depends on spirit strength, volumes and dilution. Our cards show an estimated ABV so you can compare drink strength before mixing.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Can I switch any classic cocktail to a non-alcoholic version?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Many cocktails can become mocktails by using zero-proof alternatives or rebalancing mixers (e.g., Virgin Mojito or alcohol-free Piña Colada).',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Where can I discover new cocktail ideas and trends?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Modern favorites include French 75, Mai Tai, Caipirinha and Espresso Martini. We keep the archive updated with seasonal drinks and bartender-driven innovations.',
+          },
+        },
+      ],
+    };
+
+    this.renderer.appendChild(
+      script,
+      this.renderer.createText(JSON.stringify(faq))
+    );
+    this.renderer.appendChild(head, script);
+    this.faqSchemaScript = script as HTMLScriptElement;
   }
 
   private cleanupSeo(): void {
