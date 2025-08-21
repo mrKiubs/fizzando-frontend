@@ -312,55 +312,74 @@
   </ng-container>
 
   <!-- Navigation -->
-  <div class="navigation-bar" *ngIf="!loading && !error">
+  <div
+    class="navigation-bar"
+    *ngIf="!loading && !error"
+    role="navigation"
+    aria-label="Cocktail navigation"
+  >
     <div class="nav-top">
+      <!-- PREVIOUS -->
       <a
         *ngIf="previousCocktail"
         [routerLink]="['/cocktails', previousCocktail.slug]"
         class="glass-button secondary nav-button"
+        [attr.aria-label]="
+          'Previous cocktail: ' + (previousCocktail?.name || '')
+        "
       >
-        <mat-icon svgIcon="chevron_left"></mat-icon>
-        <div class="cocktail-image-wrapper">
+        <mat-icon svgIcon="chevron_left" aria-hidden="true"></mat-icon>
+
+        <div class="cocktail-image-wrapper" aria-hidden="true">
           <img
             [src]="previousCocktail.imageUrl"
-            alt="{{ previousCocktail.name }}"
+            alt=""
             class="nav-cocktail-image"
             width="36"
             height="36"
             loading="lazy"
             decoding="async"
             [attr.fetchpriority]="'low'"
+            role="presentation"
           />
         </div>
+
         {{ previousCocktail.name }}
       </a>
       <span *ngIf="!previousCocktail" class="nav-placeholder"></span>
 
+      <!-- NEXT -->
       <a
         *ngIf="nextCocktail"
         [routerLink]="['/cocktails', nextCocktail.slug]"
         class="glass-button secondary nav-button"
+        [attr.aria-label]="'Next cocktail: ' + (nextCocktail?.name || '')"
       >
         {{ nextCocktail.name }}
-        <div class="cocktail-image-wrapper">
+
+        <div class="cocktail-image-wrapper" aria-hidden="true">
           <img
             [src]="nextCocktail.imageUrl"
-            alt="{{ nextCocktail.name }}"
+            alt=""
             class="nav-cocktail-image"
             width="36"
             height="36"
             loading="lazy"
             decoding="async"
             [attr.fetchpriority]="'low'"
+            role="presentation"
           />
         </div>
-        <mat-icon svgIcon="chevron_right"></mat-icon>
+
+        <mat-icon svgIcon="chevron_right" aria-hidden="true"></mat-icon>
       </a>
       <span *ngIf="!nextCocktail" class="nav-placeholder"></span>
     </div>
+
     <div class="nav-bottom">
       <button class="glass-button secondary" (click)="goBack()">
-        <mat-icon svgIcon="arrow_back"></mat-icon> Go Back
+        <mat-icon svgIcon="arrow_back" aria-hidden="true"></mat-icon>
+        <span>Go Back</span>
       </button>
     </div>
   </div>
