@@ -3,13 +3,13 @@
 
 /* Nuovo wrapper per l'intera card cliccabile */
 .cocktail-card-link-wrapper {
-  display: block; /* Rende l'intero <a> un blocco cliccabile */
-  text-decoration: none; /* Rimuove la sottolineatura del link */
-  color: rgba(255, 255, 255, 0.9);
-  height: 100%; /* Assicura che il link occupi l'altezza della card */
-  box-sizing: border-box; /* Include padding e border nella dimensione */
-  cursor: pointer; /* Indica che l'elemento è cliccabile */
-  transition: box-shadow 0.2s ease-in-out;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  /* border-radius: 12px; */
+  display: block;
 
   &:hover {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Ombra al passaggio del mouse */
@@ -19,6 +19,18 @@
   /* L'immagine si ingrandisce all'hover della card (desktop-only) */
   &:hover .glassy-image-container img.cocktail-card-image {
     transform: scale(1.1);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   @media (max-width: 600px) {
@@ -102,6 +114,7 @@
 
   /* riserva 2 righe finché il font non è pronto */
   min-height: calc(2 * 40px);
+  color: #ffffffdd;
 }
 
 /* quando i font sono caricati, togli la riserva */
@@ -166,7 +179,9 @@
   overflow: hidden;
 }
 
-.ingredient-item {
+.ingredient-item,
+.ingredient-item-link {
+  z-index: 2;
   font-size: 0.8rem;
   color: #fff;
   background-color: rgba(255, 255, 255, 0.08);
@@ -175,6 +190,11 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: background-color 0.2s ease, text-decoration 0.2s ease; /* Aggiunto text-decoration alla transizione */
   text-decoration: none; /* Assicura che non ci sia sottolineatura di default */
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
 }
 
 .ingredient-item-more {

@@ -352,3 +352,572 @@ body {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Stili di base per il contenitore del paginatore */
+.pagination-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin: 32px auto;
+}
+
+/* Stili per il riepilogo del conteggio (es. "Showing 10 of 100") */
+.cocktail-count-summary {
+  font-size: 1rem;
+  color: var(
+    --text-secondary
+  ); // Usa una variabile per il colore del testo secondario
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Stili per i controlli di paginazione (bottoni, numeri di pagina) */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; // Spazio tra gli elementi
+}
+
+/* Stili per i bottoni "Previous" e "Next" */
+.glass-button {
+  // Stili di base del tuo bottone "vetroso"
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 999px; // Per un bottone pill-shaped
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+
+  &:hover:not([disabled]) {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  &.secondary {
+    font-size: 0.875rem;
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* Stili per il contenitore dei numeri di pagina */
+.page-numbers {
+  display: flex;
+  flex-wrap: wrap; // Permette ai numeri di andare a capo su schermi piccoli
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+/* Stili per ogni singolo numero di pagina */
+.page-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%; // Forma circolare
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.3s ease, transform 0.2s ease;
+  cursor: pointer;
+
+  &:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  &.active {
+    background: var(--primary-color); // Colore di evidenza per la pagina attiva
+    color: var(--primary-text);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    pointer-events: none; // Disabilita il click sulla pagina attiva
+  }
+}
+
+/* --- Media Queries per adattamento su schermi più grandi (desktop) --- */
+@media (min-width: 768px) {
+  .pagination-container {
+    flex-direction: row; // Su desktop, allinea gli elementi in riga
+    justify-content: center; // Spazia gli elementi
+    padding: 32px;
+  }
+
+  .cocktail-count-summary {
+    margin-bottom: 0; // Rimuove il margine inferiore su desktop
+  }
+
+  .pagination-controls {
+    gap: 1rem;
+  }
+
+  .page-numbers {
+    flex-wrap: nowrap; // Mantiene i numeri di pagina sulla stessa riga
+  }
+}
+
+.affiliate-card-list {
+  padding-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Migliora lo scorrimento su iOS */
+
+  /* Stili della scrollbar per desktop */
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+.scrollerdiv {
+  display: flex;
+  gap: 16px;
+  /* Lo scorrimento è gestito dal genitore, quindi non ha bisogno di overflow qui */
+}
+
+.scrollerdiv > * {
+  scroll-snap-align: start;
+  flex: 0 0 220px;
+  max-width: 220px;
+}
+
+/* Nascondi la scrollbar su dispositivi mobile/touch */
+@media (hover: none) and (pointer: coarse) {
+  .affiliate-card-list::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Regole per schermi grandi (desktop) */
+@media (min-width: 1260px) {
+  .affiliate-card-list {
+    overflow-x: visible; /* Disabilita lo scorrimento per desktop */
+    display: grid; /* Passa a un layout a griglia */
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px; /* Aumenta il gap per desktop */
+  }
+
+  .scrollerdiv {
+    display: contents; /* Rimuove il div intermedio dal layout flexbox */
+  }
+
+  .affiliate-card-list > * {
+    max-width: none;
+    flex: none; /* Disabilita le regole flex */
+  }
+}
+.scrollerdiv::-webkit-scrollbar {
+  display: none; /* nasconde scrollbar su mobile iOS e Android */
+}
+
+.affiliate-bottom {
+  text-align: center;
+  font-size: 14px;
+  color: #fff;
+  font-style: italic;
+  margin-top: 12px;
+}
+
+@media (min-width: 1260px) {
+  .affiliate-card-list {
+    overflow-x: auto; /* Cambiato da 'visible' a 'auto' */
+    flex-wrap: nowrap; /* Aggiunto per evitare che gli elementi vadano a capo */
+    justify-content: flex-start; /* Opzionale, per allineare gli elementi a sinistra */
+    -webkit-overflow-scrolling: touch; /* Migliora lo scorrimento sui dispositivi Apple */
+  }
+
+  .affiliate-card-list > * {
+    flex: 1 1 calc(25% - 70px);
+    max-width: none;
+  }
+}
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  color: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @media (max-width: 600px) {
+    padding: 8px;
+  }
+}
+.section-title {
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 26px;
+
+  mat-icon {
+    font-size: 1.6rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+.bottom-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+  }
+  .faq-section {
+    margin: 0 0 24px 0;
+  }
+
+  .banner-container {
+    display: grid;
+    align-items: center;
+    justify-items: center;
+    width: 100%;
+  }
+}
+
+.ad-desktop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ad-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: min-content;
+}
+.mobile-ad-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ad-card,
+.ad-desktop-card,
+.mobile-ad-container,
+.banner-container {
+  min-height: 320px; /* o l’altezza media delle tue cocktail-card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: 600px) {
+    min-height: 130px;
+  }
+}
+.banner-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  margin: 16px auto;
+  border-radius: 12px;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.08);
+  /* border: 1px solid rgba(255, 255, 255, 0.12); */
+  font-size: 0.85rem;
+  line-height: 1.2;
+  /* max-width: 330px; */
+  text-align: center;
+  color: #ffffff7a;
+  width: fit-content;
+
+  .page-status__sep {
+    opacity: 0.6;
+  }
+  .page-status__page {
+    font-weight: 600;
+  }
+  .page-status__range {
+    opacity: 0.9;
+  }
+
+  .page-status__reset {
+    margin-left: auto;
+    text-decoration: underline;
+    opacity: 0.9;
+    cursor: pointer;
+  }
+}
+
+/* Skeleton */
+.page-status--skeleton {
+  .skl {
+    display: inline-block;
+    height: 1em;
+    border-radius: 6px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.22),
+      rgba(255, 255, 255, 0.12)
+    );
+    animation: skl 1.2s infinite linear;
+    &.w-28 {
+      width: 7rem;
+    }
+    &.w-6 {
+      width: 1.5rem;
+    }
+    &.w-48 {
+      width: 12rem;
+    }
+  }
+}
+@keyframes skl {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.custom-search-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  max-width: 800px;
+  margin: 16px auto; /* Keep this margin */
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.custom-search-input {
+  flex-grow: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 1rem;
+  padding: 0;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.search-icon,
+.clear-search-icon {
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-search-icon {
+  &:hover {
+    color: #fff;
+  }
+}
+
+/* STYLES FOR THE CUSTOM ACCORDION */
+.filters-accordion {
+  max-width: 800px;
+  margin: 16px auto 32px auto; /* Adjusted margin to position it better after search bar */
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  height: 48px;
+
+  &.expanded {
+    height: 170px;
+  }
+
+  .accordion-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: background-color 0.2s ease, border-bottom 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .accordion-title {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #fff;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .accordion-icon {
+      color: rgba(255, 255, 255, 0.8);
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .accordion-description {
+      display: none;
+    }
+
+    .active-filters-summary {
+      margin-left: 0.5rem;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 50%;
+      transition: opacity 0.3s ease;
+    }
+  }
+
+  &.expanded {
+    .accordion-icon {
+      transform: rotate(180deg);
+    }
+    .accordion-header {
+      justify-content: center;
+    }
+  }
+
+  .accordion-content {
+    opacity: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 16px;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+    }
+  }
+
+  .accordion-content-wrapper {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    align-items: stretch;
+  }
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: unset;
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: auto;
+
+  @media (max-width: 768px) {
+    padding: 8px 0;
+  }
+}
+
+.filter-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.5rem;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+
+  .custom-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    padding-right: 2.5rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1rem;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    &:focus {
+      border-color: #fff;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    }
+
+    option {
+      background-color: #333;
+      color: #fff;
+    }
+  }
+
+  .select-arrow-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+  }
+}

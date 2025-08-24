@@ -1,99 +1,111 @@
 <!-- src/app/cocktails/cocktail-card/cocktail-card.component.html -->
-<a
-  [routerLink]="['/cocktails', cocktail.slug]"
-  class="cocktail-card-link-wrapper"
-  [@cardAnimation]
->
-  <div class="cocktail-card" role="article">
-    <div class="glassy-image-container">
-      <img
-        [src]="getCocktailCardImageUrl(cocktail.image)"
-        [alt]="
-          cocktail?.name
-            ? 'Photo of ' + cocktail.name + ' cocktail'
-            : 'Cocktail photo'
-        "
-        [attr.width]="250"
-        [attr.height]="250"
-        class="cocktail-card-image"
-        [attr.loading]="isLcp ? null : 'lazy'"
-        [attr.fetchpriority]="isLcp ? 'high' : null"
-        decoding="async"
-        [attr.srcset]="getCocktailCardImageSrcset(cocktail.image)"
-        [attr.sizes]="'(max-width: 768px) 76px, 238px'"
-      />
 
-      <!-- badge reso “decorativo” agli screen reader -->
+<div class="cocktail-card" role="article" [@cardAnimation]>
+  <div class="glassy-image-container">
+    <img
+      [src]="getCocktailCardImageUrl(cocktail.image)"
+      [alt]="
+        cocktail.name
+          ? 'Photo of ' + cocktail.name + ' cocktail'
+          : 'Cocktail photo'
+      "
+      [attr.width]="250"
+      [attr.height]="250"
+      class="cocktail-card-image"
+      [attr.loading]="isLcp ? null : 'lazy'"
+      [attr.fetchpriority]="isLcp ? 'high' : null"
+      decoding="async"
+      [attr.srcset]="getCocktailCardImageSrcset(cocktail.image)"
+      [attr.sizes]="'(max-width: 768px) 76px, 238px'"
+    />
+
+    <!-- badge reso “decorativo” agli screen reader -->
+    <span
+      class="matched-ingredients-badge"
+      [ngClass]="{
+        'perfect-match-badge':
+          cocktail.matchedIngredientCount === cocktail.ingredients_list.length
+      }"
+      *ngIf="matchedIngredientsBadgeText"
+      aria-hidden="true"
+    >
+      <span class="desktop">{{ matchedIngredientsBadgeText.desktop }}</span>
       <span
-        class="matched-ingredients-badge"
-        [ngClass]="{
-          'perfect-match-badge':
-            cocktail.matchedIngredientCount === cocktail.ingredients_list.length
-        }"
-        *ngIf="matchedIngredientsBadgeText"
-        aria-hidden="true"
+        class="mobile"
+        [innerHTML]="matchedIngredientsBadgeText.mobile"
+      ></span>
+    </span>
+  </div>
+
+  <div class="glassy-content-container">
+    <div class="glassy-info">
+      <h3 class="cocktail-card-title" [class.fonts-loaded]="fontsLoaded">
+        {{ cocktail.name }}
+      </h3>
+
+      <div class="cocktail-chips-container" aria-hidden="true">
+        <span class="cocktail-chip category-chip">{{ cocktail.category }}</span>
+        <span class="cocktail-chip abv-chip">
+          ABV: {{ cocktail.ai_alcohol_content }}
+        </span>
+      </div>
+
+      <div
+        class="cocktail-key-info"
+        *ngIf="mainIngredientsFormatted.length > 0"
       >
-        <span class="desktop">{{ matchedIngredientsBadgeText.desktop }}</span>
-        <span
-          class="mobile"
-          [innerHTML]="matchedIngredientsBadgeText.mobile"
-        ></span>
-      </span>
-    </div>
-
-    <div class="glassy-content-container">
-      <div class="glassy-info">
-        <h3 class="cocktail-card-title" [class.fonts-loaded]="fontsLoaded">
-          {{ cocktail.name }}
-        </h3>
-
-        <div class="cocktail-chips-container" aria-hidden="true">
-          <span class="cocktail-chip category-chip">{{
-            cocktail.category
-          }}</span>
-          <span class="cocktail-chip abv-chip">
-            ABV: {{ cocktail.ai_alcohol_content }}
-          </span>
-        </div>
-
-        <div
-          class="cocktail-key-info"
-          *ngIf="mainIngredientsFormatted.length > 0"
-        >
-          <p class="info-label">Key Ingredients:</p>
-          <div class="ingredients-list">
+        <p class="info-label">Key Ingredients:</p>
+        <div class="ingredients-list">
+          <ng-container
+            *ngFor="let ingredient of mainIngredientsFormatted; let last = last"
+          >
             <span
-              class="ingredient-item"
-              *ngFor="let ingredient of mainIngredientsFormatted"
+              class="ingredient-item-link"
+              [routerLink]="['/ingredients', getIngredientId(ingredient)]"
+              (click)="$event.stopPropagation()"
+              role="link"
+              tabindex="0"
+              (keydown.enter)="
+                $event.stopPropagation(); $any($event.currentTarget).click()
+              "
+              (keydown.space)="
+                $event.preventDefault();
+                $event.stopPropagation();
+                $any($event.currentTarget).click()
+              "
             >
               {{ ingredient }}
             </span>
-            <span
-              class="ingredient-item-more"
-              *ngIf="
-                cocktail.ingredients_list &&
-                cocktail.ingredients_list.length > 3
-              "
-              aria-hidden="true"
-              >...</span
-            >
-          </div>
-        </div>
-      </div>
+          </ng-container>
 
-      <div class="cocktail-extra-info" aria-hidden="true">
-        <div class="info-item" *ngIf="cocktail.glass">
-          <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
-          <span>{{ cocktail.glass }}</span>
-        </div>
-
-        <div class="info-item">
-          <span class="icon">{{
-            getPreparationIcon(cocktail.preparation_type)
-          }}</span>
-          <span>{{ cocktail.preparation_type }}</span>
+          <span
+            class="ingredient-item-more"
+            *ngIf="(cocktail?.ingredients_list?.length || 0) > 3"
+            aria-hidden="true"
+            >...</span
+          >
         </div>
       </div>
     </div>
+
+    <div class="cocktail-extra-info" aria-hidden="true">
+      <div class="info-item" *ngIf="cocktail.glass">
+        <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
+        <span>{{ cocktail.glass }}</span>
+      </div>
+
+      <div class="info-item">
+        <span class="icon">{{
+          getPreparationIcon(cocktail.preparation_type)
+        }}</span>
+        <span>{{ cocktail.preparation_type }}</span>
+      </div>
+    </div>
   </div>
-</a>
+  <a
+    [routerLink]="['/cocktails', cocktail.slug]"
+    class="cocktail-card-link-wrapper"
+  >
+    <span class="visually-hidden">Open {{ cocktail.name }}</span>
+  </a>
+</div>

@@ -1,117 +1,163 @@
-<div class="page-header-container">
-  <h1>Explore Ingredients</h1>
-  <h2>Unlock the World of Cocktail Flavors and Essential Components</h2>
+<div class="page-header-container" [class.fonts-loaded]="fontsLoaded">
+  <h1>Ingredient Explorer</h1>
+  <h2>Search, Filter, and Learn About Cocktail Ingredients</h2>
+
   <p class="page-subtitle">
-    Welcome to [Your App/Site Name]'s <b>comprehensive ingredient database</b>.
-    Here you'll find everything you need to know about the components of your
-    favorite drinks. Use our <b>search and filter tools</b> to easily explore
-    various <b>spirits, liqueurs, mixers, and garnishes</b> to master your
-    cocktail creations.
+    Explore our <b>comprehensive ingredient archive</b>: spirits, liqueurs,
+    mixers, juices, syrups, herbs, and more. Use the <b>smart filters</b> to
+    find what you need.
   </p>
 </div>
 
-<div class="search-bar-container">
-  <div class="custom-search-input-wrapper">
-    <input
-      type="text"
-      class="custom-search-input"
-      placeholder="Search ingredient by name..."
-      [(ngModel)]="searchTerm"
-      (input)="onSearchTermChange()"
-    />
-    <mat-icon
-      class="clear-search-icon"
-      *ngIf="searchTerm"
-      (click)="clearFilters(); searchTerm = ''"
-      svgIcon="close"
-    ></mat-icon>
-    <mat-icon class="search-icon" svgIcon="search"></mat-icon>
-  </div>
+<!-- SEARCH (senza FormsModule, come CocktailList) -->
+<div class="custom-search-input-wrapper">
+  <input
+    type="search"
+    class="custom-search-input"
+    placeholder="Search ingredient by name..."
+    [value]="searchTerm()"
+    (input)="onSearchInput($event)"
+    aria-label="Search ingredient by name"
+  />
+  <mat-icon
+    class="clear-search-icon"
+    *ngIf="searchTerm()"
+    (click)="clearFilters(); setSearch('')"
+    svgIcon="close"
+    aria-label="Clear search"
+  ></mat-icon>
+  <mat-icon class="search-icon" svgIcon="search" aria-hidden="true"></mat-icon>
 </div>
 
-<div class="filters-accordion" [class.expanded]="isExpanded">
-  <div class="accordion-header" (click)="toggleExpansion()">
+<!-- FILTERS con @defer e chiusura con *ngIf (uniforme) -->
+<div class="filters-accordion" [class.expanded]="isExpanded()">
+  <div class="accordion-header" #filtersToggle (click)="toggleExpansion()">
     <h3 class="accordion-title">
-      <mat-icon class="accordion-icon" svgIcon="filter_list"></mat-icon>
+      <mat-icon
+        class="accordion-icon"
+        svgIcon="filter_list"
+        aria-hidden="true"
+      ></mat-icon>
       Filters
     </h3>
-    <span class="active-filters-summary" *ngIf="!isExpanded">
+    <span class="active-filters-summary" *ngIf="!isExpanded()">
       ({{ getActiveFiltersText() }})
     </span>
   </div>
 
-  <div
-    class="accordion-content"
-    [@accordionAnimation]="isExpanded ? 'open' : 'closed'"
-  >
-    <div class="accordion-content-wrapper">
-      <div class="filter-group">
-        <label for="alcoholic-select" class="filter-label"
-          >Alcoholic / Non-Alcoholic</label
+  @defer (on interaction(filtersToggle); prefetch on idle) {
+  <div class="accordion-content" *ngIf="isExpanded()">
+    <div class="filter-group">
+      <label for="alcoholic-select" class="filter-label"
+        >Alcoholic / Non-Alcoholic</label
+      >
+      <div class="custom-select-wrapper">
+        <select
+          id="alcoholic-select"
+          class="custom-select"
+          [value]="
+            selectedAlcoholic() === 'true'
+              ? 'Alcoholic'
+              : selectedAlcoholic() === 'false'
+              ? 'Non-Alcoholic'
+              : ''
+          "
+          (change)="setAlcoholicUi($any($event.target).value)"
+          (change)="setType($any($event.target).value)"
+          (click)="$event.stopPropagation()"
+          aria-label="Filter by alcoholic content"
         >
-        <div class="custom-select-wrapper">
-          <select
-            id="alcoholic-select"
-            class="custom-select"
-            [(ngModel)]="selectedAlcoholicFilter"
-            (change)="applyFilters()"
-            (click)="$event.stopPropagation()"
-          >
-            <option value="">All</option>
-            <option value="true">Alcoholic</option>
-            <option value="false">Non-Alcoholic</option>
-          </select>
-          <mat-icon
-            class="select-arrow-icon"
-            svgIcon="arrow_drop_down"
-          ></mat-icon>
-        </div>
-      </div>
-
-      <!-- NUOVO FILTRO: Ingredient Type -->
-      <div class="filter-group">
-        <label for="ingredient-type-select" class="filter-label"
-          >Ingredient Type</label
-        >
-        <div class="custom-select-wrapper">
-          <select
-            id="ingredient-type-select"
-            class="custom-select"
-            [(ngModel)]="selectedIngredientType"
-            (change)="applyFilters()"
-            (click)="$event.stopPropagation()"
-          >
-            <option *ngFor="let type of ingredientTypes" [value]="type.value">
-              {{ type.label }}
-            </option>
-          </select>
-          <mat-icon
-            class="select-arrow-icon"
-            svgIcon="arrow_drop_down"
-          ></mat-icon>
-        </div>
-      </div>
-
-      <div class="filter-group filter-button-row">
-        <button class="glass-button secondary" (click)="clearFilters()">
-          <mat-icon svgIcon="clear_all"></mat-icon>
-          Clear Filters
-        </button>
+          <option value="">All</option>
+          <option *ngFor="let option of alcoholicOptions" [value]="option">
+            {{ option }}
+          </option>
+        </select>
+        <mat-icon
+          class="select-arrow-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
       </div>
     </div>
+
+    <div class="filter-group">
+      <label for="type-select" class="filter-label">Ingredient Type</label>
+      <div class="custom-select-wrapper">
+        <select
+          id="type-select"
+          class="custom-select"
+          [value]="selectedType()"
+          (change)="setAlcoholicUi($any($event.target).value)"
+          (change)="setType($any($event.target).value)"
+          (click)="$event.stopPropagation()"
+          aria-label="Filter by ingredient type"
+        >
+          <option value="">All Types</option>
+          <option *ngFor="let t of ingredientTypes" [value]="t">{{ t }}</option>
+        </select>
+        <mat-icon
+          class="select-arrow-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
+      </div>
+    </div>
+
+    <div class="filter-group filter-button-row">
+      <button
+        class="glass-button secondary"
+        (click)="clearFilters()"
+        aria-label="Clear all filters"
+      >
+        <mat-icon svgIcon="clear_all" aria-hidden="true"></mat-icon>
+        Clear Filters
+      </button>
+    </div>
   </div>
+  } @placeholder {
+  <div class="accordion-content placeholder" aria-hidden="true"></div>
+  }
 </div>
 
 <hr />
 
 <p class="ingredient-card-legend">
-  The cards below show the ingredient <b>image</b> and whether it's
-  <b>alcoholic or non-alcoholic</b>. Click on each ingredient for full details!
+  Each card shows the ingredient <b>image</b> and whether it's
+  <b>alcoholic</b> or <b>non-alcoholic</b>. Click an ingredient to view full
+  details!
 </p>
 
 <div *ngIf="loading" class="loading-message">Loading ingredients...</div>
 <div *ngIf="error" class="error-message">{{ error }}</div>
 
+<!-- STATUS PAGINA / RISULTATI (come CocktailList) -->
+<div
+  class="page-status"
+  *ngIf="!loading && !error && totalItems > 0"
+  role="status"
+  aria-live="polite"
+>
+  <span class="page-status__page"
+    >Page {{ currentPage }} of {{ totalPages }}</span
+  >
+  <span class="page-status__sep" aria-hidden="true">•</span>
+  <span class="page-status__range">
+    Showing {{ pageStart }}–{{ pageEnd }} of {{ totalItems }}
+  </span>
+</div>
+
+<!-- Skeleton quando loading -->
+<div
+  class="page-status page-status--skeleton"
+  *ngIf="loading"
+  aria-hidden="true"
+>
+  <span class="skl w-28"></span>
+  <span class="skl w-6"></span>
+  <span class="skl w-48"></span>
+</div>
+
+<!-- GRID (riuso classi .cocktail-list se già stilate) -->
 <div class="cocktail-list" *ngIf="!error && ingredients.length > 0">
   <app-ingredient-card
     *ngFor="let ingredient of ingredients; let i = index; trackBy: trackById"
@@ -120,185 +166,144 @@
   ></app-ingredient-card>
 </div>
 
-<div class="load-more-container">
-  <div class="cocktail-count-summary" *ngIf="!loading && totalItems > 0">
-    Showing {{ ingredients.length }} of {{ totalItems }} ingredients.
-  </div>
-
-  <button
-    class="glass-button primary"
-    (click)="loadMore()"
-    *ngIf="ingredients.length < totalItems && !loading"
-  >
-    Load {{ nextLoadAmount }} more ({{ totalItems - ingredients.length }}
-    remaining)
-  </button>
+<div class="no-results-message" *ngIf="!loading && !ingredients.length">
+  <p>No ingredients match your criteria. Try adjusting your filters!</p>
 </div>
 
-<div *ngIf="!loading && !error && totalItems === 0" class="no-results-message">
-  No ingredients found with the selected filters.
+<!-- PAGINATION (come CocktailList) -->
+<div class="pagination-container" *ngIf="!loading && totalPages > 1">
+  <div class="pagination-controls">
+    <button
+      class="glass-button secondary"
+      [disabled]="currentPage === 1"
+      (click)="goToPage(currentPage - 1)"
+      aria-label="Go to previous page"
+    >
+      Previous
+    </button>
+
+    <div class="page-numbers" role="navigation" aria-label="Pagination">
+      <!-- Prima pagina -->
+      <ng-container *ngIf="totalPages > 1">
+        <span
+          *ngIf="currentPage === 1"
+          class="page-number active"
+          aria-current="page"
+        >
+          1
+        </span>
+        <a
+          *ngIf="currentPage !== 1"
+          [attr.href]="buildUrlWithParams({ page: 1 })"
+          class="page-number"
+          (click)="$event.preventDefault(); goToPage(1)"
+        >
+          1
+        </a>
+      </ng-container>
+
+      <!-- Ellissi sinistra -->
+      <span *ngIf="showFirstEllipsis()" class="ellipsis" aria-hidden="true"
+        >…</span
+      >
+
+      <!-- Pagine centrali -->
+      <ng-container *ngFor="let page of getVisiblePages()">
+        <span
+          *ngIf="page === currentPage"
+          class="page-number active"
+          aria-current="page"
+        >
+          {{ page }}
+        </span>
+        <a
+          *ngIf="page !== currentPage"
+          [attr.href]="buildUrlWithParams({ page: page })"
+          class="page-number"
+          (click)="$event.preventDefault(); goToPage(page)"
+        >
+          {{ page }}
+        </a>
+      </ng-container>
+
+      <!-- Ellissi destra -->
+      <span *ngIf="showLastEllipsis()" class="ellipsis" aria-hidden="true"
+        >…</span
+      >
+
+      <!-- Ultima pagina -->
+      <ng-container *ngIf="totalPages > 1">
+        <span
+          *ngIf="currentPage === totalPages"
+          class="page-number active"
+          aria-current="page"
+        >
+          {{ totalPages }}
+        </span>
+        <a
+          *ngIf="currentPage !== totalPages"
+          [attr.href]="buildUrlWithParams({ page: totalPages })"
+          class="page-number"
+          (click)="$event.preventDefault(); goToPage(totalPages)"
+        >
+          {{ totalPages }}
+        </a>
+      </ng-container>
+    </div>
+
+    <button
+      class="glass-button secondary"
+      [disabled]="currentPage === totalPages"
+      (click)="goToPage(currentPage + 1)"
+      aria-label="Go to next page"
+    >
+      Next
+    </button>
+  </div>
 </div>
 
-<div class="key-features-section">
-  <h3>Why Explore Ingredients with [Your App/Site Name]?</h3>
-  <div class="feature-item">
-    <span class="feature-icon">🔬</span>
-    <p>
-      <b>Deep Dive into Components:</b> Learn about the origin, properties, and
-      production methods of each ingredient.
-    </p>
-  </div>
-  <div class="feature-item">
-    <span class="feature-icon">🏷️</span>
-    <p>
-      <b>Categorized for Ease:</b> Quickly find what you need with filters for
-      alcoholic and non-alcoholic types.
-    </p>
-  </div>
-  <div class="feature-item">
-    <span class="feature-icon">🍸</span>
-    <p>
-      <b>Build Your Home Bar:</b> Discover essential ingredients and expand your
-      collection for endless cocktail possibilities.
-    </p>
-  </div>
-  <div class="feature-item">
-    <span class="feature-icon">🥂</span>
-    <p>
-      <b>Unlock New Recipes:</b> Understand how different ingredients contribute
-      to taste, texture, and aroma in your drinks.
-    </p>
-  </div>
-</div>
-
+<!-- FAQ (opzionale, in linea al pattern) -->
 <div class="faq-section">
   <h2>Frequently Asked Questions about Ingredients</h2>
 
   <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[0])">
-      What types of ingredients can I find here?
-      <mat-icon
-        class="faq-toggle-icon"
-        [class.rotated]="faqs[0].isExpanded"
-        svgIcon="arrow_drop_down"
-      ></mat-icon>
-    </h3>
+    <button
+      class="faq-question"
+      type="button"
+      (click)="faqs[0].isExpanded = !faqs[0].isExpanded"
+      [attr.aria-expanded]="faqs[0].isExpanded"
+    >
+      <span>What types of ingredients can I find here?</span>
+      <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+    </button>
     <div
       class="faq-answer-wrapper"
-      [@faqAccordionAnimation]="faqs[0].isExpanded ? 'expanded' : 'collapsed'"
+      [style.maxHeight.px]="faqs[0].isExpanded ? 200 : 0"
     >
       <p class="faq-answer">
-        Our comprehensive ingredient database includes
-        <b>alcoholic bases</b> (like spirits and liqueurs),
-        <b>non-alcoholic mixers</b> (such as juices, syrups, and sodas), and
-        various <b>garnishes</b>. You can use our filters to narrow down your
-        search.
+        Alcoholic bases (spirits, liqueurs), non-alcoholic mixers (juices,
+        syrups, sodas), herbs, spices and garnishes.
       </p>
     </div>
   </div>
 
   <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[1])">
-      How can I search for a specific ingredient?
-      <mat-icon
-        class="faq-toggle-icon"
-        [class.rotated]="faqs[1].isExpanded"
-        svgIcon="arrow_drop_down"
-      ></mat-icon>
-    </h3>
+    <button
+      class="faq-question"
+      type="button"
+      (click)="faqs[1].isExpanded = !faqs[1].isExpanded"
+      [attr.aria-expanded]="faqs[1].isExpanded"
+    >
+      <span>How can I search for a specific ingredient?</span>
+      <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+    </button>
     <div
       class="faq-answer-wrapper"
-      [@faqAccordionAnimation]="faqs[1].isExpanded ? 'expanded' : 'collapsed'"
+      [style.maxHeight.px]="faqs[1].isExpanded ? 200 : 0"
     >
       <p class="faq-answer">
-        Use the <b>"Search ingredient by name..." bar</b> at the top of the
-        page. Simply type the name of the ingredient you're looking for, and
-        we'll help you find it quickly.
-      </p>
-    </div>
-  </div>
-
-  <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[2])">
-      What information is available for each ingredient?
-      <mat-icon
-        class="faq-toggle-icon"
-        [class.rotated]="faqs[2].isExpanded"
-        svgIcon="arrow_drop_down"
-      ></mat-icon>
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@faqAccordionAnimation]="faqs[2].isExpanded ? 'expanded' : 'collapsed'"
-    >
-      <p class="faq-answer">
-        Each ingredient card displays its <b>image</b> and whether it's
-        <b>alcoholic or non-alcoholic</b>. Clicking on an ingredient provides
-        in-depth details such as its <b>description</b>, common
-        <b>uses in cocktails</b>, its <b>origin</b>, and relevant
-        <b>tips for storage or usage</b>.
-      </p>
-    </div>
-  </div>
-
-  <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[3])">
-      Can I filter ingredients by alcoholic content?
-      <mat-icon
-        class="faq-toggle-icon"
-        [class.rotated]="faqs[3].isExpanded"
-        svgIcon="arrow_drop_down"
-      ></mat-icon>
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@faqAccordionAnimation]="faqs[3].isExpanded ? 'expanded' : 'collapsed'"
-    >
-      <p class="faq-answer">
-        Yes, absolutely! Use the <b>"Alcoholic / Non-Alcoholic" filter</b> to
-        quickly sort ingredients based on their alcohol content.
-      </p>
-    </div>
-  </div>
-
-  <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[4])">
-      Where can I find cocktail recipes that use these ingredients?
-      <mat-icon
-        class="faq-toggle-icon"
-        [class.rotated]="faqs[4].isExpanded"
-        svgIcon="arrow_drop_down"
-      ></mat-icon>
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@faqAccordionAnimation]="faqs[4].isExpanded ? 'expanded' : 'collapsed'"
-    >
-      <p class="faq-answer">
-        To discover delicious cocktails, visit our
-        <b>"Cocktail Explorer"</b> section. There you can browse hundreds of
-        recipes. (The link to this section is in the navigation bar).
-      </p>
-    </div>
-  </div>
-
-  <div class="faq-item" [class.expanded]="faqs[5].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[5])">
-      How can I find cocktails based on the ingredients I have?
-      <mat-icon
-        class="faq-toggle-icon"
-        [class.rotated]="faqs[5].isExpanded"
-        svgIcon="arrow_drop_down"
-      ></mat-icon>
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@faqAccordionAnimation]="faqs[5].isExpanded ? 'expanded' : 'collapsed'"
-    >
-      <p class="faq-answer">
-        Check out our <b>"Find by Ingredients"</b> tool. Select the ingredients
-        you have on hand, and we'll show you what you can mix! (The link to this
-        section is in the navigation bar).
+        Use the search bar and filters above. Results update and paginate with
+        clean URLs.
       </p>
     </div>
   </div>
