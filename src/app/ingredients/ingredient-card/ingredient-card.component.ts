@@ -38,7 +38,7 @@ import { env } from '../../config/env';
 export class IngredientCardComponent {
   @Input() ingredient!: Ingredient;
   @Input() lazyLoadImage: boolean = true; // <--- NUOVO INPUT
-
+  @Input() priority = false;
   private apiUrl = env.apiUrl;
 
   getIngredientId(ingredient: Ingredient): string {

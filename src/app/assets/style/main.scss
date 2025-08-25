@@ -639,6 +639,15 @@ body {
   @media (max-width: 600px) {
     min-height: 130px;
   }
+
+  &.ingredients-card {
+    flex-direction: row;
+    min-height: 100px;
+  }
+  @media (max-width: 600px) {
+    min-height: 130px;
+    flex-direction: column !important;
+  }
 }
 .banner-content {
   display: flex;
@@ -778,6 +787,10 @@ body {
 
   &.expanded {
     height: 170px;
+
+    @media (max-width: 768px) {
+      height: 360px;
+    }
   }
 
   .accordion-header {

@@ -63,7 +63,6 @@
               : ''
           "
           (change)="setAlcoholicUi($any($event.target).value)"
-          (change)="setType($any($event.target).value)"
           (click)="$event.stopPropagation()"
           aria-label="Filter by alcoholic content"
         >
@@ -87,7 +86,6 @@
           id="type-select"
           class="custom-select"
           [value]="selectedType()"
-          (change)="setAlcoholicUi($any($event.target).value)"
           (change)="setType($any($event.target).value)"
           (click)="$event.stopPropagation()"
           aria-label="Filter by ingredient type"
@@ -159,11 +157,38 @@
 
 <!-- GRID (riuso classi .cocktail-list se già stilate) -->
 <div class="cocktail-list" *ngIf="!error && ingredients.length > 0">
-  <app-ingredient-card
+  <ng-container
     *ngFor="let ingredient of ingredients; let i = index; trackBy: trackById"
-    [ingredient]="ingredient"
-    [lazyLoadImage]="i >= 6"
-  ></app-ingredient-card>
+  >
+    <app-ingredient-card
+      [ingredient]="ingredient"
+      [lazyLoadImage]="i >= 6"
+      [priority]="isMobile && i === 0"
+    ></app-ingredient-card>
+
+    <!-- slot adv ogni 6 card -->
+    <ng-container *ngIf="i > 0 && (i + 1) % adInterval === 0">
+      <div
+        *ngIf="isMobile"
+        class="mobile-ad-container ingredients-card"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
+        <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+      </div>
+
+      <div
+        class="ad-desktop-card ingredients-card"
+        *ngIf="!isMobile"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
+        <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+      </div>
+    </ng-container>
+  </ng-container>
 </div>
 
 <div class="no-results-message" *ngIf="!loading && !ingredients.length">

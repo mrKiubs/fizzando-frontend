@@ -21,6 +21,7 @@ import {
 
 import { IngredientCardComponent } from '../ingredient-card/ingredient-card.component';
 import { env } from '../../config/env';
+import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
 
 interface FaqItemState {
   isExpanded: boolean;
@@ -29,7 +30,13 @@ interface FaqItemState {
 @Component({
   selector: 'app-ingredient-list',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterLink, IngredientCardComponent],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    RouterLink,
+    IngredientCardComponent,
+    DevAdsComponent,
+  ],
   templateUrl: './ingredient-list.component.html',
   styleUrls: ['./ingredient-list.component.scss'],
 })
@@ -56,6 +63,14 @@ export class IngredientListComponent implements OnInit, OnDestroy {
   private _selectedAlcoholic = signal<string>(''); // '', 'true', 'false'
   private _selectedType = signal<string>(''); // es. 'Spirits', ...
   private _isExpanded = signal<boolean>(false);
+
+  adInterval = 12; // default
+  private randomBetween(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  private recalcAdInterval(): void {
+    this.adInterval = this.randomBetween(11, 18);
+  }
 
   // getter per template
   searchTerm = this._searchTerm;
@@ -163,6 +178,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
       this._selectedType.set(match);
 
       this.currentPage = page;
+      this.recalcAdInterval();
       this.loadIngredients();
     });
 
@@ -226,6 +242,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
           this.totalPages = res?.meta?.pagination?.pageCount ?? 0;
 
           this.loading = false;
+          this.unlockListHeight(); // ✅ sblocca quando i nuovi item sono in pagina
 
           const intent = this.pendingScroll;
           this.pendingScroll = 'none';
@@ -296,6 +313,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
       if (this.freezeSafe) {
         this.freezeScroll(); // desktop
+        this.lockListHeight(); // ✅ evita salto sulla lista
       } else if (this.isBrowser) {
         this.lastScrollYBeforeNav = window.scrollY; // mobile: solo memorizza
       }
