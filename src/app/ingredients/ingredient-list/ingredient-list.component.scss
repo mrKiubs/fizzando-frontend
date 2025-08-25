@@ -532,3 +532,55 @@ p.ingredient-card-legend {
 .accordion-content {
   padding-top: 16px;
 }
+
+/* ==== Evita salti giganteschi su mobile ==== */
+
+/* Lista: fallback di altezza coerente anche quando passa da loading → dati */
+.cocktail-list {
+  content-visibility: auto;
+  contain-intrinsic-size: 900px; /* stima: 2–3 righe mobile */
+  min-height: 560px; /* almeno 2 righe + gap */
+}
+
+@media (min-width: 768px) {
+  .cocktail-list {
+    contain-intrinsic-size: 1200px;
+    min-height: 720px;
+  }
+}
+
+/* Placeholder accordion @defer: riserva spazio quando “chiuso” */
+.accordion-content.placeholder {
+  min-height: 120px; /* spazio simile ai controlli veri */
+  contain: layout;
+}
+
+/* Footer affiliate text che spesso “salta” quando le card scorrono */
+.affiliate-bottom {
+  min-height: 44px;
+  display: block;
+}
+
+/* FAQ: evita jump quando si materializza la sezione (se era fuori viewport) */
+.faq-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 600px; /* stima altezza blocco FAQ “foldato” */
+}
+
+/* Slot ADV con dimensioni fisse */
+.mobile-ad-container.ingredients-card {
+  min-height: 250px;
+  max-height: 250px;
+}
+.ad-desktop-card.ingredients-card {
+  min-height: 600px;
+  max-height: 600px; /* half-page tipico */
+}
+
+/* Immagine delle card: dimensioni fisse per non ricalcolare */
+app-ingredient-card .image-wrapper img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  display: block;
+}

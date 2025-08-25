@@ -7,14 +7,19 @@
     <div class="image-wrapper">
       <img
         [src]="getIngredientCardImageUrl(ingredient.image)"
-        [alt]="ingredient.name"
+        [alt]="ingredient.name || ''"
+        decoding="async"
+        [attr.loading]="priority ? 'eager' : lazyLoadImage ? 'lazy' : 'eager'"
+        [attr.fetchpriority]="priority ? 'high' : 'auto'"
         width="60"
         height="60"
+        sizes="(max-width: 600px) 60px, 60px"
       />
     </div>
+
     <div class="ingredient-details">
       <h3 class="ingredient-name">{{ ingredient.name }}</h3>
-      <p class="ingredient-type">{{ ingredient.ingredient_type }}</p>
+      <p class="ingredient-type">{{ ingredient.ingredient_type || "" }}</p>
     </div>
   </div>
 </a>
