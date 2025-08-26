@@ -22,9 +22,18 @@ import {
 import { IngredientCardComponent } from '../ingredient-card/ingredient-card.component';
 import { env } from '../../config/env';
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
+import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
 
 interface FaqItemState {
   isExpanded: boolean;
+}
+
+interface ProductItem {
+  title: string;
+  imageUrl: string;
+  price: string;
+  link: string;
+  showPlaceholder: boolean;
 }
 
 @Component({
@@ -36,6 +45,7 @@ interface FaqItemState {
     RouterLink,
     IngredientCardComponent,
     DevAdsComponent,
+    AffiliateProductComponent,
   ],
   templateUrl: './ingredient-list.component.html',
   styleUrls: ['./ingredient-list.component.scss'],
@@ -83,11 +93,54 @@ export class IngredientListComponent implements OnInit, OnDestroy {
   loading = false;
   error: string | null = null;
   currentPage = 1;
-  pageSize = 20;
+  pageSize = 23;
   totalItems = 0;
   totalPages = 0;
   isMobile = false;
   readonly paginationRange = 2;
+
+  productList: ProductItem[] = [
+    {
+      title: 'Libbey Mixologist 9-Piece Cocktail Set',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/71MYEP67w2S._AC_SY879_.jpg',
+      price: '$50.00',
+      link: 'https://amzn.to/4fowM9o',
+      showPlaceholder: true,
+    },
+    {
+      title: 'Riedel Nick and Nora Cocktail Glasses, Set of 2',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/61wIAjM9apL._AC_SX522_.jpg',
+      price: '$45.00',
+      link: 'https://www.amazon.com/Riedel-Nick-Nora-Cocktail-Glasses/dp/B07R8B7L1V',
+      showPlaceholder: true,
+    },
+    {
+      title: 'YARRAMATE 8Pcs 24oz Hybrid Insulated Cocktail Shaker',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/71NZMAbpEjL._AC_SX679_.jpg',
+      price: '$24.74',
+      link: 'https://www.amazon.com/Cocktail-Codex-Fundamentals-Formulas-Evolutions/dp/1607749714',
+      showPlaceholder: true,
+    },
+    {
+      title: 'Bartesian Professional Cocktail Machine',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/81YFuyY5xVL._AC_SX679_.jpg',
+      price: '$269.99',
+      link: 'https://www.amazon.com/Bartesian-Premium-Cocktail-Machine-Drinks/dp/B07T435M1S',
+      showPlaceholder: true,
+    },
+    {
+      title: 'BARE BARREL® Mixology Bartender Kit Bar Set',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/81L4vmLO+KL._AC_SX679_.jpg',
+      price: '$39.95',
+      link: 'https://www.amazon.com/Hella-Cocktail-Co-Bitters-Variety/dp/B08V5QY3Q7',
+      showPlaceholder: true,
+    },
+  ];
 
   // --- Intento di scroll per UX condizionale ---
   private pendingScroll: 'none' | 'filter' | 'search' | 'page' = 'none';
@@ -902,5 +955,9 @@ export class IngredientListComponent implements OnInit, OnDestroy {
         }, 70);
       });
     });
+  }
+
+  toggleFaq(faqItem: FaqItemState): void {
+    faqItem.isExpanded = !faqItem.isExpanded;
   }
 }

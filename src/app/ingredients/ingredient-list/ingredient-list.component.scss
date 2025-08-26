@@ -545,7 +545,6 @@ p.ingredient-card-legend {
 @media (min-width: 768px) {
   .cocktail-list {
     contain-intrinsic-size: 1200px;
-    min-height: 720px;
   }
 }
 
@@ -573,8 +572,8 @@ p.ingredient-card-legend {
   max-height: 250px;
 }
 .ad-desktop-card.ingredients-card {
-  min-height: 600px;
-  max-height: 600px; /* half-page tipico */
+  min-height: 90px;
+  max-height: 90px; /* half-page tipico */
 }
 
 /* Immagine delle card: dimensioni fisse per non ricalcolare */
