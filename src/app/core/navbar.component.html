@@ -16,6 +16,7 @@
       [attr.aria-label]="isMenuOpen ? 'Close menu' : 'Open menu'"
       [attr.aria-haspopup]="'dialog'"
     >
+      <!-- LIGATURE (niente svgIcon) -->
       <mat-icon aria-hidden="true">{{
         isMenuOpen ? "close" : "menu"
       }}</mat-icon>
@@ -69,7 +70,8 @@
           (click)="clearSearchTerm($event)"
           aria-label="Clear search"
         >
-          <mat-icon svgIcon="close" aria-hidden="true"></mat-icon>
+          <!-- LIGATURE (niente svgIcon) -->
+          <mat-icon aria-hidden="true">close</mat-icon>
         </button>
       </div>
     </div>
@@ -227,7 +229,6 @@
       </div>
     </div>
 
-    <!-- NAV con ID collegato -->
     <nav id="primary-navigation" role="navigation" aria-label="Primary">
       <div class="menu-grid">
         <!-- Cocktails -->
@@ -236,7 +237,7 @@
           <ul>
             <li>
               <a routerLink="/cocktails" (click)="closeMenu()"
-                >🍸 All Cocktails</a
+                >🍸 Cocktail Explorer</a
               >
             </li>
             <li>
@@ -288,11 +289,10 @@
                 <option value="hot">♨️ Hot</option>
                 <option value="other">❓ Other</option>
               </select>
-              <mat-icon
-                class="select-arrow-icon"
-                svgIcon="arrow_drop_down"
-                aria-hidden="true"
-              ></mat-icon>
+              <!-- LIGATURE (niente svgIcon) -->
+              <mat-icon class="select-arrow-icon" aria-hidden="true"
+                >arrow_drop_down</mat-icon
+              >
             </div>
             <button
               type="button"
@@ -319,7 +319,7 @@
           <ul>
             <li>
               <a routerLink="/ingredients" (click)="closeMenu()"
-                >🥕 All Ingredients</a
+                >🥕 Ingredients Explorer</a
               >
             </li>
             <li>
@@ -395,11 +395,10 @@
                 </option>
                 <option value="miscellaneous">✨ Miscellaneous</option>
               </select>
-              <mat-icon
-                class="select-arrow-icon"
-                svgIcon="arrow_drop_down"
-                aria-hidden="true"
-              ></mat-icon>
+              <!-- LIGATURE (niente svgIcon) -->
+              <mat-icon class="select-arrow-icon" aria-hidden="true"
+                >arrow_drop_down</mat-icon
+              >
             </div>
             <button
               type="button"
@@ -506,11 +505,10 @@
                 <option value="tropical-drinks">🥭 Tropical Drinks</option>
                 <option value="winter-warmers">🧣 Winter Warmers</option>
               </select>
-              <mat-icon
-                class="select-arrow-icon"
-                svgIcon="arrow_drop_down"
-                aria-hidden="true"
-              ></mat-icon>
+              <!-- LIGATURE (niente svgIcon) -->
+              <mat-icon class="select-arrow-icon" aria-hidden="true"
+                >arrow_drop_down</mat-icon
+              >
             </div>
             <button
               type="button"
