@@ -482,6 +482,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
   }
 
   // === SEO dinamico / JSON-LD (allineato) ===
+  /** ——— SEO: title/description dinamici ——— */
   private buildDynamicTitle(): string {
     const parts: string[] = [];
     if (this._searchTerm()) parts.push(`Search: "${this._searchTerm()}"`);
@@ -492,12 +493,14 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     const base = parts.length
       ? `Ingredient Explorer • ${parts.join(' • ')}`
       : 'Ingredient Explorer';
+
     const pageSuffix =
       this.totalPages > 1
         ? ` (Page ${this.currentPage}${
             this.totalPages ? ' of ' + this.totalPages : ''
           })`
         : '';
+
     return `${base}${pageSuffix} | Fizzando`;
   }
 
@@ -516,7 +519,9 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     if (this._selectedAlcoholic() === 'false') filters.push('non-alcoholic');
     if (filters.length) bits.push(`filtered by ${filters.join(', ')}`);
 
-    bits.push('Discover spirits, mixers, juices, syrups, herbs and more.');
+    bits.push(
+      'Discover spirits, liqueurs, mixers, juices, syrups, herbs and more.'
+    );
     return this.truncate(bits.join('. ') + '.', 158);
   }
 
@@ -564,6 +569,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** ——— JSON-LD: ItemList della pagina ——— */
   private addJsonLdItemList(): void {
     const head = this.doc?.head;
     if (!head) return;
@@ -576,6 +582,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
 
     const pageAbsUrl = this.getFullSiteUrl(this.router.url);
     const itemListId = pageAbsUrl + '#itemlist';
+    const collectionId = pageAbsUrl + '#collection';
     const startIndex = this.pageStart || 1;
 
     const itemList = {
@@ -585,18 +592,20 @@ export class IngredientListComponent implements OnInit, OnDestroy {
       name: 'Ingredient Explorer',
       inLanguage: 'en',
       itemListOrder: 'https://schema.org/ItemListOrderAscending',
-      numberOfItems: this.totalItems, // totale risultati
+      numberOfItems: this.totalItems,
       startIndex,
       url: pageAbsUrl,
+      isPartOf: { '@id': collectionId },
       itemListElement: this.ingredients.map((it, i) => ({
         '@type': 'ListItem',
         position: startIndex + i,
         item: {
-          '@type': 'Product', // trattiamo l’ingrediente come “Product” consultabile
+          '@type': 'Product',
           '@id': this.getFullSiteUrl(`/ingredients/${(it as any).slug}`),
           url: this.getFullSiteUrl(`/ingredients/${(it as any).slug}`),
           name: it.name,
           image: this.getIngredientImageUrl(it),
+          brand: { '@type': 'Organization', name: 'Fizzando' },
         },
       })),
     };
@@ -609,6 +618,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     this.itemListSchemaScript = script as HTMLScriptElement;
   }
 
+  /** ——— JSON-LD: CollectionPage + Breadcrumbs ——— */
   private addJsonLdCollectionPageAndBreadcrumbs(
     pageTitle: string,
     pageDescription: string
@@ -624,14 +634,18 @@ export class IngredientListComponent implements OnInit, OnDestroy {
 
     const pageAbsUrl = this.getFullSiteUrl(this.router.url);
     const itemListId = pageAbsUrl + '#itemlist';
+    const collectionId = pageAbsUrl + '#collection';
+
     const collectionPage = {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
+      '@id': collectionId,
       name: pageTitle.replace(' | Fizzando', ''),
       description: pageDescription,
       url: pageAbsUrl,
       mainEntity: { '@id': itemListId },
     };
+
     this.renderer.appendChild(
       coll,
       this.renderer.createText(JSON.stringify(collectionPage))
@@ -649,6 +663,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
       { name: 'Home', url: this.getFullSiteUrl('/') },
       { name: 'Ingredients', url: this.getFullSiteUrl('/ingredients') },
     ];
+
     const breadcrumbList = {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
@@ -659,6 +674,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
         item: c.url,
       })),
     };
+
     this.renderer.appendChild(
       bc,
       this.renderer.createText(JSON.stringify(breadcrumbList))
@@ -667,6 +683,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     this.breadcrumbsSchemaScript = bc as HTMLScriptElement;
   }
 
+  /** ——— JSON-LD: FAQPage (allineato ai testi ingredienti, nessun link ai cocktails) ——— */
   private addJsonLdFaqPage(): void {
     const head = this.doc?.head;
     if (!head) return;
@@ -683,18 +700,50 @@ export class IngredientListComponent implements OnInit, OnDestroy {
       mainEntity: [
         {
           '@type': 'Question',
-          name: 'What information is available for each ingredient?',
+          name: 'What types of ingredients are included?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Each ingredient includes an image and whether it is alcoholic or non-alcoholic. Details cover description, typical cocktail uses, origin, and storage tips.',
+            text: 'The archive covers spirits, liqueurs & cordials, fortified wines, bitters, syrups & sweeteners, juices, mixers, fresh herbs, spices, fruits & vegetables, and dairy & eggs.',
           },
         },
         {
           '@type': 'Question',
-          name: 'Can I filter ingredients by alcoholic content and type?',
+          name: 'What information does each ingredient card show?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Yes. Use the Alcoholic/Non-Alcoholic filter and the Ingredient Type filter (e.g., Spirits, Bitters, Syrups, Juices, Herbs, etc.).',
+            text: 'Each card highlights the name, image, type, and whether it’s alcoholic or non-alcoholic. Detailed pages may include ABV, flavor profile, common uses, origin, storage tips, and substitutions.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Can I substitute one ingredient for another?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes—many ingredients have practical substitutes. For example, Triple Sec and Cointreau are often interchangeable; rich syrup (2:1) can replace simple syrup by reducing volume; citrus swaps may work with recipe-specific tweaks.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How should I store different ingredients?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Keep spirits and liqueurs in a cool, dark place with the cap tightly sealed. Juices and syrups go in the fridge after opening; bitters are shelf-stable. Fresh herbs and fruit are best used quickly; store herbs dry and chilled, and citrus whole.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'How do I know if an ingredient contains alcohol?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Ingredients are tagged as Alcoholic or Non-Alcoholic, and ABV is listed when available. Some items like bitters contain alcohol but are used in very small amounts—check the label and the ingredient profile.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Are there non-alcoholic alternatives for common spirits?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes—there are zero-proof options that mimic gin, rum, tequila, whiskey, and aperitifs. You can also build flavor with acid, bitterness, spice, and texture to achieve balance without alcohol.',
           },
         },
       ],
@@ -708,63 +757,78 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     this.faqSchemaScript = script as HTMLScriptElement;
   }
 
+  /** ——— SEO deferrata: meta + OG/Twitter + canonical/prev/next + JSON-LD ——— */
   private setSeoTagsAndSchemaList(): void {
-    const title = this.buildDynamicTitle();
-    const description = this.buildDynamicDescription();
+    if (!this.isBrowser) return;
 
-    this.titleService.setTitle(title);
-    this.metaService.updateTag({ name: 'description', content: description });
+    const run = () => {
+      const title = this.buildDynamicTitle();
+      const description = this.buildDynamicDescription();
 
-    const canonicalAbs = this.getFullSiteUrl(this.router.url);
-    this.setCanonicalLink(canonicalAbs);
+      // <title> + meta description
+      this.titleService.setTitle(title);
+      this.metaService.updateTag({ name: 'description', content: description });
 
-    const prevUrl =
-      this.totalPages > 1 && this.currentPage > 1
-        ? this.getFullSiteUrl(
-            this.buildUrlWithParams({ page: this.currentPage - 1 })
-          )
-        : null;
-    const nextUrl =
-      this.totalPages > 1 && this.currentPage < this.totalPages
-        ? this.getFullSiteUrl(
-            this.buildUrlWithParams({ page: this.currentPage + 1 })
-          )
-        : null;
-    this.setPrevNextLinks(prevUrl, nextUrl);
+      // canonical
+      const canonicalAbs = this.getFullSiteUrl(this.router.url);
+      this.setCanonicalLink(canonicalAbs);
 
-    const ogImage =
-      this.ingredients.length > 0
-        ? this.getIngredientImageUrl(this.ingredients[0])
-        : this.getFullSiteUrl('/assets/og-default.png');
+      // prev/next
+      const prevUrl =
+        this.totalPages > 1 && this.currentPage > 1
+          ? this.getFullSiteUrl(
+              this.buildUrlWithParams({ page: this.currentPage - 1 })
+            )
+          : null;
+      const nextUrl =
+        this.totalPages > 1 && this.currentPage < this.totalPages
+          ? this.getFullSiteUrl(
+              this.buildUrlWithParams({ page: this.currentPage + 1 })
+            )
+          : null;
+      this.setPrevNextLinks(prevUrl, nextUrl);
 
-    this.metaService.updateTag({ property: 'og:title', content: title });
-    this.metaService.updateTag({
-      property: 'og:description',
-      content: description,
-    });
-    this.metaService.updateTag({ property: 'og:url', content: canonicalAbs });
-    this.metaService.updateTag({ property: 'og:type', content: 'website' });
-    this.metaService.updateTag({ property: 'og:image', content: ogImage });
-    this.metaService.updateTag({
-      property: 'og:site_name',
-      content: 'Fizzando',
-    });
+      // Social
+      const ogImage =
+        this.ingredients.length > 0
+          ? this.getIngredientImageUrl(this.ingredients[0])
+          : this.getFullSiteUrl('/assets/og-default.png');
 
-    this.metaService.updateTag({
-      name: 'twitter:card',
-      content: 'summary_large_image',
-    });
-    this.metaService.updateTag({ name: 'twitter:title', content: title });
-    this.metaService.updateTag({
-      name: 'twitter:description',
-      content: description,
-    });
-    this.metaService.updateTag({ name: 'twitter:image', content: ogImage });
+      this.metaService.updateTag({ property: 'og:title', content: title });
+      this.metaService.updateTag({
+        property: 'og:description',
+        content: description,
+      });
+      this.metaService.updateTag({ property: 'og:url', content: canonicalAbs });
+      this.metaService.updateTag({ property: 'og:type', content: 'website' });
+      this.metaService.updateTag({ property: 'og:image', content: ogImage });
+      this.metaService.updateTag({
+        property: 'og:site_name',
+        content: 'Fizzando',
+      });
 
-    // JSON-LD
-    this.addJsonLdItemList();
-    this.addJsonLdCollectionPageAndBreadcrumbs(title, description);
-    this.addJsonLdFaqPage();
+      this.metaService.updateTag({
+        name: 'twitter:card',
+        content: 'summary_large_image',
+      });
+      this.metaService.updateTag({ name: 'twitter:title', content: title });
+      this.metaService.updateTag({
+        name: 'twitter:description',
+        content: description,
+      });
+      this.metaService.updateTag({ name: 'twitter:image', content: ogImage });
+
+      // JSON-LD
+      this.addJsonLdItemList();
+      this.addJsonLdCollectionPageAndBreadcrumbs(title, description);
+      this.addJsonLdFaqPage();
+    };
+
+    // Defer SEO to idle to avoid blocking LCP/CLS
+    const ric: (cb: () => void) => any =
+      (window as any).requestIdleCallback ||
+      ((cb: () => void) => setTimeout(cb, 1));
+    ric(run);
   }
 
   private cleanupJsonLdScript(ref?: HTMLScriptElement) {

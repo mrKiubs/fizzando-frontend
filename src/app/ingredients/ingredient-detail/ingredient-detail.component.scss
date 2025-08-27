@@ -121,6 +121,7 @@ h2 {
   grid-template-columns: 1fr; /* Default: one column for mobile */
   grid-template-areas:
     "header"
+    "ad-block"
     "ai-insights"
     "related-cocktails" /* Spostato sotto ai-insights */
     "actions";
@@ -283,6 +284,7 @@ h2 {
     grid-template-columns: 1fr; /* Una colonna singola per tutti i contenuti */
     grid-template-areas:
       "header"
+      "ad-block"
       "ai-insights"
       "related-cocktails"
       "actions";
@@ -314,6 +316,7 @@ h2 {
     justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 32px;
+    padding-top: 32px;
 
     a {
       .ingredient-image-wrapper-nav {
@@ -347,3 +350,23 @@ h2 {
 
 /* Il resto del tuo CSS esistente rimane invariato */
 /* ... */
+
+.ad-card,
+.ad-desktop-card,
+.mobile-ad-container,
+.banner-container {
+  min-height: 135px; /* o l’altezza media delle tue cocktail-card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0;
+
+  @media (max-width: 600px) {
+    min-height: 130px;
+  }
+}
+.ad-block {
+  grid-area: "ad-block";
+}

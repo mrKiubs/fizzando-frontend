@@ -209,7 +209,29 @@
 
   <!-- AD #2 — subito DOPO il Deep Dive -->
 
-  <!-- ✅ UNA sola sezione Amazon -->
+  <ng-container>
+    <div
+      *ngIf="isMobile"
+      class="mobile-ad-container"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+    </div>
+
+    <div
+      class="ad-desktop-card"
+      *ngIf="!isMobile"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+    </div>
+  </ng-container>
+
+  <!-- 
   <section class="glass-card amazon-section">
     <h2 class="section-title">
       🛒 Craft {{ cocktail?.name }} with the Right Tools
@@ -245,7 +267,7 @@
       helps keep the shaker shaking! 🙌🍸
     </p>
   </section>
-
+-->
   <!-- Related: 1 ad ogni 6 card -->
   <section
     class="related-cocktails-section"

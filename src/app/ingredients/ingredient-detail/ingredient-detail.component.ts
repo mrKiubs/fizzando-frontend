@@ -1,21 +1,49 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  AfterViewInit,
+  ViewChild,
+  ElementRef,
+  HostListener,
+  Inject,
+  Renderer2,
+  inject,
+} from '@angular/core';
+import {
+  CommonModule,
+  DOCUMENT,
+  isPlatformBrowser,
+  NgOptimizedImage,
+} from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { PLATFORM_ID } from '@angular/core';
+import { Title, Meta } from '@angular/platform-browser';
+import { Subscription } from 'rxjs';
+
 import {
   IngredientService,
   Ingredient,
-  Article, // Importa l'interfaccia Article
-} from '../../services/ingredient.service'; // Assicurati che il percorso sia corretto
-import { CocktailService, Cocktail } from '../../services/strapi.service'; // Assicurati che il percorso sia corretto
+} from '../../services/ingredient.service';
+import { CocktailService, Cocktail } from '../../services/strapi.service';
+
 import { MatIconModule } from '@angular/material/icon';
 import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-card.component';
-import { Subscription } from 'rxjs';
 import { FormatAbvPipe } from '../../assets/pipes/format-abv.pipe';
+import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
+import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
 import { env } from '../../config/env';
 
-// L'interfaccia IngredientDetail estende Ingredient e include i cocktail correlati
 export interface IngredientDetail extends Ingredient {
   relatedCocktails?: Cocktail[];
+}
+
+interface ProductItem {
+  title: string;
+  imageUrl: string;
+  price: string;
+  link: string;
+  showPlaceholder: boolean;
 }
 
 @Component({
@@ -27,17 +55,28 @@ export interface IngredientDetail extends Ingredient {
     CocktailCardComponent,
     RouterLink,
     FormatAbvPipe,
+    DevAdsComponent,
+    AffiliateProductComponent,
+    NgOptimizedImage,
   ],
   templateUrl: './ingredient-detail.component.html',
   styleUrls: ['./ingredient-detail.component.scss'],
 })
-export class IngredientDetailComponent implements OnInit, OnDestroy {
+export class IngredientDetailComponent
+  implements OnInit, OnDestroy, AfterViewInit
+{
+  // --- runtime/env
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+
+  // --- stato principale
   ingredient: IngredientDetail | null = null;
   loading = true;
   error: string | null = null;
 
+  // --- navigazione prev/next
   allIngredients: Ingredient[] = [];
-  currentIngredientIndex: number = -1;
+  currentIngredientIndex = -1;
   previousIngredient: {
     externalId: string;
     name: string;
@@ -49,138 +88,192 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
     imageUrl: string;
   } | null = null;
 
-  private routeSubscription: Subscription | undefined;
-  private allIngredientsSubscription: Subscription | undefined;
-  private relatedCocktailsSubscription: Subscription | undefined;
+  // --- responsive/seo
+  isMobile = false;
+  private siteBaseUrl = '';
+  private schemaScript?: HTMLScriptElement;
+
+  // --- affiliate
+  @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
+  private wheelCleanup?: () => void;
+
+  productList: ProductItem[] = [
+    {
+      title: 'Libbey Mixologist 9-Piece Cocktail Set',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/71MYEP67w2S._AC_SY879_.jpg',
+      price: '$50.00',
+      link: 'https://amzn.to/4fowM9o',
+      showPlaceholder: true,
+    },
+    {
+      title: 'Riedel Nick and Nora Cocktail Glasses, Set of 2',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/61wIAjM9apL._AC_SX522_.jpg',
+      price: '$45.00',
+      link: 'https://www.amazon.com/Riedel-Nick-Nora-Cocktail-Glasses/dp/B07R8B7L1V',
+      showPlaceholder: true,
+    },
+    {
+      title: 'YARRAMATE 8Pcs 24oz Hybrid Insulated Cocktail Shaker',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/71NZMAbpEjL._AC_SX679_.jpg',
+      price: '$24.74',
+      link: 'https://www.amazon.com/Cocktail-Codex-Fundamentals-Formulas-Evolutions/dp/1607749714',
+      showPlaceholder: true,
+    },
+    {
+      title: 'Bartesian Professional Cocktail Machine',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/81YFuyY5xVL._AC_SX679_.jpg',
+      price: '$269.99',
+      link: 'https://www.amazon.com/Bartesian-Premium-Cocktail-Machine-Drinks/dp/B07T435M1S',
+      showPlaceholder: true,
+    },
+    {
+      title: 'BARE BARREL® Mixology Bartender Kit Bar Set',
+      imageUrl:
+        'https://m.media-amazon.com/images/I/81L4vmLO+KL._AC_SX679_.jpg',
+      price: '$39.95',
+      link: 'https://www.amazon.com/Hella-Cocktail-Co-Bitters-Variety/dp/B08V5QY3Q7',
+      showPlaceholder: true,
+    },
+  ];
+
+  // --- subscriptions
+  private routeSubscription?: Subscription;
+  private allIngredientsSubscription?: Subscription;
+  private relatedCocktailsSubscription?: Subscription;
 
   constructor(
     private route: ActivatedRoute,
     private ingredientService: IngredientService,
-    private cocktailService: CocktailService
-  ) {}
+    private cocktailService: CocktailService,
+    private titleService: Title,
+    private metaService: Meta,
+    private renderer: Renderer2,
+    @Inject(DOCUMENT) private document: Document
+  ) {
+    if (this.isBrowser) {
+      this.siteBaseUrl = window.location.origin;
+      this.isMobile = window.innerWidth <= 768;
+    }
+  }
+
+  // === lifecycle ============================================================
 
   ngOnInit(): void {
-    // Carica tutti gli ingredienti (usando la cache del servizio se disponibile)
-    // Non passiamo filtri qui per assicurarci di avere la lista completa per la navigazione
+    // carica elenco per prev/next (usa cache del servizio)
     this.allIngredientsSubscription = this.ingredientService
-      .getIngredients(1, 1000, undefined, undefined, undefined, true) // `true` per abilitare la cache, `undefined` per i filtri
+      .getIngredients(1, 1000, undefined, undefined, undefined, true)
       .subscribe({
         next: (response) => {
-          this.allIngredients = response.data; // allIngredients è già ordinato alfabeticamente dal servizio
+          this.allIngredients = response.data;
           this.subscribeToRouteParams();
         },
-        error: (err: any) => {
-          console.error('Error loading all ingredients for navigation:', err);
-          this.error = 'Could not load navigation data for ingredients.';
-          this.loading = false;
-          this.subscribeToRouteParams(); // Tenta comunque di caricare il dettaglio
+        error: (err) => {
+          console.error('Error loading all ingredients:', err);
+          this.subscribeToRouteParams();
         },
       });
   }
 
-  ngOnDestroy(): void {
-    if (this.routeSubscription) {
-      this.routeSubscription.unsubscribe();
-    }
-    if (this.allIngredientsSubscription) {
-      this.allIngredientsSubscription.unsubscribe();
-    }
-    if (this.relatedCocktailsSubscription) {
-      this.relatedCocktailsSubscription.unsubscribe();
-    }
+  ngAfterViewInit(): void {
+    if (!this.isBrowser) return;
+    // scroll orizzontale con wheel (come cocktail-detail)
+    const listEl = this.affiliateCardList?.nativeElement as
+      | HTMLElement
+      | undefined;
+    if (!listEl) return;
+
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      listEl.scrollLeft += e.deltaY;
+    };
+    listEl.addEventListener('wheel', handler, { passive: false });
+    this.wheelCleanup = () => listEl.removeEventListener('wheel', handler);
   }
+
+  ngOnDestroy(): void {
+    this.routeSubscription?.unsubscribe();
+    this.allIngredientsSubscription?.unsubscribe();
+    this.relatedCocktailsSubscription?.unsubscribe();
+    if (this.wheelCleanup) this.wheelCleanup();
+    this.cleanupSeo();
+  }
+
+  // === router / data ========================================================
 
   private subscribeToRouteParams(): void {
     this.routeSubscription = this.route.paramMap.subscribe((params) => {
       const externalId = params.get('externalId');
-      if (externalId) {
-        this.loadIngredientDetailsFromCache(externalId);
-      } else {
+      if (!externalId) {
         this.error = 'Ingredient ID not provided.';
         this.loading = false;
+        return;
       }
+      this.loadIngredientDetails(externalId);
     });
   }
 
-  loadIngredientDetailsFromCache(externalId: string): void {
+  private loadIngredientDetails(externalId: string): void {
     this.loading = true;
     this.error = null;
+    this.cleanupSeo(); // pulisci meta/ld+json precedenti
 
-    const foundIngredient = this.allIngredients.find(
+    // prova cache allIngredients
+    const cached = this.allIngredients.find(
       (i) => i.external_id === externalId
     );
-
-    if (foundIngredient) {
-      this.ingredient = { ...foundIngredient }; // Clona l'oggetto per sicurezza
+    if (cached) {
+      this.ingredient = { ...(cached as IngredientDetail) };
       this.setNavigationIngredients(externalId);
+      this.setSeoTagsAndSchema(); // ✅ SEO subito
+      this.loadRelatedCocktails(externalId);
+      return;
+    }
 
-      // Carica i cocktail correlati (questa chiamata è ancora necessaria, poiché non sono in allIngredients)
-      this.relatedCocktailsSubscription = this.cocktailService
-        .getRelatedCocktailsForIngredient(externalId)
-        .subscribe({
-          next: (relatedCocktailsData) => {
-            if (this.ingredient) {
-              this.ingredient.relatedCocktails = relatedCocktailsData;
-            }
-            this.loading = false;
-          },
-          error: (cocktailError) => {
-            console.error('Error fetching related cocktails:', cocktailError);
-            this.error = 'Could not load related cocktails.';
-            this.loading = false;
-          },
-        });
-    } else {
-      console.warn(
-        `Ingredient with external ID '${externalId}' not found in cached list. Attempting direct fetch.`
-      );
-      // Fallback: Se l'ingrediente non è nella cache (es. se la lista completa non si è caricata o l'ID è sbagliato)
-      // Fai una chiamata API specifica come ultima risorsa.
-      this.ingredientService.getIngredientByExternalId(externalId).subscribe({
-        next: (directFetchedIngredient) => {
-          if (directFetchedIngredient) {
-            this.ingredient = directFetchedIngredient as IngredientDetail; // Cast per includere relatedCocktails
-            this.setNavigationIngredients(externalId); // Tenta di impostare la navigazione anche con un singolo ingrediente
-            // Fetch dei cocktail correlati anche qui, se l'ingrediente è stato caricato direttamente
-            this.relatedCocktailsSubscription = this.cocktailService
-              .getRelatedCocktailsForIngredient(externalId)
-              .subscribe({
-                next: (relatedCocktailsData) => {
-                  if (this.ingredient) {
-                    this.ingredient.relatedCocktails = relatedCocktailsData;
-                  }
-                  this.loading = false;
-                },
-                error: (cocktailError) => {
-                  console.error(
-                    'Error fetching related cocktails (direct fetch):',
-                    cocktailError
-                  );
-                  this.error = 'Could not load related cocktails.';
-                  this.loading = false;
-                },
-              });
-          } else {
-            this.error = 'Ingredient not found.';
-            this.loading = false;
-          }
+    // fallback fetch diretto singolo
+    this.ingredientService.getIngredientByExternalId(externalId).subscribe({
+      next: (res) => {
+        if (!res) {
+          this.error = 'Ingredient not found.';
+          this.loading = false;
+          return;
+        }
+        this.ingredient = { ...(res as IngredientDetail) };
+        this.setNavigationIngredients(externalId);
+        this.setSeoTagsAndSchema(); // ✅ SEO subito
+        this.loadRelatedCocktails(externalId);
+      },
+      error: (err) => {
+        console.error('Error fetching ingredient directly:', err);
+        this.error = 'Unable to load ingredient details.';
+        this.loading = false;
+      },
+    });
+  }
+
+  private loadRelatedCocktails(externalId: string): void {
+    this.relatedCocktailsSubscription = this.cocktailService
+      .getRelatedCocktailsForIngredient(externalId)
+      .subscribe({
+        next: (list) => {
+          if (this.ingredient) this.ingredient.relatedCocktails = list;
+          this.loading = false;
         },
         error: (err) => {
-          console.error('Error fetching ingredient directly:', err);
-          this.error = 'Unable to load ingredient details.';
+          console.error('Error fetching related cocktails:', err);
+          this.error = 'Could not load related cocktails.';
           this.loading = false;
         },
       });
-    }
   }
 
-  setNavigationIngredients(currentExternalId: string): void {
-    if (!this.allIngredients || this.allIngredients.length === 0) {
-      console.warn(
-        'allIngredients is not yet populated, navigation might be incomplete.'
-      );
-      return;
-    }
+  // === navigation prev/next =================================================
+
+  private setNavigationIngredients(currentExternalId: string): void {
+    if (!this.allIngredients?.length) return;
 
     this.currentIngredientIndex = this.allIngredients.findIndex(
       (i) => i.external_id === currentExternalId
@@ -197,7 +290,6 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
         imageUrl: this.getIngredientImageUrl(prev),
       };
     }
-
     if (this.currentIngredientIndex < this.allIngredients.length - 1) {
       const next = this.allIngredients[this.currentIngredientIndex + 1];
       this.nextIngredient = {
@@ -209,30 +301,231 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
-    window.history.back();
+    if (this.isBrowser) window.history.back();
   }
 
-  getIngredientImageUrl(ingredient: Ingredient | undefined): string {
-    if (ingredient && ingredient.image?.url) {
-      if (ingredient.image.url.startsWith('http')) {
-        return ingredient.image.url;
-      }
-      return env.apiUrl + ingredient.image.url;
+  // === utilities ============================================================
+
+  getIngredientImageUrl(ing: Ingredient | undefined): string {
+    if (ing?.image?.url) {
+      return ing.image.url.startsWith('http')
+        ? ing.image.url
+        : env.apiUrl + ing.image.url;
     }
     return 'assets/no-image.png';
   }
 
   getRelatedCocktailImageUrl(cocktail: Cocktail): string {
-    if (cocktail.image?.url) {
-      if (cocktail.image.url.startsWith('http')) {
-        return cocktail.image.url;
-      }
-      return env.apiUrl + cocktail.image.url;
+    if (cocktail?.image?.url) {
+      return cocktail.image.url.startsWith('http')
+        ? cocktail.image.url
+        : env.apiUrl + cocktail.image.url;
     }
     return 'assets/no-image.png';
   }
 
-  trackByCocktailId(index: number, cocktail: Cocktail): number {
-    return cocktail.id;
+  trackByCocktailId(_index: number, c: Cocktail): number {
+    return c.id;
+  }
+
+  getCocktailsAndAds(): any[] {
+    const items: any[] = [];
+    const list = this.ingredient?.relatedCocktails || [];
+    list.forEach((c, i) => {
+      items.push(c);
+      if ((i + 1) % 6 === 0 && i < list.length - 1) {
+        items.push({ isAd: true });
+      }
+    });
+    return items;
+  }
+
+  isCocktailItem(item: any): boolean {
+    return item && !item.isAd;
+  }
+
+  private getFullSiteUrl(path: string): string {
+    const p = path.startsWith('/') ? path : '/' + path;
+    return `${this.siteBaseUrl}${p}`;
+  }
+
+  // === responsive ===========================================================
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
+  }
+
+  // === SEO / JSON-LD ========================================================
+
+  private setSeoTagsAndSchema(): void {
+    if (!this.ingredient) return;
+
+    const name = this.ingredient.name;
+    const desc =
+      this.ingredient.ai_common_uses ||
+      this.ingredient.ai_flavor_profile ||
+      this.ingredient.description_from_cocktaildb ||
+      `${name} ingredient details, uses and profile.`;
+
+    const imageUrl = this.getIngredientImageUrl(this.ingredient);
+    const pageUrl = this.getFullSiteUrl(
+      `/ingredients/${this.ingredient.external_id}`
+    );
+
+    // <title> + meta description
+    this.titleService.setTitle(`${name} | Fizzando`);
+    this.metaService.updateTag({ name: 'description', content: desc });
+
+    // canonical
+    let canonical = this.document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]'
+    );
+    if (!canonical) {
+      canonical = this.renderer.createElement('link');
+      this.renderer.setAttribute(canonical, 'rel', 'canonical');
+      this.renderer.appendChild(this.document.head, canonical);
+    }
+    this.renderer.setAttribute(canonical, 'href', pageUrl);
+
+    // OpenGraph / Twitter
+    this.metaService.updateTag({ property: 'og:title', content: name });
+    this.metaService.updateTag({
+      property: 'og:description',
+      content: desc,
+    });
+    this.metaService.updateTag({ property: 'og:image', content: imageUrl });
+    this.metaService.updateTag({ property: 'og:url', content: pageUrl });
+    this.metaService.updateTag({ property: 'og:type', content: 'article' });
+    this.metaService.updateTag({
+      property: 'og:site_name',
+      content: 'Fizzando',
+    });
+
+    this.metaService.updateTag({
+      name: 'twitter:card',
+      content: 'summary_large_image',
+    });
+    this.metaService.updateTag({ name: 'twitter:title', content: name });
+    this.metaService.updateTag({
+      name: 'twitter:description',
+      content: desc,
+    });
+    this.metaService.updateTag({ name: 'twitter:image', content: imageUrl });
+
+    // Preload hero se utile all’LCP
+    const existing = this.document.querySelector<HTMLLinkElement>(
+      'link[rel="preload"][as="image"][data-preload-hero="1"]'
+    );
+    if (!existing && imageUrl) {
+      const preload = this.renderer.createElement('link') as HTMLLinkElement;
+      this.renderer.setAttribute(preload, 'rel', 'preload');
+      this.renderer.setAttribute(preload, 'as', 'image');
+      this.renderer.setAttribute(preload, 'href', imageUrl);
+      this.renderer.setAttribute(
+        preload,
+        'imagesizes',
+        '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw'
+      );
+      this.renderer.setAttribute(preload, 'data-preload-hero', '1');
+      this.renderer.appendChild(this.document.head, preload);
+    }
+
+    // JSON-LD
+    this.addJsonLdSchema();
+  }
+
+  private addJsonLdSchema(): void {
+    if (!this.ingredient) return;
+    this.cleanupJsonLd();
+
+    this.schemaScript = this.renderer.createElement('script');
+    this.renderer.setAttribute(this.schemaScript, 'id', 'ingredient-schema');
+    this.renderer.setAttribute(
+      this.schemaScript,
+      'type',
+      'application/ld+json'
+    );
+    this.renderer.appendChild(
+      this.schemaScript,
+      this.renderer.createText(
+        JSON.stringify(this.generateIngredientSchema(this.ingredient))
+      )
+    );
+    this.renderer.appendChild(this.document.head, this.schemaScript);
+  }
+
+  private generateIngredientSchema(ing: IngredientDetail): any {
+    const pageUrl = this.getFullSiteUrl(`/ingredients/${ing.external_id}`);
+    const imageUrl =
+      this.getIngredientImageUrl(ing) ||
+      this.getFullSiteUrl('assets/no-image.png');
+
+    const additionalProps: any[] = [];
+    if (typeof (ing as any).isAlcoholic === 'boolean') {
+      additionalProps.push({
+        '@type': 'PropertyValue',
+        name: 'Alcoholic',
+        value: (ing as any).isAlcoholic ? 'Alcoholic' : 'Non-Alcoholic',
+      });
+    }
+    if ((ing as any).ai_alcohol_content) {
+      additionalProps.push({
+        '@type': 'PropertyValue',
+        name: 'Alcohol Content',
+        value: (ing as any).ai_alcohol_content,
+      });
+    }
+    if (ing.ingredient_type) {
+      additionalProps.push({
+        '@type': 'PropertyValue',
+        name: 'Ingredient Type',
+        value: ing.ingredient_type,
+      });
+    }
+
+    const description =
+      (ing as any).ai_common_uses ||
+      (ing as any).ai_flavor_profile ||
+      ing.description_from_cocktaildb ||
+      `${ing.name} ingredient details.`;
+
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: ing.name,
+      image: [imageUrl],
+      description,
+      brand: { '@type': 'Organization', name: 'Fizzando' },
+      url: pageUrl,
+      additionalProperty: additionalProps,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
+    };
+  }
+
+  private cleanupSeo(): void {
+    this.metaService.removeTag("property='og:title'");
+    this.metaService.removeTag("property='og:description'");
+    this.metaService.removeTag("property='og:image'");
+    this.metaService.removeTag("property='og:url'");
+    this.metaService.removeTag("property='og:type'");
+    this.metaService.removeTag("property='og:site_name'");
+    this.metaService.removeTag("name='twitter:card'");
+    this.metaService.removeTag("name='twitter:title'");
+    this.metaService.removeTag("name='twitter:description'");
+    this.metaService.removeTag("name='twitter:image'");
+    this.cleanupJsonLd();
+
+    const oldPreload = this.document.querySelector(
+      'link[rel="preload"][as="image"][data-preload-hero="1"]'
+    );
+    if (oldPreload) {
+      this.renderer.removeChild(this.document.head, oldPreload);
+    }
+  }
+
+  private cleanupJsonLd(): void {
+    const old = this.document.getElementById('ingredient-schema');
+    if (old) this.renderer.removeChild(this.document.head, old);
   }
 }
