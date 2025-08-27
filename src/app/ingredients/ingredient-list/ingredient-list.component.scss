@@ -566,11 +566,6 @@ p.ingredient-card-legend {
   contain-intrinsic-size: 600px; /* stima altezza blocco FAQ “foldato” */
 }
 
-/* Slot ADV con dimensioni fisse */
-.mobile-ad-container.ingredients-card {
-  min-height: 250px;
-  max-height: 250px;
-}
 .ad-desktop-card.ingredients-card {
   min-height: 90px;
   max-height: 90px; /* half-page tipico */

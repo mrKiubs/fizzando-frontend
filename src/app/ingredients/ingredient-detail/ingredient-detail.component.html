@@ -1,4 +1,5 @@
-<div class="detail-wrapper">
+<div class="detail-wrapper ingredient-detail-wrapper">
+  <!-- Loading / Error -->
   <div *ngIf="loading" class="loading-message glass-card">
     <mat-icon class="loading-icon" svgIcon="hourglass_empty"></mat-icon>
     <p>Loading ingredient details...</p>
@@ -12,19 +13,29 @@
     </button>
   </div>
 
+  <!-- Main content -->
   <div *ngIf="!loading && ingredient" class="ingredient-detail-grid">
     <!-- Header principale -->
     <section class="main-ingredient-header glass-card">
       <div class="header-content">
         <div class="ingredient-main-image-wrapper">
+          <!-- ✅ LCP-optimized hero -->
           <img
-            [src]="getIngredientImageUrl(ingredient)"
-            [alt]="ingredient.name"
             class="ingredient-image-circular"
+            [ngSrc]="getIngredientImageUrl(ingredient)"
+            alt="{{ ingredient.name }}"
+            width="100"
+            height="100"
+            priority
+            [attr.fetchpriority]="'high'"
+            decoding="async"
+            sizes="(max-width: 150px) 100vw, (max-width: 150px) 50vw, 33vw"
           />
         </div>
+
         <div>
           <h1 class="ingredient-title justify-left">{{ ingredient.name }}</h1>
+
           <h2 class="ingredient-subtitle">
             {{ ingredient.isAlcoholic ? "Alcoholic" : "Non-Alcoholic" }}
             <span
@@ -35,7 +46,7 @@
             >
               ({{ ingredient.ai_alcohol_content | formatAbv }})
             </span>
-            <!-- NUOVO: Tipo di Ingrediente -->
+
             <span
               *ngIf="ingredient.ingredient_type"
               class="ml-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full inline-block"
@@ -43,17 +54,46 @@
               {{ ingredient.ingredient_type }}
             </span>
           </h2>
+
           <p class="ingredient-description">
-            {{ ingredient.description_from_cocktaildb | formatAbv }}
+            {{
+              ingredient.description_from_cocktaildb ||
+                ingredient.ai_flavor_profile ||
+                ingredient.ai_common_uses
+            }}
           </p>
         </div>
       </div>
     </section>
 
-    <!-- Sezione AI Insights -->
+    <div class="ad-block">
+      <ng-container>
+        <div
+          *ngIf="isMobile"
+          class="mobile-ad-container"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+        </div>
+
+        <div
+          class="ad-desktop-card"
+          *ngIf="!isMobile"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- AI Insights -->
     <section class="ai-insights-section glass-card">
       <h2 class="section-title">
-        🔬 In‑depth Details of {{ ingredient.name }}
+        🔬 In-depth Details of {{ ingredient.name }}
       </h2>
       <div class="ai-blocks-grid">
         <div
@@ -63,6 +103,7 @@
           <h3 class="ai-block-title">👅 Flavor Profile</h3>
           <p>{{ ingredient.ai_flavor_profile }}</p>
         </div>
+
         <div
           class="ai-detail-block glass-card-mini"
           *ngIf="ingredient.ai_common_uses"
@@ -70,6 +111,7 @@
           <h3 class="ai-block-title">🥂 Common Uses</h3>
           <p>{{ ingredient.ai_common_uses }}</p>
         </div>
+
         <div
           class="ai-detail-block glass-card-mini"
           *ngIf="ingredient.ai_substitutes"
@@ -77,6 +119,7 @@
           <h3 class="ai-block-title">🔄 Substitutes</h3>
           <p>{{ ingredient.ai_substitutes }}</p>
         </div>
+
         <div
           class="ai-detail-block glass-card-mini"
           *ngIf="ingredient.ai_brief_history"
@@ -84,6 +127,7 @@
           <h3 class="ai-block-title">📜 Brief History</h3>
           <p>{{ ingredient.ai_brief_history }}</p>
         </div>
+
         <div
           class="ai-detail-block glass-card-mini"
           *ngIf="ingredient.ai_interesting_facts"
@@ -91,7 +135,7 @@
           <h3 class="ai-block-title">💡 Interesting Facts</h3>
           <p>{{ ingredient.ai_interesting_facts }}</p>
         </div>
-        <!-- NUOVO: ai_cocktail_substitutes (JSON) -->
+
         <div
           class="ai-detail-block glass-card-mini full-width"
           *ngIf="ingredient.ai_cocktail_substitutes"
@@ -104,43 +148,48 @@
       </div>
     </section>
 
-    <!-- Sezione Articolo Correlato -->
-    <section
-      class="related-article-section glass-card"
-      *ngIf="ingredient.article"
-    >
-      <h2 class="section-title">📚 Related Article</h2>
-      <div class="article-link-block">
-        <mat-icon svgIcon="article"></mat-icon>
-        <a
-          [routerLink]="['/articles', ingredient.article.slug]"
-          class="text-blue-600 hover:underline font-semibold text-lg"
-        >
-          {{ ingredient.article.title }}
-        </a>
-      </div>
-      <p class="text-gray-700 text-sm mt-2">
-        {{ ingredient.article.content.substring(0, 150) }}...
-      </p>
-    </section>
-
-    <!-- Sezione Correlati -->
+    <!-- Related Cocktails (1 ad ogni 6 card) -->
     <section class="related-cocktails-section glass-card">
       <h2 class="section-title">🍹 Cocktails using {{ ingredient.name }}</h2>
+
       <div
         *ngIf="
           ingredient.relatedCocktails && ingredient.relatedCocktails.length > 0
         "
         class="related-cocktail-cards-grid"
       >
-        <app-cocktail-card
-          *ngFor="
-            let cocktail of ingredient.relatedCocktails;
-            trackBy: trackByCocktailId
-          "
-          [cocktail]="cocktail"
-        ></app-cocktail-card>
+        <ng-container *ngFor="let item of getCocktailsAndAds(); let i = index">
+          <ng-container *ngIf="isCocktailItem(item); else adBlock">
+            <app-cocktail-card
+              [cocktail]="item"
+              [routerLink]="['/cocktails', item.slug]"
+            ></app-cocktail-card>
+          </ng-container>
+
+          <ng-template #adBlock>
+            <div
+              *ngIf="isMobile"
+              class="mobile-ad-container"
+              role="complementary"
+              aria-label="Sponsored content"
+            >
+              <span class="ad-badge">Ad</span>
+              <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+            </div>
+
+            <div
+              class="ad-desktop-card"
+              *ngIf="!isMobile"
+              role="complementary"
+              aria-label="Sponsored content"
+            >
+              <span class="ad-badge">Ad</span>
+              <app-dev-ads [type]="'square'"></app-dev-ads>
+            </div>
+          </ng-template>
+        </ng-container>
       </div>
+
       <p
         *ngIf="
           !ingredient.relatedCocktails ||
@@ -152,46 +201,100 @@
       </p>
     </section>
   </div>
-  <div class="navigation-bar" *ngIf="!loading && !error">
+
+  <!-- Navigation -->
+  <div
+    class="navigation-bar"
+    *ngIf="!loading && !error"
+    role="navigation"
+    aria-label="Ingredient navigation"
+  >
     <div class="nav-top">
+      <!-- PREVIOUS -->
       <a
         *ngIf="previousIngredient"
         [routerLink]="['/ingredients', previousIngredient.externalId]"
         class="glass-button secondary nav-button"
+        [attr.aria-label]="
+          'Previous ingredient: ' + (previousIngredient?.name || '')
+        "
       >
-        <mat-icon svgIcon="chevron_left"></mat-icon>
-        <div class="ingredient-image-wrapper-nav">
+        <mat-icon svgIcon="chevron_left" aria-hidden="true"></mat-icon>
+
+        <div class="ingredient-image-wrapper-nav" aria-hidden="true">
           <img
             [src]="previousIngredient.imageUrl"
-            alt="{{ previousIngredient.name }}"
+            alt=""
             class="nav-ingredient-image"
+            width="36"
+            height="36"
+            loading="lazy"
+            decoding="async"
+            [attr.fetchpriority]="'low'"
+            role="presentation"
           />
         </div>
+
         {{ previousIngredient.name }}
       </a>
       <span *ngIf="!previousIngredient" class="nav-placeholder"></span>
 
+      <!-- NEXT -->
       <a
         *ngIf="nextIngredient"
         [routerLink]="['/ingredients', nextIngredient.externalId]"
         class="glass-button secondary nav-button"
+        [attr.aria-label]="'Next ingredient: ' + (nextIngredient?.name || '')"
       >
         {{ nextIngredient.name }}
-        <div class="ingredient-image-wrapper-nav">
+
+        <div class="ingredient-image-wrapper-nav" aria-hidden="true">
           <img
             [src]="nextIngredient.imageUrl"
-            alt="{{ nextIngredient.name }}"
+            alt=""
             class="nav-ingredient-image"
+            width="36"
+            height="36"
+            loading="lazy"
+            decoding="async"
+            [attr.fetchpriority]="'low'"
+            role="presentation"
           />
         </div>
-        <mat-icon svgIcon="chevron_right"></mat-icon>
+
+        <mat-icon svgIcon="chevron_right" aria-hidden="true"></mat-icon>
       </a>
       <span *ngIf="!nextIngredient" class="nav-placeholder"></span>
     </div>
+
     <div class="nav-bottom">
       <button class="glass-button secondary" (click)="goBack()">
-        <mat-icon svgIcon="arrow_back"></mat-icon> Go Back
+        <mat-icon svgIcon="arrow_back" aria-hidden="true"></mat-icon>
+        <span>Go Back</span>
       </button>
     </div>
   </div>
+
+  <!-- Bottom banner -->
+  <ng-container *ngIf="!loading && !error">
+    <div
+      *ngIf="isMobile"
+      class="mobile-ad-container"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+    </div>
+
+    <div
+      class="ad-desktop-card"
+      *ngIf="!isMobile"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+    </div>
+  </ng-container>
 </div>

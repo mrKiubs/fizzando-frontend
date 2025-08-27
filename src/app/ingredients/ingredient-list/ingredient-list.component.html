@@ -287,6 +287,28 @@
   </div>
 </div>
 
+<ng-container>
+  <div
+    *ngIf="isMobile"
+    class="mobile-ad-container"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
+    <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+  </div>
+
+  <div
+    class="ad-desktop-card"
+    *ngIf="!isMobile"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
+    <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+  </div>
+</ng-container>
+<!--
 <section class="glass-card">
   <h2 class="section-title">🛒 Craft Cocktails with the Right Tools</h2>
   @defer (on viewport) {
@@ -320,7 +342,7 @@
     helps keep the shaker shaking! 🙌🍸
   </p>
 </section>
-
+-->
 <div class="key-features-section">
   <h3>Why use Fizzando to explore ingredients?</h3>
 
