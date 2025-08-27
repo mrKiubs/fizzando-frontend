@@ -202,7 +202,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.routerSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
     if (this.blurTimeout) clearTimeout(this.blurTimeout);
-    // rimuovi inert/aria-hidden se rimaste
     this.setBackgroundInert(false);
     if (this.isBrowser) {
       document.body.style.overflow = '';
@@ -220,7 +219,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.isScrolled = y > 0;
   }
 
-  // Focus trap + ESC globale
   @HostListener('document:keydown', ['$event'])
   handleGlobalKeydown(e: KeyboardEvent) {
     if (!this.isMenuOpen) return;
@@ -274,17 +272,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.overlaySearchTerm = '';
       this.clearSearchResults();
 
-      // salva focus precedente e porta il focus nella barra di ricerca
       this.lastFocused = document.activeElement as HTMLElement;
       setTimeout(() => this.overlaySearchInput?.nativeElement?.focus(), 0);
 
-      // disabilita il resto della pagina
       this.setBackgroundInert(true);
     } else {
       this.isSearchInputFocused = false;
       this.searchTerms.next('');
-
-      // riabilita la pagina e restituisci focus
       this.setBackgroundInert(false);
       (this.menuToggleBtn?.nativeElement ?? this.lastFocused)?.focus?.();
       this.lastFocused = null;
@@ -309,14 +303,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const overlayEl = this.overlayRoot?.nativeElement;
     const container = overlayEl?.parentElement || document.body;
 
-    // prendi l'header per escluderlo
     const headerEl = document.querySelector(
       'header.app-header'
     ) as HTMLElement | null;
 
     const siblings = Array.from(container.children) as HTMLElement[];
     siblings.forEach((el) => {
-      // non toccare overlay e header
       if (el === overlayEl || el === headerEl) return;
 
       if (enable) {
@@ -342,7 +334,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   onSearchInputBlur(): void {
-    // fuori da Angular per non sporcare la stabilità
     this.ngZone.runOutsideAngular(() => {
       this.blurTimeout = setTimeout(() => {
         this.ngZone.run(() => (this.isSearchInputFocused = false));

@@ -41,30 +41,32 @@
 }
 
 .menu-toggle-button {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 28px;
   cursor: pointer;
-  margin-left: auto;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: end;
+
+  /* 🔧 NON tagliare il glifo delle Material Icons */
   mat-icon {
-    font-size: 48px;
-    height: 31px;
-    width: 23px;
+    font-size: 50px;
+    display: inline-block;
+    width: auto;
+    height: auto;
   }
 }
 
 .full-screen-menu-overlay {
   position: fixed;
-  top: 65px; /* Inizia sotto l'header fisso */
+  top: 65px;
   left: 0;
   width: 100%;
-  height: calc(100dvh - 65px); /* MODIFICA QUI: da 100vh a 100dvh */
-  z-index: 1000; /* Z-index inferiore all'header ma superiore al contenuto della pagina */
+  height: calc(100dvh - 65px);
+  z-index: 1000;
   box-sizing: border-box;
-  padding: 16px; /* Padding generale per l'overlay */
+  padding: 16px;
 
-  /* Stili e animazione per lo sfondo */
   background-image: linear-gradient(
     120deg,
     rgba(210, 252, 195, 0.0823529412) 0%,
@@ -76,10 +78,9 @@
 
   opacity: 0;
   visibility: hidden;
-  /* Transizione solo per opacità e visibilità per lo sfondo */
   transition: opacity 0.3s ease, visibility 0.3s ease;
 
-  display: flex; /* Per centrare il contenuto */
+  display: flex;
   justify-content: center;
   align-items: center;
 }
@@ -92,7 +93,7 @@
 .overlay-content {
   max-width: 768px;
   width: 100%;
-  max-height: 100%; /* Lascia max-height: 100% qui */
+  max-height: 100%;
   overflow-y: auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -101,8 +102,7 @@
   transform: scale(0.95);
   opacity: 0;
   transition: transform 0.3s ease, opacity 0.3s ease;
-  /* NUOVO: Sfondo più trasparente per il contenuto */
-  background-color: rgba(0, 0, 0, 0.4); /* Nero con opacità 40% */
+  background-color: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
@@ -110,7 +110,6 @@
   -webkit-backdrop-filter: blur(8px);
 }
 
-/* Quando l'overlay è aperto, applica lo stato finale al contenuto */
 .full-screen-menu-overlay.open .overlay-content {
   transform: scale(1);
   opacity: 1;
@@ -126,18 +125,17 @@
 
   position: sticky;
   top: 0;
-  /* NUOVO: Sfondo più trasparente per l'header del contenuto */
-  background-color: rgba(0, 0, 0, 0.4); /* Nero con opacità 40% */
-  backdrop-filter: blur(8px); /* Applica anche qui il blur per coerenza */
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 10; /* Assicura che sia sopra il contenuto che scorre */
+  z-index: 10;
   padding-top: 0;
 }
 
 .overlay-title {
   margin: 0;
   font-size: 2.2em;
-  color: #ffffff; /* Mantenuto bianco puro per migliore contrasto */
+  color: #ffffff;
   font-weight: bold;
 }
 
@@ -149,11 +147,13 @@
   cursor: pointer;
   mat-icon {
     font-size: 36px;
-    height: 36px;
-    width: 36px;
+    height: auto;
+    width: auto;
+    line-height: 1;
+    display: inline-block;
   }
   &:hover {
-    color: #ffd700; /* Mantenuto l'hover giallo se desiderato */
+    color: #ffd700;
   }
 }
 
@@ -185,14 +185,13 @@
 
   &:focus {
     border: none;
-    background-color: rgb(255 255 255 / 90%); /* Sfondo bianco */
-    color: #555; /* Testo scuro */
+    background-color: rgb(255 255 255 / 90%);
+    color: #555;
     &::placeholder {
       color: rgba(0, 0, 0, 0.2);
     }
   }
 
-  /* NUOVA REGOLA: Mantieni lo stile "bianco" quando c'è un valore */
   &.has-value {
     border: 1px solid rgba(255, 255, 255, 0.1);
     background-color: rgb(255 255 255 / 90%);
@@ -204,12 +203,10 @@
   }
 }
 
-/* Assicurati che il placeholder si adatti quando l'input è bianco */
 .overlay-search-input.has-value::placeholder {
-  color: rgba(0, 0, 0, 0.4); /* Placeholder più scuro su sfondo bianco */
+  color: rgba(0, 0, 0, 0.4);
 }
 
-/* NUOVI STILI PER LA RICERCA LIVE */
 .live-search-results {
   position: absolute;
   top: 110px;
@@ -240,11 +237,6 @@
   }
 
   .results-group {
-    /* IMPORTANTE: per position: sticky, l'elemento padre (results-group)
-     non deve avere overflow: hidden o overflow: auto se non è lui l'elemento scrollabile principale,
-     altrimenti l'effetto sticky non funzionerà correttamente all'interno del suo contesto di scorrimento.
-     Nel tuo caso, l'overflow è probabilmente sul <body> o su un contenitore più esterno. */
-
     &:last-child {
       margin-bottom: 0;
     }
@@ -297,8 +289,6 @@
   }
 }
 
-/* FINE NUOVI STILI PER LA RICERCA LIVE */
-
 .search-type-selector {
   display: flex;
   gap: 10px;
@@ -333,8 +323,10 @@
   }
   mat-icon {
     font-size: 24px;
-    height: 24px;
-    width: 24px;
+    height: auto;
+    width: auto;
+    line-height: 1;
+    display: inline-block;
   }
 }
 
@@ -347,23 +339,17 @@
 }
 
 .menu-card {
-  /* NUOVO: Sfondo più trasparente per migliore contrasto del testo */
   background-color: #00000025;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px; /* Uniformato a 12px */
-  padding: 16px; /* Uniformato a 16px */
-
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Mantenuto lo stesso shadow */
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-  &:hover {
-    /* Mantenuto l'hover come era nel tuo codice fornito */
-  }
-
   h3 {
-    color: #ffffff; /* Mantenuto bianco puro per migliore contrasto */
+    color: #ffffff;
     font-size: 1.6em;
     margin-top: 0;
     margin-bottom: 15px;
@@ -372,7 +358,7 @@
   }
 
   h4 {
-    color: #d0d0d07f; /* Mantenuto grigio chiaro per migliore contrasto */
+    color: #d0d0d07f;
     font-size: 16px;
     margin-top: 16px;
   }
@@ -382,16 +368,15 @@
     padding: 0;
     margin: 0;
     li {
-      border-bottom: px solid #ccc;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       padding: 8px 0;
     }
     a {
-      color: #d0d0d0; /* Mantenuto grigio chiaro per migliore leggibilità */
+      color: #d0d0d0;
       text-decoration: none;
       font-size: 1em;
       &:hover {
-        color: #ffd700; /* Mantenuto l'hover giallo se desiderato */
+        color: #ffd700;
       }
     }
   }
@@ -408,9 +393,8 @@
       padding: 8px 12px;
       border-radius: 5px;
       text-decoration: none;
-      font-size: 0.9em;
-      transition: background-color 0.2s ease;
       font-size: 13px;
+      transition: background-color 0.2s ease;
       &:hover {
         background-color: #555;
         color: #ffd700;
@@ -419,16 +403,8 @@
   }
 }
 
-.home-card {
-  //grid-column: span 1;
-}
-.cocktails-card {
-  //grid-column: span 2;
-}
-
 .articles-card {
   .category-grid {
-    /* Modificato per avere 3 colonne fisse su desktop */
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
@@ -461,8 +437,10 @@
     padding: 8px 18px;
     mat-icon {
       font-size: 20px;
-      height: 20px;
-      width: 20px;
+      height: auto;
+      width: auto;
+      line-height: 1;
+      display: inline-block;
     }
   }
 }
@@ -480,7 +458,6 @@
 
   .full-screen-menu-overlay {
     padding: 0;
-    /* Rimuovi lo sfondo dell'overlay e il blur su mobile */
     background-image: none;
     background-color: transparent;
     backdrop-filter: none;
@@ -495,14 +472,6 @@
   .overlay-title {
     font-size: 1.8em;
   }
-  .close-overlay-button {
-    font-size: 30px;
-    mat-icon {
-      font-size: 30px;
-      height: 30px;
-      width: 30px;
-    }
-  }
 
   .overlay-search-section {
     position: relative;
@@ -512,13 +481,6 @@
   }
   .overlay-search-input {
     width: 100%;
-  }
-  .search-type-selector {
-    justify-content: center;
-  }
-  .overlay-search-button {
-    width: 100%;
-    justify-content: center;
   }
 
   .menu-grid {
@@ -536,7 +498,6 @@
     }
   }
   .articles-card .category-grid {
-    /* Torna a una singola colonna su mobile */
     grid-template-columns: 1fr;
     gap: 8px;
   }
@@ -548,6 +509,7 @@
     line-height: 26px;
   }
 }
+
 .overlay-breadcrumbs {
   color: rgba(255, 255, 255, 0.5);
   font-size: 13px;
@@ -580,45 +542,46 @@
     outline: none;
     transition: all 0.2s ease;
   }
-  mat-icon {
+
+  /* l'icona è font, non SVG */
+  mat-icon.select-arrow-icon {
     position: absolute;
-    right: 12px;
-    top: 12px;
+    right: 8px;
+    top: 24px;
     color: white;
+    line-height: 1;
+    width: auto;
+    height: auto;
+    font-size: 50px;
   }
 }
 
 .filter-with-button {
   display: flex;
-  gap: 8px; // Spazio tra select e button
+  gap: 8px;
   align-items: center;
-  width: 100%; // Assicurati che occupi lo spazio disponibile
-}
-
-.custom-select-wrapper {
-  flex-grow: 1; // Fa in modo che la select occupi lo spazio rimanente
-  position: relative;
-  // Stili esistenti per la select
+  width: 100%;
 }
 
 .go-button {
-  background-color: #666; /* Grigio di default */
+  background-color: #666;
   border-radius: 50%;
   width: 34px;
   height: 34px;
   border: none;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  flex-shrink: 0; /* Impedisce al pulsante di restringersi */
-  display: flex; /* Per centrare l'icona se ne avesse una */
+  flex-shrink: 0;
+  display: flex;
   justify-content: center;
   align-items: center;
-  color: white; /* Colore del testo/icona sul pulsante */
+  color: white;
 
   &.active {
-    background-color: green; /* Verde quando attivo */
+    background-color: green;
   }
 }
+
 .img-cocktail {
   border-radius: 3px;
 }
@@ -629,46 +592,44 @@
   padding: 2px;
 }
 
-/* Aggiungi queste classi nel tuo navbar.component.scss */
-
 .search-input-container {
-  position: relative; /* Contenitore per posizionamento assoluto del pulsante */
-  width: 100%; /* Assicurati che il contenitore occupi la larghezza necessaria */
+  position: relative;
+  width: 100%;
 }
 
 .overlay-search-input {
-  /* Mantieni gli stili esistenti per l'input */
   width: 100%;
-  padding-right: 40px; /* Lascia spazio per il pulsante "x" */
-  box-sizing: border-box; /* Assicura che padding non allarghi l'input */
+  padding-right: 40px;
+  box-sizing: border-box;
 }
 
 .clear-search-button {
   position: absolute;
-  right: 10px; /* Distanza dal bordo destro del contenitore */
-  top: 50%; /* Allineamento verticale al centro */
-  transform: translateY(-50%); /* Regolazione precisa per centrarlo */
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  display: flex; /* Per centrare l'icona MatIcon */
+  display: flex;
   align-items: center;
   justify-content: center;
-  color: #888; /* Colore dell'icona */
-  font-size: 20px; /* Dimensione dell'icona, se non usi mat-icon */
-  width: 30px; /* Area cliccabile più grande */
-  height: 30px; /* Area cliccabile più grande */
+  color: #888;
+  width: 30px;
+  height: 30px;
 
   mat-icon {
-    font-size: 25px; /* Dimensione specifica per l'icona */
-    height: 25px;
-    width: 25px;
+    font-size: 25px;
+    height: auto;
+    width: auto;
+    line-height: 1;
+    display: inline-block;
     color: #333;
   }
 
   &:hover {
-    color: #000; /* Colore al passaggio del mouse */
+    color: #000;
   }
 }
 
