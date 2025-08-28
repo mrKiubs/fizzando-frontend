@@ -152,7 +152,7 @@ a.ingredient-link {
       justify-content: space-between;
       align-items: center;
       padding: 16px 24px;
-      font-size: 16px5rem;
+      font-size: 16px;
       font-weight: 500;
       color: rgba(255, 255, 255, 0.9);
       cursor: pointer;
@@ -950,4 +950,14 @@ body {
   @media (max-width: 600px) {
     min-height: 130px;
   }
+}
+.mat-icon.mat-ligature-font {
+  font-family: "Material Icons" !important;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+}
+.custom-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
 }
