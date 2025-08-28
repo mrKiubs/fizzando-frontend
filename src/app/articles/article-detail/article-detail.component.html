@@ -12,6 +12,7 @@
       <article>
         <header>
           <h1>{{ article.title }}</h1>
+          <!--
           <p
             class="article-meta"
             *ngIf="article.categories?.length || article.publishedAt"
@@ -34,7 +35,7 @@
               }}</time>
             </ng-container>
           </p>
-        </header>
+        --></header>
 
         <figure *ngIf="article.image?.url" class="image-container">
           <img

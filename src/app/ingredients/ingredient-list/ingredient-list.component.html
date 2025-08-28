@@ -20,13 +20,18 @@
     aria-label="Search ingredient by name"
   />
   <mat-icon
+    class="search-icon"
+    svgIcon="search"
+    aria-hidden="true"
+    *ngIf="!searchTerm()"
+  ></mat-icon>
+  <mat-icon
     class="clear-search-icon"
+    svgIcon="close"
+    aria-hidden="true"
     *ngIf="searchTerm()"
     (click)="clearFilters(); setSearch('')"
-    svgIcon="close"
-    aria-label="Clear search"
   ></mat-icon>
-  <mat-icon class="search-icon" svgIcon="search" aria-hidden="true"></mat-icon>
 </div>
 
 <!-- FILTERS con @defer e chiusura con *ngIf (uniforme) -->

@@ -69,9 +69,7 @@
     cursor: pointer;
     transition: color 0.2s ease;
   }
-  .clear-search-icon {
-    right: 40px; /* Spostato a sinistra dell'icona di ricerca */
-  }
+
   .clear-search-icon:hover,
   .search-icon:hover {
     color: #fff;
@@ -350,4 +348,14 @@ hr {
 }
 h2 {
   text-align: center;
+}
+.sectionbutton {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 }

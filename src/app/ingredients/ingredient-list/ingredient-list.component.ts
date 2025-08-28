@@ -71,7 +71,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
   // --- Stato via signals (come CocktailList) ---
   private _searchTerm = signal<string>('');
   private _selectedAlcoholic = signal<string>(''); // '', 'true', 'false'
-  private _selectedType = signal<string>(''); // es. 'Spirits', ...
+  private _selectedType = signal<string>(''); // label ufficiale (es. 'Liqueurs & Cordials')
   private _isExpanded = signal<boolean>(false);
 
   adInterval = 12; // default
@@ -182,6 +182,18 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     'Miscellaneous',
   ];
 
+  // === slug <-> label helpers (NUOVO) ===
+  private slugify(input: string): string {
+    return input
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
+  private ingredientTypeSlugToLabel = new Map<string, string>(
+    this.ingredientTypes.map((label) => [this.slugify(label), label])
+  );
+
   faqs: FaqItemState[] = [
     { isExpanded: false },
     { isExpanded: false },
@@ -218,17 +230,29 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     this.route.queryParams.subscribe((params) => {
       const q = (params['search'] as string) || '';
       const alc = (params['alcoholic'] as string) || ''; // '', 'true', 'false'
-      const type = (params['type'] as string) || '';
+      const typeParam = (params['type'] as string) || ''; // può essere slug o label
       const page = parseInt(params['page'], 10) || 1;
 
       this._searchTerm.set(q);
       this._selectedAlcoholic.set(alc === 'true' || alc === 'false' ? alc : '');
-      // match case-sensitivo verso l’elenco ufficiale, altrimenti ''
-      const match =
-        this.ingredientTypes.find(
-          (t) => t.toLowerCase() === type.toLowerCase()
-        ) || '';
-      this._selectedType.set(match);
+
+      // 🔁 SLUG → LABEL (per stato interno e select)
+      let mappedLabel = '';
+      if (typeParam) {
+        const fromMap = this.ingredientTypeSlugToLabel.get(
+          typeParam.toLowerCase()
+        );
+        if (fromMap) {
+          mappedLabel = fromMap; // è uno slug valido
+        } else {
+          // fallback: qualcuno ha messo direttamente la label
+          const direct = this.ingredientTypes.find(
+            (t) => t.toLowerCase() === typeParam.toLowerCase()
+          );
+          mappedLabel = direct || '';
+        }
+      }
+      this._selectedType.set(mappedLabel);
 
       this.currentPage = page;
       this.recalcAdInterval();
@@ -286,7 +310,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
         this.pageSize,
         this._searchTerm(),
         isAlcoholic,
-        this._selectedType() || undefined
+        this._selectedType() || undefined // PASSO LA LABEL al servizio
       )
       .subscribe({
         next: (res) => {
@@ -334,11 +358,16 @@ export class IngredientListComponent implements OnInit, OnDestroy {
 
   applyFilters(): void {
     this.pendingScroll = 'filter';
+
+    // LABEL → SLUG per l'URL
+    const typeLabel = this._selectedType();
+    const typeSlug = typeLabel ? this.slugify(typeLabel) : null;
+
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
         alcoholic: this._selectedAlcoholic() || null, // 'true'/'false'/''
-        type: this._selectedType() || null,
+        type: typeSlug, // 👈 sempre slug in URL
         search: this._searchTerm() || null,
         page: 1,
       },

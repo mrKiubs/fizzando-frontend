@@ -20,14 +20,20 @@
     (input)="onSearchInput($event)"
     aria-label="Search cocktails by name"
   />
+
+  <mat-icon
+    class="search-icon"
+    svgIcon="search"
+    aria-hidden="true"
+    *ngIf="!searchTerm()"
+  ></mat-icon>
   <mat-icon
     class="clear-search-icon"
-    *ngIf="searchTerm()"
-    (click)="clearFilters(); setSearch('')"
     svgIcon="close"
-    aria-label="Clear search"
+    aria-hidden="true"
+    *ngIf="searchTerm()"
+    (click)="setSearch('')"
   ></mat-icon>
-  <mat-icon class="search-icon" svgIcon="search" aria-hidden="true"></mat-icon>
 </div>
 
 <!-- FILTERS (fix: defer solo per primo load, chiusura con *ngIf) -->
