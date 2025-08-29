@@ -69,6 +69,7 @@ export interface Ingredient {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+  slug?: string;
 }
 
 export interface StrapiResponse<T> {

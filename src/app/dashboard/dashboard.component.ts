@@ -6,8 +6,15 @@ import {
   Renderer2,
   inject,
   PLATFORM_ID,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from '@angular/core';
-import { CommonModule, isPlatformBrowser, DOCUMENT } from '@angular/common';
+import {
+  CommonModule,
+  isPlatformBrowser,
+  DOCUMENT,
+  NgOptimizedImage,
+} from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { forkJoin, Subscription, of } from 'rxjs';
@@ -44,9 +51,11 @@ import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.compone
     ArticleCardComponent,
     DatePipe,
     DevAdsComponent,
+    NgOptimizedImage, // immagini ottimizzate
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   allCocktails: Cocktail[] = [];
@@ -86,6 +95,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private doc: Document = inject(DOCUMENT);
   private platformId: Object = inject(PLATFORM_ID);
   private readonly isBrowser: boolean = isPlatformBrowser(this.platformId);
+  private cdr = inject(ChangeDetectorRef);
   // ------------------------------------------
 
   constructor() {
@@ -119,10 +129,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
+    // Riduciamo il carico: non 1000 ma 200 elementi per la home
     this.dataSubscription = forkJoin({
       cocktailsResponse: this.cocktailService.getCocktails(
         1,
-        1000,
+        200,
         undefined,
         undefined,
         undefined,
@@ -225,12 +236,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
         finalize(() => {
           this.loading = false;
           this.applySeo(true); // aggiorna description con conteggi
+          this.cdr.markForCheck();
         })
       )
       .subscribe();
   }
 
-  // Helper for absolute image URL
+  // ======== Immagini responsive / srcset ========
   getAbsoluteImageUrl(image: StrapiImage | null | undefined): string {
     if (!image?.url) {
       return 'https://placehold.co/360x360/e0e0e0/333333?text=No+Image';
@@ -238,6 +250,85 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return image.url.startsWith('http') ? image.url : env.apiUrl + image.url;
   }
 
+  getBestImageUrl(image: StrapiImage | null | undefined, fallbackWidth = 360) {
+    // Usa il formato più vicino tra quelli offerti da Strapi (thumbnail/small/medium/large)
+    const formats = (image as any)?.formats || {};
+    const candidates: Array<{ w: number; url: string }> = [];
+    if (formats?.thumbnail?.url && formats?.thumbnail?.width)
+      candidates.push({
+        w: formats.thumbnail.width,
+        url: formats.thumbnail.url,
+      });
+    if (formats?.small?.url && formats?.small?.width)
+      candidates.push({ w: formats.small.width, url: formats.small.url });
+    if (formats?.medium?.url && formats?.medium?.width)
+      candidates.push({ w: formats.medium.width, url: formats.medium.url });
+    if (formats?.large?.url && formats?.large?.width)
+      candidates.push({ w: formats.large.width, url: formats.large.url });
+
+    if (candidates.length) {
+      // prendi il più vicino al fallbackWidth
+      const best = candidates.reduce((prev, cur) =>
+        Math.abs(cur.w - fallbackWidth) < Math.abs(prev.w - fallbackWidth)
+          ? cur
+          : prev
+      );
+      return best.url.startsWith('http') ? best.url : env.apiUrl + best.url;
+    }
+    return this.getAbsoluteImageUrl(image);
+  }
+
+  getImageSrcSet(image: StrapiImage | null | undefined): string | null {
+    const formats = (image as any)?.formats || null;
+    if (!formats) return null;
+    const parts: string[] = [];
+    if (formats.thumbnail?.url && formats.thumbnail?.width) {
+      parts.push(
+        `${
+          formats.thumbnail.url.startsWith('http')
+            ? formats.thumbnail.url
+            : env.apiUrl + formats.thumbnail.url
+        } ${formats.thumbnail.width}w`
+      );
+    }
+    if (formats.small?.url && formats.small?.width) {
+      parts.push(
+        `${
+          formats.small.url.startsWith('http')
+            ? formats.small.url
+            : env.apiUrl + formats.small.url
+        } ${formats.small.width}w`
+      );
+    }
+    if (formats.medium?.url && formats.medium?.width) {
+      parts.push(
+        `${
+          formats.medium.url.startsWith('http')
+            ? formats.medium.url
+            : env.apiUrl + formats.medium.url
+        } ${formats.medium.width}w`
+      );
+    }
+    if (formats.large?.url && formats.large?.width) {
+      parts.push(
+        `${
+          formats.large.url.startsWith('http')
+            ? formats.large.url
+            : env.apiUrl + formats.large.url
+        } ${formats.large.width}w`
+      );
+    }
+    return parts.length ? parts.join(', ') : null;
+  }
+
+  // ======== trackBy per *ngFor (meno lavoro sul main-thread) ========
+  trackByCocktail = (_: number, c: Cocktail | CocktailWithLayoutAndMatch) =>
+    (c as any)?.id ?? (c as any)?.slug ?? _;
+  trackByIngredient = (_: number, i: Ingredient) =>
+    (i as any)?.id ?? (i as any)?.slug ?? _;
+  trackByArticle = (_: number, a: Article) =>
+    (a as any)?.id ?? (a as any)?.slug ?? _;
+  trackByString = (_: number, s: string) => s ?? _;
   // ---------------- SEO / Schema.org ----------------
   private applySeo(updateDescWithCounts = false): void {
     const baseUrl =

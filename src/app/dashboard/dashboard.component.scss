@@ -63,23 +63,24 @@ section {
 */
 .dashboard-content {
   display: grid;
-  grid-template-columns: 2fr 1fr; /* <— qui il rapporto 2/3 vs 1/3 */
+  grid-template-columns: 2fr 1fr;
   gap: var(--gap);
 }
 
-/* Top row (nessuna regola speciale necessaria:
-   hero entra nella colonna 1 (2fr), random nella 2 (1fr) ) */
+/* Hero */
 .hero-section .hero-text {
   max-width: 720px;
   margin: 0 auto;
 }
 
+/* Random card */
 .random-cocktail-section {
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  contain: content; /* meno layout/reflow */
 }
 .random-cocktail-image {
   width: 100%;
@@ -97,13 +98,17 @@ section {
   grid-column: 1 / -1;
 }
 
-/* Ads centrati */
+/* Ads: spazio riservato (no CLS) */
 .ad-block {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 120px; /* anti-CLS */
+  min-height: 120px;
   padding: 8px;
+}
+.ad-skeleton {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
 }
 
 /* Quick links */
@@ -111,6 +116,8 @@ section {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: var(--gap);
+  content-visibility: auto;
+  contain-intrinsic-size: 300px;
 }
 .quick-links-section .links-grid .glass-button.secondary {
   height: 88px;
@@ -127,6 +134,8 @@ section {
 .cards-grid {
   display: grid;
   gap: var(--gap);
+  content-visibility: auto; /* ottimizza paint sotto il fold */
+  contain-intrinsic-size: 600px; /* evita salti visivi */
 }
 .cards-grid.limit-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -145,6 +154,8 @@ section {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--gap);
+  content-visibility: auto;
+  contain-intrinsic-size: 800px;
 }
 .category-card {
   display: flex;
@@ -161,7 +172,7 @@ section {
     grid-template-columns: repeat(3, 1fr);
   }
   .cards-grid.limit-4 {
-    grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 per riga */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .articles-by-category-section .articles-category-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -173,21 +184,23 @@ section {
   .dashboard-container {
     padding: 0 var(--pad-sm);
   }
-  /* tutte le card UNA sotto l’altra */
   .cards-grid.limit-4 {
-    grid-template-columns: 1fr; /* <— da 2 a 1 */
+    grid-template-columns: 1fr;
   }
   .quick-links-section .links-grid {
-    grid-template-columns: repeat(2, 1fr); /* ok tenerle 2 a 2 */
+    grid-template-columns: repeat(2, 1fr);
   }
   .articles-by-category-section .articles-category-grid {
     grid-template-columns: 1fr;
   }
 }
+
+/* Heading minor */
 h4 {
   font-size: 32px;
 }
-/* Hero links: testo compatto per non gonfiare l’hero */
+
+/* Hero links */
 .hero-text .hero-links {
   margin: 8px 0 0;
   padding-left: 1.25rem;
@@ -206,12 +219,35 @@ h4 {
   text-decoration: underline;
 }
 
-/* Tieni il blocco visivamente snello anche su mobile */
+/* Mobile fine-tuning */
 @media (max-width: 768px) {
   .hero-text p {
     font-size: 0.98rem;
   }
   .hero-text .hero-links {
     font-size: 0.92rem;
+  }
+}
+
+/* Skeleton generico per sezioni defer */
+.skeleton {
+  min-height: 240px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.12) 37%,
+    rgba(255, 255, 255, 0.06) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
   }
 }
