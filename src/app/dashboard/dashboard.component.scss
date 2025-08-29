@@ -1,4 +1,5 @@
 :host {
+  /* reset e guardrail overflow */
   --gap: 16px;
   --pad: 16px;
   --pad-sm: 8px;
@@ -6,13 +7,28 @@
   --shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
   display: block;
   min-height: 100vh;
+  overflow-x: hidden; /* evita sfori orizzontali residui */
+}
+
+/* reset box sizing e immagini */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 /* Container */
 .dashboard-container {
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   padding: 0 var(--pad);
+  overflow-x: hidden; /* ulteriore protezione */
 }
 
 /* Loading / error */
@@ -38,6 +54,18 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  /* 👉 permetti di andare a capo su viewport stretti */
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* evita che l'icona forzi la larghezza */
+.glass-button.primary mat-icon,
+.glass-button.secondary mat-icon {
+  flex: 0 0 auto;
 }
 
 /* Section defaults */
@@ -46,7 +74,6 @@ section {
   h3 {
     color: #fff;
     font-weight: 700;
-    margin: 0 0 12px;
     text-align: center;
     font-size: 32px;
   }
@@ -60,10 +87,10 @@ section {
 /* Main grid:
    - Desktop: 2/3 (hero) + 1/3 (random)
    - Tutto il resto full-width
-*/
+   👉 minmax(0, …) evita overflow dei figli */
 .dashboard-content {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: var(--gap);
 }
 
@@ -80,7 +107,8 @@ section {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  contain: content; /* meno layout/reflow */
+  contain: content;
+  min-width: 0; /* permette compressione in grid */
 }
 .random-cocktail-image {
   width: 100%;
@@ -96,28 +124,41 @@ section {
 .articles-by-category-section,
 .ad-block {
   grid-column: 1 / -1;
+  min-width: 0; /* evita overflow del contenuto interno */
 }
 
-/* Ads: spazio riservato (no CLS) */
+/* Ads: spazio riservato (no CLS) + safe width */
 .ad-block {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 120px;
   padding: 8px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 .ad-skeleton {
   background: rgba(255, 255, 255, 0.06);
   border-radius: 12px;
 }
 
+/* assicurati che i componenti annidati non sforino */
+.ad-block .ad-desktop-card,
+.ad-block .mobile-ad-container,
+.ad-block app-dev-ads {
+}
+
 /* Quick links */
 .quick-links-section .links-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--gap);
   content-visibility: auto;
   contain-intrinsic-size: 300px;
+}
+.quick-links-section .links-grid > * {
+  min-width: 0; /* i bottoni possono comprimersi */
 }
 .quick-links-section .links-grid .glass-button.secondary {
   height: 88px;
@@ -129,16 +170,25 @@ section {
   flex-wrap: wrap;
   gap: 8px;
 }
+.quick-links-section .category-chips .chip {
+  display: inline-block;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 
 /* Card grids — MAX 4 per riga desktop */
 .cards-grid {
   display: grid;
   gap: var(--gap);
-  content-visibility: auto; /* ottimizza paint sotto il fold */
-  contain-intrinsic-size: 600px; /* evita salti visivi */
+  content-visibility: auto;
+  contain-intrinsic-size: 600px;
 }
 .cards-grid.limit-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.cards-grid > * {
+  min-width: 0;
 }
 
 /* Section head */
@@ -147,12 +197,17 @@ section {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+  min-width: 0;
+}
+.section-head .link-inline {
+  min-width: 0;
+  max-width: 100%;
 }
 
-/* Articles by category (3 card orizzontali) */
+/* Articles by category */
 .articles-by-category-section .articles-category-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--gap);
   content-visibility: auto;
   contain-intrinsic-size: 800px;
@@ -161,21 +216,33 @@ section {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
+}
+.category-card h4 {
+  font-size: 32px;
+  margin: 0;
+}
+.category-card h4 a {
+  display: inline-block;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere; /* evita sfori su titoli lunghi */
+  text-decoration: none;
 }
 
 /* Tablet */
 @media (max-width: 1024px) {
   .dashboard-content {
-    grid-template-columns: 1fr; /* stack hero + random */
+    grid-template-columns: minmax(0, 1fr); /* stack hero + random */
   }
   .quick-links-section .links-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .cards-grid.limit-4 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .articles-by-category-section .articles-category-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -185,19 +252,20 @@ section {
     padding: 0 var(--pad-sm);
   }
   .cards-grid.limit-4 {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .quick-links-section .links-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .articles-by-category-section .articles-category-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
-}
-
-/* Heading minor */
-h4 {
-  font-size: 32px;
+  .hero-text p {
+    font-size: 0.98rem;
+  }
+  .hero-text .hero-links {
+    font-size: 0.92rem;
+  }
 }
 
 /* Hero links */
@@ -217,16 +285,6 @@ h4 {
 }
 .hero-text .hero-links a:hover {
   text-decoration: underline;
-}
-
-/* Mobile fine-tuning */
-@media (max-width: 768px) {
-  .hero-text p {
-    font-size: 0.98rem;
-  }
-  .hero-text .hero-links {
-    font-size: 0.92rem;
-  }
 }
 
 /* Skeleton generico per sezioni defer */
@@ -250,4 +308,7 @@ h4 {
   100% {
     background-position: 0 0;
   }
+}
+h4 {
+  font-size: 32px;
 }
