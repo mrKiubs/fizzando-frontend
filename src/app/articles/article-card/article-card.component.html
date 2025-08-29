@@ -1,12 +1,31 @@
-<article class="article-card glass-card">
-  <a [routerLink]="getArticleDetailLink()">
+<article class="article-card">
+  <a
+    class="stretched-link"
+    [routerLink]="getArticleDetailLink()"
+    [attr.aria-label]="article.title"
+  >
     <div class="image-wrapper">
-      <img [src]="articleImageUrl" [alt]="article.title" />
+      <img
+        class="cover"
+        [src]="articleImageUrl"
+        [attr.srcset]="srcset || null"
+        [attr.sizes]="srcset ? sizes : null"
+        [alt]="
+          article.title ||
+          'Article
+      image preview'
+        "
+        loading="lazy"
+        decoding="async"
+      />
     </div>
+
     <div class="content">
-      <h3 class="title">{{ article.title }}</h3>
-      <p class="category"></p>
-      <span class="read-more">Leggi di più →</span>
+      <h3 class="card-title">{{ article.title }}</h3>
+
+      <p class="intro" [attr.title]="article.introduction || ''">
+        {{ article.introduction }}
+      </p>
     </div>
   </a>
 </article>

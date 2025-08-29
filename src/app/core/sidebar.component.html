@@ -1,11 +1,50 @@
-<p>sidebar works!</p>
+<div class="sidebar-inner">
+  <aside class="sidebar" aria-label="Sidebar with categories and tools">
+    <!-- Banner ads (zero-CLS) -->
+    <ng-container>
+      <div
+        class="mobile-ad-container"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
+        <app-dev-ads [type]="'medium-rectangle'"></app-dev-ads>
+      </div>
+    </ng-container>
 
-<div class="category-link-container">
-  <ul>
-    <li *ngFor="let category of categories">
-      <a [routerLink]="['/articles/category', category.slug]">
-        {{ category.name }}
-      </a>
-    </li>
-  </ul>
+    <!-- Top categories -->
+    <nav class="top-cats" aria-label="Top categories">
+      <h2 class="sr-only">Top Categories</h2>
+      <ul>
+        <li *ngFor="let c of topFive(); trackBy: trackBySlug">
+          <a [routerLink]="['/articles/category', c.slug]">{{ c.name }}</a>
+          <span class="count" *ngIf="c.count !== undefined"
+            >({{ c.count }})</span
+          >
+        </li>
+      </ul>
+    </nav>
+
+    <!-- All categories select -->
+    <div class="all-cats">
+      <label for="catSelect">Browse all categories</label>
+      <select
+        id="catSelect"
+        [ngModel]="selectedSlug"
+        (ngModelChange)="onSelectChange($event)"
+      >
+        <option [ngValue]="''" disabled selected>Select a category…</option>
+        <option
+          *ngFor="let c of categories(); trackBy: trackBySlug"
+          [ngValue]="c.slug"
+        >
+          {{ c.name }}
+          <!-- opzionale: mostra count nella option -->
+          <ng-container *ngIf="c.count !== undefined">
+            ({{ c.count }})
+          </ng-container>
+        </option>
+      </select>
+    </div>
+  </aside>
 </div>

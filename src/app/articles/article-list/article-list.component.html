@@ -3,41 +3,168 @@
     <p>Loading articles…</p>
   </div>
   <div *ngIf="error" class="error-message">
-    <!-- Assumendo che mat-icon sia ancora disponibile, altrimenti rimuovilo -->
-    <!-- <mat-icon>error</mat-icon> -->
     <span>{{ error }}</span>
   </div>
 
   <main class="content">
-    <app-dev-ads type="large-leaderboard"></app-dev-ads>
-    <!-- Titoli dinamici H1 e H2/Paragrafo per SEO -->
     <h1 *ngIf="mainTitle">{{ mainTitle }}</h1>
     <p *ngIf="subTitle" class="page-description">{{ subTitle }}</p>
 
-    <ul *ngIf="!loading && !error && articles.length > 0">
-      <li *ngFor="let article of articles">
-        <a [routerLink]="['/articles', article.slug]">
-          <article class="article-card">
-            <figure class="article-image">
-              <img
-                [src]="getImageUrl(article.image)"
-                [alt]="article.title || 'Article image preview'"
-              />
-            </figure>
-            <header>
-              <h2>{{ article.title }}</h2>
-            </header>
-          </article>
-        </a>
-      </li>
-    </ul>
+    <div *ngIf="!loading && !error && articles.length > 0" class="article-grid">
+      <ng-container
+        *ngFor="
+          let article of articles;
+          let i = index;
+          trackBy: trackByArticleId
+        "
+      >
+        <app-article-card
+          *ngFor="let a of relatedArticles; trackBy: trackByArticleId"
+          [article]="a"
+        ></app-article-card>
+
+        <!-- Ad ogni 7 card (configurabile da TS con adEvery) -->
+        <ng-container *ngIf="i > 0 && (i + 1) % adEvery === 0">
+          <div
+            *ngIf="isMobile"
+            class="mobile-ad-container"
+            role="complementary"
+            aria-label="Sponsored content"
+          >
+            <span class="ad-badge">Ad</span>
+            <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+          </div>
+
+          <div
+            *ngIf="!isMobile"
+            class="ad-desktop-card"
+            role="complementary"
+            aria-label="Sponsored content"
+          >
+            <span class="ad-badge">Ad</span>
+            <app-dev-ads [type]="'square'"></app-dev-ads>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+
     <div *ngIf="!loading && !error && articles.length === 0">
       No articles found.
     </div>
+
+    <!-- PAGINATION -->
+    <div class="pagination-container" *ngIf="!loading && totalPages > 1">
+      <div class="pagination-controls">
+        <button
+          class="glass-button secondary"
+          [disabled]="currentPage === 1"
+          (click)="goToPage(currentPage - 1)"
+          aria-label="Go to previous page"
+        >
+          Previous
+        </button>
+
+        <div class="page-numbers" role="navigation" aria-label="Pagination">
+          <!-- First page -->
+          <ng-container *ngIf="totalPages > 1">
+            <span
+              *ngIf="currentPage === 1"
+              class="page-number active"
+              aria-current="page"
+              >1</span
+            >
+            <a
+              *ngIf="currentPage !== 1"
+              [attr.href]="buildUrlWithParams({ page: 1 })"
+              class="page-number"
+              (click)="$event.preventDefault(); goToPage(1)"
+              >1</a
+            >
+          </ng-container>
+
+          <!-- Left ellipsis -->
+          <span *ngIf="showFirstEllipsis()" class="ellipsis" aria-hidden="true"
+            >…</span
+          >
+
+          <!-- Middle pages -->
+          <ng-container *ngFor="let p of getVisiblePages()">
+            <span
+              *ngIf="p === currentPage"
+              class="page-number active"
+              aria-current="page"
+              >{{ p }}</span
+            >
+            <a
+              *ngIf="p !== currentPage"
+              [attr.href]="buildUrlWithParams({ page: p })"
+              class="page-number"
+              (click)="$event.preventDefault(); goToPage(p)"
+              >{{ p }}</a
+            >
+          </ng-container>
+
+          <!-- Right ellipsis -->
+          <span *ngIf="showLastEllipsis()" class="ellipsis" aria-hidden="true"
+            >…</span
+          >
+
+          <!-- Last page -->
+          <ng-container *ngIf="totalPages > 1">
+            <span
+              *ngIf="currentPage === totalPages"
+              class="page-number active"
+              aria-current="page"
+            >
+              {{ totalPages }}
+            </span>
+            <a
+              *ngIf="currentPage !== totalPages"
+              [attr.href]="buildUrlWithParams({ page: totalPages })"
+              class="page-number"
+              (click)="$event.preventDefault(); goToPage(totalPages)"
+              >{{ totalPages }}</a
+            >
+          </ng-container>
+        </div>
+
+        <button
+          class="glass-button secondary"
+          [disabled]="currentPage === totalPages"
+          (click)="goToPage(currentPage + 1)"
+          aria-label="Go to next page"
+        >
+          Next
+        </button>
+      </div>
+    </div>
   </main>
 
+  <!-- 
+  @defer (on viewport) {
+  <div
+    class="banner-container"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <div class="banner-content">
+      <span class="ad-badge">Ad</span>
+      <ng-container>
+        <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+        <app-dev-ads
+          *ngIf="!isMobile"
+          [type]="'large-leaderboard'"
+        ></app-dev-ads>
+      </ng-container>
+    </div>
+  </div>
+  } @placeholder {
+  <div class="banner-container placeholder" aria-hidden="true"></div>
+  }
+-->
   <aside class="sidebar">
-    <app-dev-ads type="responsive"></app-dev-ads>
-    <app-sidebar></app-sidebar>
+    <div class="sticky">
+      <app-sidebar></app-sidebar>
+    </div>
   </aside>
 </div>

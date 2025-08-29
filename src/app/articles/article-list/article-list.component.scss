@@ -8,134 +8,75 @@
 }
 
 /* Stili per l'intestazione della pagina */
+/* container sempre “contenuto”, mai oltre 1200 */
 .container {
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
-  flex-direction: column;
   gap: 16px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 768px) {
+  /* importantissimo per evitare overflow che “allarga” il grid */
 }
 
 .content {
   flex-grow: 1; /* Permette al contenuto di espandersi */
-  @include glass-card;
-}
-
-.content ul {
-  list-style: none; /* Rimuove i pallini di default dalla lista */
-  padding: 0;
-}
-
-.content li {
-  @include glass-card;
-  margin-bottom: 16px;
-}
-.content li p {
-  color: white;
-}
-.content li h2 {
-  color: white;
-  margin-top: 0;
-  margin-bottom: 16px;
-}
-
-.content li img {
-  max-width: 100%; /* Assicura che l'immagine non strabordi */
-  height: auto;
-  display: block;
-  border-radius: 4px;
-}
-
-.read-more-link {
-  display: inline-block;
-  margin-top: 15px;
-  padding: 8px 15px;
-  background-color: #007bff;
-  color: white;
-  text-decoration: none;
-  border-radius: 5px;
-  transition: background-color 0.3s ease;
-}
-
-.read-more-link:hover {
-  background-color: #0056b3;
+  @media (min-width: 600px) {
+    @include glass-card;
+  }
 }
 
 /* --- Stili per la Sidebar --- */
 .sidebar {
   @include glass-card;
+  overflow: visible !important;
+  transform: none !important;
+  min-width: 300px;
 }
 
-.sidebar h2,
-.sidebar h3 {
-  color: #0056b3;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
-
-.sidebar nav ul {
-  list-style: none;
-  padding: 0;
-}
-
-.sidebar nav li {
-  margin-bottom: 10px;
-}
-
-.sidebar nav a {
-  text-decoration: none;
-  color: #007bff;
-  display: block; /* Rende l'intera area del link cliccabile */
-  padding: 5px 0;
-}
-
-.sidebar nav a:hover {
-  text-decoration: underline;
-}
-
-/* --- Media Query per Desktop (schermi più grandi di 768px) --- */
-@media (min-width: 768px) {
-  .container {
-    display: grid;
-    grid-template-columns: 3fr 1fr;
-  }
-
-  .content {
-    flex: 3; /* Il contenuto occupa 3 parti dello spazio disponibile */
-    /* Oppure: flex-basis: 70%; per una larghezza fissa */
-  }
-
-  .sidebar {
-    flex: 1; /* La sidebar occupa 1 parte dello spazio disponibile */
-    /* Oppure: flex-basis: 30%; per una larghezza fissa */
-    min-width: 250px; /* Larghezza minima per evitare che diventi troppo stretta */
-  }
-}
-
-.article-card {
-  display: grid;
-  grid-template-columns: 1fr 3fr;
-  align-items: center;
-  gap: 16px;
-
-  header {
-    h2 {
-      font-size: 28px;
-      margin: 0 0 0 0;
-      line-height: 32px;
-
-      @media (max-width: 600px) {
-        font-size: 18px;
-        line-height: 20px;
-      }
-    }
-  }
-}
 h1 {
   text-align: left;
 }
 .page-description {
   color: white;
   margin: 32px 0;
+}
+
+.article-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 colonne uguali */
+  gap: 16px; /* spaziatura tra le card */
+
+  /* tablet: 2 colonne */
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* mobile: 1 colonna */
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* Dentro la colonna, rendi sticky un wrapper, non l’item flex */
+/* Dentro la colonna, rendi sticky il wrapper */
+.sticky {
+  position: sticky;
+  top: 80px;
+  width: 100%;
+}
+
+ul {
+  li {
+    a {
+      @include glass-card;
+    }
+  }
 }
