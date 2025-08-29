@@ -1,27 +1,36 @@
-// src/app/dashboard/dashboard.component.ts
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  Renderer2,
+  inject,
+  PLATFORM_ID,
+} from '@angular/core';
+import { CommonModule, isPlatformBrowser, DOCUMENT } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
-import { forkJoin, Subscription } from 'rxjs'; // Importa forkJoin e Subscription
-import { DatePipe } from '@angular/common'; // Importa DatePipe per la formattazione della data
+import { forkJoin, Subscription, of } from 'rxjs';
+import { DatePipe } from '@angular/common';
+import { catchError, finalize, tap } from 'rxjs/operators';
 import { env } from '../config/env';
-import { catchError, finalize, tap } from 'rxjs/operators'; // Importa operatori
+import { Meta, Title } from '@angular/platform-browser';
 
-// Importa servizi e interfacce
+// Services & types
 import {
   CocktailService,
   Cocktail,
   StrapiImage,
   CocktailWithLayoutAndMatch,
-} from '../services/strapi.service'; // Assumi che strapi.service gestisca i cocktail
-import { IngredientService, Ingredient } from '../services/ingredient.service'; // Assumi un servizio separato per gli ingredienti
-import { QuizService, Quiz } from '../services/quiz.service'; // Importa QuizService e Quiz
-import { ArticleService, Article } from '../services/article.service'; // Importa ArticleService e Article
+} from '../services/strapi.service';
+import { IngredientService, Ingredient } from '../services/ingredient.service';
+import { ArticleService, Article } from '../services/article.service';
 
-// Importa i componenti delle card
+// Cards
 import { CocktailCardComponent } from '../cocktails/cocktail-card/cocktail-card.component';
-import { IngredientCardComponent } from '../ingredients/ingredient-card/ingredient-card.component'; // Assumi che esista
+import { IngredientCardComponent } from '../ingredients/ingredient-card/ingredient-card.component';
+import { ArticleCardComponent } from '../articles/article-card/article-card.component';
+import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -32,56 +41,85 @@ import { IngredientCardComponent } from '../ingredients/ingredient-card/ingredie
     RouterLink,
     CocktailCardComponent,
     IngredientCardComponent,
-    DatePipe, // Aggiungi DatePipe agli imports
+    ArticleCardComponent,
+    DatePipe,
+    DevAdsComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  allCocktails: Cocktail[] = []; // Usato per calcolare featured, latest, random e stats
-  featuredCocktails: CocktailWithLayoutAndMatch[] = []; // Rinominato per chiarezza
-  latestCocktails: CocktailWithLayoutAndMatch[] = []; // Rinominato per chiarezza
-  randomCocktail?: CocktailWithLayoutAndMatch; // Rinominato per chiarezza
+  allCocktails: Cocktail[] = [];
+  featuredCocktails: CocktailWithLayoutAndMatch[] = [];
+  latestCocktails: CocktailWithLayoutAndMatch[] = [];
+  randomCocktail?: CocktailWithLayoutAndMatch;
 
-  latestIngredients: Ingredient[] = []; // Nuovo: per gli ultimi ingredienti
-  latestQuizzes: Quiz[] = []; // Nuovo: per gli ultimi quiz
-  latestArticles: Article[] = []; // Nuovo: per gli ultimi articoli
+  latestIngredients: Ingredient[] = [];
+  latestArticles: Article[] = [];
 
-  // NUOVE PROPRIETÀ: per gli articoli per categoria
   historyArticles: Article[] = [];
   techniquesArticles: Article[] = [];
   ingredientsArticles: Article[] = [];
 
   categoriesCount: Record<string, number> = {};
+  topCocktailCategories: string[] = [];
+
   totalCocktails = 0;
   loading = true;
   error: string | null = null;
-  private dataSubscription: Subscription | undefined; // Aggiunto per gestire la sottoscrizione
 
-  constructor(
-    private cocktailService: CocktailService,
-    private ingredientService: IngredientService, // Inietta IngredientService
-    private quizService: QuizService, // Inietta QuizService
-    private articleService: ArticleService // Inietta ArticleService
-  ) {}
+  isMobile = false;
+  private dataSubscription?: Subscription;
+
+  // SEO helpers
+  private websiteScript?: HTMLScriptElement;
+  private webpageScript?: HTMLScriptElement;
+  private breadcrumbsScript?: HTMLScriptElement;
+
+  // ---- Dependency Injection via inject() ----
+  private cocktailService = inject(CocktailService);
+  private ingredientService = inject(IngredientService);
+  private articleService = inject(ArticleService);
+  private meta = inject(Meta);
+  private title = inject(Title);
+  private renderer: Renderer2 = inject(Renderer2);
+  private doc: Document = inject(DOCUMENT);
+  private platformId: Object = inject(PLATFORM_ID);
+  private readonly isBrowser: boolean = isPlatformBrowser(this.platformId);
+  // ------------------------------------------
+
+  constructor() {
+    if (this.isBrowser) this.checkScreenWidth();
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    if (this.isBrowser) this.checkScreenWidth();
+  }
+
+  private checkScreenWidth() {
+    try {
+      this.isMobile = window.innerWidth <= 600;
+    } catch {
+      this.isMobile = false;
+    }
+  }
 
   ngOnInit() {
     this.loadDashboardData();
+    this.applySeo(); // base SEO
   }
 
   ngOnDestroy(): void {
-    if (this.dataSubscription) {
-      this.dataSubscription.unsubscribe(); // Annulla la sottoscrizione per evitare memory leak
-    }
+    this.dataSubscription?.unsubscribe();
+    this.cleanupSeo();
   }
 
   loadDashboardData(): void {
     this.loading = true;
-    this.error = null; // Resetta l'errore ad ogni inizializzazione
+    this.error = null;
 
-    // Usa forkJoin per recuperare tutti i dati in parallelo
     this.dataSubscription = forkJoin({
-      // Recupera tutti i cocktail per elaborazione interna (max 1000)
       cocktailsResponse: this.cocktailService.getCocktails(
         1,
         1000,
@@ -91,53 +129,52 @@ export class DashboardComponent implements OnInit, OnDestroy {
         true,
         false
       ),
-      // Recupera gli ultimi 5 ingredienti (o quanti ne vuoi mostrare)
       ingredientsResponse: this.ingredientService.getIngredients(
         1,
-        5,
+        8,
         undefined,
         undefined,
         undefined,
         true,
         false
       ),
-      // Recupera gli ultimi 3 quiz
-      quizzes: this.quizService.getLatestQuizzes(3),
-      // Recupera gli ultimi 3 articoli
-      articles: this.articleService.getLatestArticles(3),
-      // NUOVE CHIAMATE: Recupera 3 articoli per categoria usando il metodo corretto
+      articles: this.articleService.getLatestArticles(8),
       historyArticles: this.articleService.getArticlesByCategorySlug(
         'history',
+        1,
         3
-      ), // Corretto
+      ),
       techniquesArticles: this.articleService.getArticlesByCategorySlug(
         'techniques',
+        1,
         3
-      ), // Corretto
+      ),
       ingredientsArticles: this.articleService.getArticlesByCategorySlug(
         'ingredients',
+        1,
         3
-      ), // Corretto
+      ),
     })
       .pipe(
         tap(
           ({
             cocktailsResponse,
             ingredientsResponse,
-            quizzes,
             articles,
             historyArticles,
             techniquesArticles,
             ingredientsArticles,
           }) => {
+            // Cocktails
             this.allCocktails = cocktailsResponse.data;
-            this.totalCocktails = cocktailsResponse.meta.pagination.total;
+            this.totalCocktails =
+              cocktailsResponse.meta?.pagination?.total ??
+              this.allCocktails.length;
 
-            // Popola i cocktail in evidenza (es. i primi 10)
             this.featuredCocktails = this.allCocktails
               .slice(0, 10)
               .map((c) => ({ ...c, isTall: false, isWide: false }));
-            // Popola gli ultimi cocktail aggiunti (es. i primi 10 per data di creazione)
+
             this.latestCocktails = [...this.allCocktails]
               .sort(
                 (a, b) =>
@@ -147,7 +184,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
               .slice(0, 10)
               .map((c) => ({ ...c, isTall: false, isWide: false }));
 
-            // Seleziona un cocktail casuale per la Hero Section
             if (this.allCocktails.length > 0) {
               const randomIndex = Math.floor(
                 Math.random() * this.allCocktails.length
@@ -159,58 +195,154 @@ export class DashboardComponent implements OnInit, OnDestroy {
               };
             }
 
-            // Calcola il conteggio delle categorie
+            // Cocktail categories (chips)
             this.categoriesCount = this.allCocktails.reduce((acc, cocktail) => {
-              const cat = cocktail.category
-                ? cocktail.category.trim()
-                : 'Unknown';
+              const cat = (cocktail.category || 'Unknown').trim();
               acc[cat] = (acc[cat] || 0) + 1;
               return acc;
             }, {} as Record<string, number>);
 
-            // Ordina le categorie alfabeticamente
-            this.categoriesCount = Object.keys(this.categoriesCount)
-              .sort()
-              .reduce((obj, key) => {
-                obj[key] = this.categoriesCount[key];
-                return obj;
-              }, {} as Record<string, number>);
+            this.topCocktailCategories = Object.entries(this.categoriesCount)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 6)
+              .map(([name]) => name);
 
-            // Popola gli ultimi ingredienti
-            this.latestIngredients = ingredientsResponse.data;
-            // Popola gli ultimi quiz
-            this.latestQuizzes = quizzes;
-            // Popola gli ultimi articoli
-            this.latestArticles = articles;
+            // Ingredients & Articles
+            this.latestIngredients = ingredientsResponse.data ?? [];
+            this.latestArticles = articles ?? [];
 
-            // NUOVA ASSEGNAZIONE: Popola gli articoli per categoria
-            // Assumi che il servizio restituisca { data: [], meta: {} }
-            this.historyArticles = historyArticles.data;
-            this.techniquesArticles = techniquesArticles.data;
-            this.ingredientsArticles = ingredientsArticles.data;
+            this.historyArticles = historyArticles?.data ?? [];
+            this.techniquesArticles = techniquesArticles?.data ?? [];
+            this.ingredientsArticles = ingredientsArticles?.data ?? [];
           }
         ),
         catchError((err) => {
-          console.error(
-            'Errore durante il caricamento dei dati della dashboard:',
-            err
-          );
-          this.error =
-            'Impossibile caricare i dati della dashboard. Riprova più tardi.';
-          return []; // Ritorna un array vuoto per completare l'Observable
+          // eslint-disable-next-line no-console
+          console.error('Dashboard load error:', err);
+          this.error = 'Unable to load dashboard data. Please try again later.';
+          return of(null);
         }),
         finalize(() => {
-          this.loading = false; // Tutti i dati sono stati caricati (o l'errore gestito)
+          this.loading = false;
+          this.applySeo(true); // aggiorna description con conteggi
         })
       )
       .subscribe();
   }
 
-  // Helper per ottenere l'URL completo dell'immagine (se non già gestito dal servizio)
+  // Helper for absolute image URL
   getAbsoluteImageUrl(image: StrapiImage | null | undefined): string {
     if (!image?.url) {
-      return 'https://placehold.co/400x300/e0e0e0/333333?text=No+Image'; // Placeholder
+      return 'https://placehold.co/360x360/e0e0e0/333333?text=No+Image';
     }
     return image.url.startsWith('http') ? image.url : env.apiUrl + image.url;
+  }
+
+  // ---------------- SEO / Schema.org ----------------
+  private applySeo(updateDescWithCounts = false): void {
+    const baseUrl =
+      (this.isBrowser && typeof window !== 'undefined'
+        ? window.location.origin
+        : '') || '';
+
+    const canonical = baseUrl ? `${baseUrl}/` : '/';
+    const title = 'Fizzando — Cocktails, Ingredients & Articles';
+
+    const parts: string[] = [
+      'Explore cocktail recipes, ingredient profiles and practical guides',
+    ];
+    if (updateDescWithCounts && this.totalCocktails > 0) {
+      parts.unshift(`Browse ${this.totalCocktails}+ cocktails`);
+    }
+    const description = parts.join('. ') + '.';
+
+    // Title + meta
+    this.title.setTitle(title);
+    this.meta.updateTag({ name: 'description', content: description });
+
+    // Canonical
+    const head = this.doc.head;
+    let linkEl = head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!linkEl) {
+      linkEl = this.renderer.createElement('link');
+      this.renderer.setAttribute(linkEl, 'rel', 'canonical');
+      this.renderer.appendChild(head, linkEl);
+    }
+    this.renderer.setAttribute(linkEl, 'href', canonical);
+
+    // OG / Twitter
+    this.meta.updateTag({ property: 'og:title', content: title });
+    this.meta.updateTag({ property: 'og:description', content: description });
+    this.meta.updateTag({ property: 'og:url', content: canonical });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this.meta.updateTag({ property: 'og:site_name', content: 'Fizzando' });
+
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary' });
+    this.meta.updateTag({ name: 'twitter:title', content: title });
+    this.meta.updateTag({ name: 'twitter:description', content: description });
+
+    // JSON-LD
+    this.injectJsonLd('website-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'Fizzando',
+      url: canonical,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${canonical}cocktails?search={search_term_string}`,
+        'query-input': 'required name=search_term_string',
+      },
+    });
+    this.injectJsonLd('webpage-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Fizzando — Cocktails, Ingredients & Articles',
+      description,
+      url: canonical,
+      inLanguage: 'en',
+    });
+    this.injectJsonLd('breadcrumbs-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: canonical },
+      ],
+    });
+  }
+
+  private injectJsonLd(id: string, data: unknown): void {
+    const head = this.doc.head;
+    const prev = head.querySelector<HTMLScriptElement>(`#${id}`);
+    if (prev) this.renderer.removeChild(head, prev);
+
+    const script = this.renderer.createElement('script');
+    this.renderer.setAttribute(script, 'type', 'application/ld+json');
+    this.renderer.setAttribute(script, 'id', id);
+    this.renderer.appendChild(
+      script,
+      this.renderer.createText(JSON.stringify(data))
+    );
+    this.renderer.appendChild(head, script);
+
+    if (id === 'website-jsonld') this.websiteScript = script;
+    if (id === 'webpage-jsonld') this.webpageScript = script;
+    if (id === 'breadcrumbs-jsonld') this.breadcrumbsScript = script;
+  }
+
+  private cleanupSeo(): void {
+    this.meta.removeTag("property='og:title'");
+    this.meta.removeTag("property='og:description'");
+    this.meta.removeTag("property='og:url'");
+    this.meta.removeTag("property='og:type'");
+    this.meta.removeTag("property='og:site_name'");
+    this.meta.removeTag("name='twitter:card'");
+    this.meta.removeTag("name='twitter:title'");
+    this.meta.removeTag("name='twitter:description'");
+
+    const head = this.doc.head;
+    ['website-jsonld', 'webpage-jsonld', 'breadcrumbs-jsonld'].forEach((id) => {
+      const el = head.querySelector(`#${id}`);
+      if (el) this.renderer.removeChild(head, el);
+    });
   }
 }

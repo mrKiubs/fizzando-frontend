@@ -1,43 +1,69 @@
-<!-- src/app/dashboard/dashboard.component.html -->
-
 <div class="dashboard-container">
   <div *ngIf="loading" class="loading-message">
-    <p>Caricamento dati dashboard...</p>
+    <p>Loading dashboard data…</p>
   </div>
 
   <div *ngIf="error" class="error-message">
     <mat-icon>error_outline</mat-icon>
     <p>{{ error }}</p>
-    <button class="glass-button primary" (click)="ngOnInit()">Riprova</button>
+    <button class="glass-button primary" (click)="ngOnInit()">Retry</button>
   </div>
 
   <div *ngIf="!loading && !error" class="dashboard-content">
-    <!-- Prima Riga: Descrizione Sito (2/3) e Cocktail Casuale (1/3) -->
+    <!-- HERO (2/3) -->
     <section class="hero-section glass-card">
       <div class="hero-text">
-        <h2>Benvenuto in Cocktail Explorer!</h2>
+        <h2>Welcome to FIZZANDO</h2>
+
         <p>
-          Esplora il mondo affascinante dei cocktail con la nostra guida
-          completa. Che tu sia un appassionato, un aspirante bartender, o
-          semplicemente in cerca di ispirazione per il tuo prossimo drink,
-          troverai un archivio dettagliato di ricette, ingredienti, articoli
-          approfonditi e quiz divertenti. La nostra piattaforma è progettata per
-          essere la tua risorsa definitiva, chiara e accessibile, per scoprire,
-          creare e gustare l'arte della mixology.
+          Fizzando is your modern companion for discovering, learning, and
+          mixing great drinks. From timeless classics to fresh signatures, we
+          break recipes down with clear ratios, tested tips, and bar-ready
+          technique so you can make better cocktails at home or behind the
+          stick.
         </p>
+
+        <p>
+          Explore an ever-growing library of cocktails, deep ingredient
+          profiles, step-by-step tutorials, and practical buying advice. Filter
+          by base spirit, style, difficulty, or occasion; save favorites; and
+          sharpen your knowledge with in-depth articles.
+        </p>
+
+        <ul class="hero-links">
+          <li>
+            <a [routerLink]="['/cocktails']">Cocktails</a> — browse recipes by
+            spirit, style, or technique
+          </li>
+          <li>
+            <a [routerLink]="['/ingredients']">Ingredients</a> — understand
+            spirits, liqueurs, syrups, bitters, and more
+          </li>
+          <li>
+            <a [routerLink]="['/articles']">Articles &amp; Guides</a> — history,
+            methods, tools, and bar science
+          </li>
+        </ul>
+
         <button class="glass-button primary" [routerLink]="['/cocktails']">
-          Esplora tutti i Cocktail <mat-icon>arrow_forward</mat-icon>
+          Browse all Cocktails <mat-icon>arrow_forward</mat-icon>
         </button>
       </div>
     </section>
 
+    <!-- RANDOM (1/3) -->
     <section class="random-cocktail-section glass-card" *ngIf="randomCocktail">
-      <h3>Il Tuo Cocktail Casuale</h3>
+      <h3>Your Random Cocktail</h3>
       <div class="cocktail-display">
         <img
           [src]="getAbsoluteImageUrl(randomCocktail.image)"
           [alt]="randomCocktail.name"
           class="random-cocktail-image"
+          width="360"
+          height="360"
+          decoding="async"
+          loading="eager"
+          fetchpriority="high"
         />
         <h4>{{ randomCocktail.name }}</h4>
         <p class="cocktail-category">{{ randomCocktail.category }}</p>
@@ -45,58 +71,169 @@
           class="glass-button secondary"
           [routerLink]="['/cocktails', randomCocktail.slug]"
         >
-          Vedi Ricetta <mat-icon>visibility</mat-icon>
+          View Recipe <mat-icon>visibility</mat-icon>
         </button>
       </div>
     </section>
 
-    <!-- Seconda Riga: Link Rapidi / Esplora per Categoria (A tutta larghezza) -->
+    <!-- AD #1 -->
+    <section class="ad-block">
+      <ng-container>
+        <div
+          *ngIf="isMobile"
+          class="mobile-ad-container"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+        </div>
+
+        <div
+          class="ad-desktop-card"
+          *ngIf="!isMobile"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+        </div>
+      </ng-container>
+    </section>
+
+    <!-- QUICK LINKS -->
     <section class="quick-links-section glass-card">
-      <h3>Esplora Rapidamente</h3>
+      <h3>Quick Explore</h3>
       <div class="links-grid">
+        <!-- menu-aligned routes -->
         <button class="glass-button secondary" [routerLink]="['/cocktails']">
-          <mat-icon>local_bar</mat-icon> Tutti i Cocktail
+          <mat-icon>local_bar</mat-icon> All Cocktails
         </button>
+
         <button class="glass-button secondary" [routerLink]="['/ingredients']">
-          <mat-icon>science</mat-icon> Tutti gli Ingredienti
+          <mat-icon>science</mat-icon> All Ingredients
         </button>
-        <button class="glass-button secondary" [routerLink]="['/quiz']">
-          <mat-icon>quiz</mat-icon> Fai un Quiz!
-        </button>
+
         <button class="glass-button secondary" [routerLink]="['/articles']">
-          <mat-icon>article</mat-icon> Leggi Articoli
+          <mat-icon>article</mat-icon> All Articles
         </button>
+
+        <button
+          class="glass-button secondary"
+          [routerLink]="['/find-by-ingredients']"
+        >
+          <mat-icon>search</mat-icon> Find by Ingredients
+        </button>
+
         <button
           class="glass-button secondary"
           [routerLink]="['/cocktails']"
           [queryParams]="{ alcoholic: 'Alcoholic' }"
         >
-          <mat-icon>liquor</mat-icon> Cocktail Alcolici
+          <mat-icon>liquor</mat-icon> Alcoholic
         </button>
+
         <button
           class="glass-button secondary"
           [routerLink]="['/cocktails']"
           [queryParams]="{ alcoholic: 'Non Alcoholic' }"
         >
-          <mat-icon>local_drink</mat-icon> Cocktail Analcolici
+          <mat-icon>local_drink</mat-icon> Non-Alcoholic
         </button>
+      </div>
+
+      <div class="category-chips" *ngIf="topCocktailCategories.length">
+        <span class="chip-label">Popular categories:</span>
+        <a
+          class="chip"
+          *ngFor="let cat of topCocktailCategories"
+          [routerLink]="['/cocktails']"
+          [queryParams]="{ search: cat }"
+        >
+          {{ cat }}
+        </a>
       </div>
     </section>
 
-    <!-- Terza Riga: Articoli per Categoria (3 box da 1/3) -->
+    <!-- FEATURED COCKTAILS -->
+    <section class="section-block glass-card" *ngIf="featuredCocktails.length">
+      <div class="section-head">
+        <h3>Featured Cocktails</h3>
+        <a class="link-inline" [routerLink]="['/cocktails']">View all</a>
+      </div>
+      <div class="cards-grid limit-4">
+        <app-cocktail-card
+          *ngFor="let c of featuredCocktails | slice : 0 : 8"
+          [cocktail]="c"
+        ></app-cocktail-card>
+      </div>
+    </section>
+
+    <!-- AD #2 -->
+    <section class="ad-block">
+      <ng-container>
+        <div
+          *ngIf="isMobile"
+          class="mobile-ad-container"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+        </div>
+
+        <div
+          class="ad-desktop-card"
+          *ngIf="!isMobile"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+        </div>
+      </ng-container>
+    </section>
+
+    <!-- LATEST INGREDIENTS -->
+    <section class="section-block glass-card" *ngIf="latestIngredients.length">
+      <div class="section-head">
+        <h3>Latest Ingredients</h3>
+        <a class="link-inline" [routerLink]="['/ingredients']">View all</a>
+      </div>
+      <div class="cards-grid limit-4">
+        <app-ingredient-card
+          *ngFor="let ing of latestIngredients"
+          [ingredient]="ing"
+        ></app-ingredient-card>
+      </div>
+    </section>
+
+    <!-- LATEST ARTICLES -->
+    <section class="section-block glass-card" *ngIf="latestArticles.length">
+      <div class="section-head">
+        <h3>Latest Articles</h3>
+        <a class="link-inline" [routerLink]="['/articles']">View all</a>
+      </div>
+      <div class="cards-grid limit-4">
+        <app-article-card
+          *ngFor="let a of latestArticles"
+          [article]="a"
+          [priority]="false"
+        ></app-article-card>
+      </div>
+    </section>
+
+    <!-- ARTICLES BY CATEGORY -->
     <section class="articles-by-category-section">
-      <h3>Esplora Articoli per Categoria</h3>
+      <h3>Explore Articles by Category</h3>
       <div class="articles-category-grid">
         <div class="category-card glass-card">
           <h4>
             <a [routerLink]="['/articles/category', 'history']"
-              >Storia dei Cocktail</a
+              >Cocktail History</a
             >
           </h4>
-          <p>
-            Scopri le origini affascinanti e l'evoluzione dei tuoi drink
-            preferiti.
-          </p>
+          <p>Discover the origins and evolution behind your favorite drinks.</p>
           <ul class="category-article-list">
             <li *ngFor="let article of historyArticles">
               <a [routerLink]="['/articles', article.slug]">{{
@@ -108,17 +245,19 @@
             class="glass-button secondary"
             [routerLink]="['/articles/category', 'history']"
           >
-            Vedi Tutti <mat-icon>arrow_forward</mat-icon>
+            View all <mat-icon>arrow_forward</mat-icon>
           </button>
         </div>
 
         <div class="category-card glass-card">
           <h4>
             <a [routerLink]="['/articles/category', 'techniques']"
-              >Tecniche di Mixology</a
+              >Mixology Techniques</a
             >
           </h4>
-          <p>Impara le basi e i segreti per preparare cocktail perfetti.</p>
+          <p>
+            Learn fundamentals and pro tips for consistently great cocktails.
+          </p>
           <ul class="category-article-list">
             <li *ngFor="let article of techniquesArticles">
               <a [routerLink]="['/articles', article.slug]">{{
@@ -130,17 +269,17 @@
             class="glass-button secondary"
             [routerLink]="['/articles/category', 'techniques']"
           >
-            Vedi Tutti <mat-icon>arrow_forward</mat-icon>
+            View all <mat-icon>arrow_forward</mat-icon>
           </button>
         </div>
 
         <div class="category-card glass-card">
           <h4>
             <a [routerLink]="['/articles/category', 'ingredients']"
-              >Il Mondo degli Ingredienti</a
+              >Ingredients 101</a
             >
           </h4>
-          <p>Approfondisci la conoscenza di spiriti, liquori e aromi.</p>
+          <p>Deep-dive into spirits, liqueurs, modifiers, syrups, and more.</p>
           <ul class="category-article-list">
             <li *ngFor="let article of ingredientsArticles">
               <a [routerLink]="['/articles', article.slug]">{{
@@ -152,12 +291,10 @@
             class="glass-button secondary"
             [routerLink]="['/articles/category', 'ingredients']"
           >
-            Vedi Tutti <mat-icon>arrow_forward</mat-icon>
+            View all <mat-icon>arrow_forward</mat-icon>
           </button>
         </div>
       </div>
     </section>
-
-    <!-- Le altre sezioni verranno aggiunte qui sotto in futuro -->
   </div>
 </div>
