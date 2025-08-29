@@ -10,11 +10,10 @@
   </div>
 
   <div *ngIf="!loading && !error" class="dashboard-content">
-    <!-- HERO (2/3) - testo = LCP (niente immagini qui) -->
+    <!-- HERO -->
     <section class="hero-section glass-card">
       <div class="hero-text">
         <h2>Welcome to FIZZANDO</h2>
-
         <p>
           Fizzando is your modern companion for discovering, learning, and
           mixing great drinks. From timeless classics to fresh signatures, we
@@ -22,7 +21,6 @@
           technique so you can make better cocktails at home or behind the
           stick.
         </p>
-
         <p>
           Explore an ever-growing library of cocktails, deep ingredient
           profiles, step-by-step tutorials, and practical buying advice. Filter
@@ -51,21 +49,21 @@
       </div>
     </section>
 
-    <!-- RANDOM (1/3) - immagine lazy, srcset/sizes -->
+    <!-- RANDOM (1/3) – LCP: eager + fetchpriority=high -->
     <section class="random-cocktail-section glass-card" *ngIf="randomCocktail">
       <h3>Your Random Cocktail</h3>
       <div class="cocktail-display">
         <img
-          [ngSrc]="getBestImageUrl(randomCocktail?.image, 360)"
-          [srcset]="getImageSrcSet(randomCocktail?.image) || null"
+          [src]="getBestImageUrl(randomCocktail?.image, 360)"
+          [attr.srcset]="getImageSrcSet(randomCocktail?.image) ?? null"
           sizes="(max-width: 768px) 90vw, 360px"
           [alt]="randomCocktail?.name || 'Random cocktail'"
           class="random-cocktail-image"
           width="360"
           height="360"
-          loading="lazy"
+          loading="eager"
+          fetchpriority="high"
           decoding="async"
-          fetchpriority="low"
         />
         <h4>{{ randomCocktail.name }}</h4>
         <p class="cocktail-category">{{ randomCocktail.category }}</p>
@@ -91,7 +89,6 @@
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
         </div>
-
         <div
           class="ad-desktop-card"
           *ngIf="!isMobile"
@@ -114,22 +111,18 @@
         <button class="glass-button secondary" [routerLink]="['/cocktails']">
           <mat-icon>local_bar</mat-icon> All Cocktails
         </button>
-
         <button class="glass-button secondary" [routerLink]="['/ingredients']">
           <mat-icon>science</mat-icon> All Ingredients
         </button>
-
         <button class="glass-button secondary" [routerLink]="['/articles']">
           <mat-icon>article</mat-icon> All Articles
         </button>
-
         <button
           class="glass-button secondary"
-          [routerLink]="['/find-by-ingredients']"
+          [routerLink]="['/find-cocktail']"
         >
           <mat-icon>search</mat-icon> Find by Ingredients
         </button>
-
         <button
           class="glass-button secondary"
           [routerLink]="['/cocktails']"
@@ -137,7 +130,6 @@
         >
           <mat-icon>liquor</mat-icon> Alcoholic
         </button>
-
         <button
           class="glass-button secondary"
           [routerLink]="['/cocktails']"
@@ -190,7 +182,6 @@
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
         </div>
-
         <div
           class="ad-desktop-card"
           *ngIf="!isMobile"
@@ -254,84 +245,153 @@
     <section class="articles-by-category-section">
       <h3>Explore Articles by Category</h3>
       <div class="articles-category-grid">
+        <!-- categorie (solo titoli linkati) -->
         <div class="category-card glass-card">
           <h4>
-            <a [routerLink]="['/articles/category', 'history']"
-              >Cocktail History</a
+            <a [routerLink]="['/articles/category', 'advanced-mixology']"
+              >Advanced Mixology</a
             >
           </h4>
-          <p>Discover the origins and evolution behind your favorite drinks.</p>
-          <ul class="category-article-list">
-            <li
-              *ngFor="let article of historyArticles; trackBy: trackByArticle"
-            >
-              <a [routerLink]="['/articles', article.slug]">{{
-                article.title
-              }}</a>
-            </li>
-          </ul>
-          <button
-            class="glass-button secondary"
-            [routerLink]="['/articles/category', 'history']"
-          >
-            View all <mat-icon>arrow_forward</mat-icon>
-          </button>
         </div>
-
         <div class="category-card glass-card">
           <h4>
-            <a [routerLink]="['/articles/category', 'techniques']"
-              >Mixology Techniques</a
+            <a [routerLink]="['/articles/category', 'bartending-techniques']"
+              >Bartending Techniques</a
             >
           </h4>
-          <p>
-            Learn fundamentals and pro tips for consistently great cocktails.
-          </p>
-          <ul class="category-article-list">
-            <li
-              *ngFor="
-                let article of techniquesArticles;
-                trackBy: trackByArticle
-              "
-            >
-              <a [routerLink]="['/articles', article.slug]">{{
-                article.title
-              }}</a>
-            </li>
-          </ul>
-          <button
-            class="glass-button secondary"
-            [routerLink]="['/articles/category', 'techniques']"
-          >
-            View all <mat-icon>arrow_forward</mat-icon>
-          </button>
         </div>
-
         <div class="category-card glass-card">
           <h4>
-            <a [routerLink]="['/articles/category', 'ingredients']"
-              >Ingredients 101</a
+            <a [routerLink]="['/articles/category', 'best-3-cocktails']"
+              >Best 3 Cocktails</a
             >
           </h4>
-          <p>Deep-dive into spirits, liqueurs, modifiers, syrups, and more.</p>
-          <ul class="category-article-list">
-            <li
-              *ngFor="
-                let article of ingredientsArticles;
-                trackBy: trackByArticle
-              "
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'classic-cocktails']"
+              >Classic Cocktails</a
             >
-              <a [routerLink]="['/articles', article.slug]">{{
-                article.title
-              }}</a>
-            </li>
-          </ul>
-          <button
-            class="glass-button secondary"
-            [routerLink]="['/articles/category', 'ingredients']"
-          >
-            View all <mat-icon>arrow_forward</mat-icon>
-          </button>
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'cocktail-ingredients']"
+              >Cocktail Ingredients</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'cocktail-innovation']"
+              >Cocktail Innovation</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'drink-history']"
+              >Drink History</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'easy-cocktail-recipes']"
+              >Easy Cocktail Recipes</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'exotic-sips']"
+              >Exotic Sips</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'famous-aperitifs']"
+              >Famous Aperitifs</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'food-pairings']"
+              >Food Pairings</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'glassware-guide']"
+              >Glassware Guide</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'home-bar-essentials']"
+              >Home Bar Essentials</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'mocktails-zero-proof']"
+              >Mocktails & Zero Proof</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'non-alcoholic-drinks']"
+              >Non-Alcoholic Drinks</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'party-drinks']"
+              >Party Drinks</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'seasonal-drinks']"
+              >Seasonal Drinks</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'spirits-guide']"
+              >Spirits Guide</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'summer-cocktails']"
+              >Summer Cocktails</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'tropical-drinks']"
+              >Tropical Drinks</a
+            >
+          </h4>
+        </div>
+        <div class="category-card glass-card">
+          <h4>
+            <a [routerLink]="['/articles/category', 'winter-warmers']"
+              >Winter Warmers</a
+            >
+          </h4>
         </div>
       </div>
     </section>
@@ -340,6 +400,34 @@
       class="articles-by-category-section skeleton"
       aria-hidden="true"
     ></section>
+    }
+
+    <!-- AD #1 (defer on viewport) -->
+    @defer (on viewport) {
+    <section class="ad-block">
+      <ng-container>
+        <div
+          *ngIf="isMobile"
+          class="mobile-ad-container"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+        </div>
+        <div
+          class="ad-desktop-card"
+          *ngIf="!isMobile"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+        </div>
+      </ng-container>
+    </section>
+    } @placeholder {
+    <section class="ad-block ad-skeleton" aria-hidden="true"></section>
     }
   </div>
 </div>
