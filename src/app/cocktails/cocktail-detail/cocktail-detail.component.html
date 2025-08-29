@@ -310,6 +310,16 @@
     </div>
   </section>
 
+  <section class="related-articles-section" *ngIf="relatedArticles.length > 0">
+    <h2 class="section-title">📰 Related Articles</h2>
+
+    <div class="related-articles-grid">
+      <ng-container *ngFor="let a of relatedArticles; let i = index">
+        <app-article-card [article]="a"></app-article-card>
+      </ng-container>
+    </div>
+  </section>
+
   <!-- Bottom banner (half-page su desktop) -->
   <ng-container>
     <div

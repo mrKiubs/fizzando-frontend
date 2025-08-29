@@ -32,6 +32,8 @@ import { env } from '../../config/env';
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
 import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
 import { Title, Meta } from '@angular/platform-browser';
+import { ArticleService, Article } from '../../services/article.service';
+import { ArticleCardComponent } from '../../articles/article-card/article-card.component';
 
 interface ProductItem {
   title: string;
@@ -51,7 +53,8 @@ interface ProductItem {
     CocktailCardComponent,
     DevAdsComponent,
     AffiliateProductComponent,
-    NgOptimizedImage, // ✅
+    NgOptimizedImage,
+    ArticleCardComponent,
   ],
   templateUrl: './cocktail-detail.component.html',
   styleUrls: ['./cocktail-detail.component.scss'],
@@ -69,99 +72,13 @@ export class CocktailDetailComponent
   allCocktails: Cocktail[] = [];
   currentCocktailIndex = -1;
   isMobile = false;
+
+  relatedArticles: Article[] = [];
   private siteBaseUrl = '';
   private cocktailSchemaScript: HTMLScriptElement | undefined;
 
   @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
   private wheelListenerCleanup?: () => void;
-
-  // ✅ Prodotti affiliate (una sola sezione in pagina)
-  productList: ProductItem[] = [
-    {
-      title: 'Libbey Mixologist 9-Piece Cocktail Set',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/71MYEP67w2S._AC_SY879_.jpg',
-      price: '$50.00',
-      link: 'https://amzn.to/4fowM9o',
-      showPlaceholder: true,
-    },
-    {
-      title: 'Riedel Nick and Nora Cocktail Glasses, Set of 2',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/61wIAjM9apL._AC_SX522_.jpg',
-      price: '$45.00',
-      link: 'https://www.amazon.com/Riedel-Nick-Nora-Cocktail-Glasses/dp/B07R8B7L1V',
-      showPlaceholder: true,
-    },
-    {
-      title: 'YARRAMATE 8Pcs 24oz Hybrid Insulated Cocktail Shaker',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/71NZMAbpEjL._AC_SX679_.jpg',
-      price: '$24.74',
-      link: 'https://www.amazon.com/Cocktail-Codex-Fundamentals-Formulas-Evolutions/dp/1607749714',
-      showPlaceholder: true,
-    },
-    {
-      title: 'Bartesian Professional Cocktail Machine',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/81YFuyY5xVL._AC_SX679_.jpg',
-      price: '$269.99',
-      link: 'https://www.amazon.com/Bartesian-Premium-Cocktail-Machine-Drinks/dp/B07T435M1S',
-      showPlaceholder: true,
-    },
-    {
-      title: 'BARE BARREL® Mixology Bartender Kit Bar Set',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/81L4vmLO+KL._AC_SX679_.jpg',
-      price: '$39.95',
-      link: 'https://www.amazon.com/Hella-Cocktail-Co-Bitters-Variety/dp/B08V5QY3Q7',
-      showPlaceholder: true,
-    },
-  ];
-
-  // Conservata per compatibilità eventuale, ma non usata nel template
-  productListRobot: ProductItem[] = [
-    {
-      title: 'Bartesian Professional Cocktail Machine',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/71cC176W+mL._AC_SX679_.jpg',
-      price: '$50.00',
-      link: 'https://amzn.to/4fowM9o',
-      showPlaceholder: true,
-    },
-    {
-      title: 'Ninja SLUSHi with RapidChill Technology',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/71+w3aZtRjL._AC_SX679_.jpg',
-      price: '$45.00',
-      link: 'https://www.amazon.com/Riedel-Nick-Nora-Cocktail-Glasses/dp/B07R8B7L1V',
-      showPlaceholder: true,
-    },
-    {
-      title: 'U-Taste Frozen Drink Slushie Machine',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/81yHM6bY8FL._AC_SX679_.jpg',
-      price: '$24.74',
-      link: 'https://www.amazon.com/Cocktail-Codex-Fundamentals-Formulas-Evolutions/dp/1607749714',
-      showPlaceholder: true,
-    },
-    {
-      title: 'Cordless Cocktail Making Machine',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/61wQXalBIiL._AC_SX679_.jpg',
-      price: '$269.99',
-      link: 'https://www.amazon.com/Bartesian-Premium-Cocktail-Machine-Drinks/dp/B07T435M1S',
-      showPlaceholder: true,
-    },
-    {
-      title: 'bev by BLACK+DECKER Cocktail Machine and Drink Maker',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/71BVCgOXD0L._AC_SX679_.jpg',
-      price: '$39.95',
-      link: 'https://www.amazon.com/Hella-Cocktail-Co-Bitters-Variety/dp/B08V5QY3Q7',
-      showPlaceholder: true,
-    },
-  ];
 
   previousCocktail: {
     externalId: string;
@@ -190,7 +107,8 @@ export class CocktailDetailComponent
     @Inject(DOCUMENT) private document: Document,
     private titleService: Title,
     private metaService: Meta,
-    private location: Location
+    private location: Location,
+    private articleService: ArticleService
   ) {
     if (this.isBrowser) {
       this.checkScreenWidth();
@@ -268,6 +186,7 @@ export class CocktailDetailComponent
       this.loading = false;
       this.setNavigationCocktails(this.cocktail.external_id);
       this.loadSimilarCocktails();
+      this.fetchRelatedArticles();
       this.setSeoTagsAndSchema();
     } else {
       this.cocktailDetailSubscription = this.cocktailService
@@ -283,6 +202,7 @@ export class CocktailDetailComponent
             this.loading = false;
             this.setNavigationCocktails(this.cocktail.external_id);
             this.loadSimilarCocktails();
+            this.fetchRelatedArticles();
             this.setSeoTagsAndSchema();
           },
           error: () => {
@@ -335,6 +255,19 @@ export class CocktailDetailComponent
         slug: next.slug,
       };
     }
+  }
+
+  private fetchRelatedArticles(): void {
+    if (!this.cocktail?.id) {
+      this.relatedArticles = [];
+      return;
+    }
+    this.articleService
+      .getArticlesByRelatedCocktailId(this.cocktail.id, 6)
+      .subscribe({
+        next: (list) => (this.relatedArticles = list),
+        error: () => (this.relatedArticles = []),
+      });
   }
 
   goBack(): void {

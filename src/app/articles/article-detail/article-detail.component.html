@@ -1,99 +1,167 @@
 <div class="container">
-  <div *ngIf="loading" class="loading-message glass-card">
+  <div *ngIf="loading" class="loading-message">
     <p>Caricamento articolo…</p>
   </div>
-  <div *ngIf="error" class="error-message glass-card">
+
+  <div *ngIf="error" class="error-message">
     <mat-icon>error</mat-icon>
     <span>{{ error }}</span>
   </div>
 
   <ng-container *ngIf="article && !loading && !error">
-    <main class="content">
+    <main class="content" role="main">
       <article>
-        <header>
+        <header class="article-header">
           <h1>{{ article.title }}</h1>
-          <!--
-          <p
-            class="article-meta"
-            *ngIf="article.categories?.length || article.publishedAt"
-          >
-            <ng-container *ngIf="article.categories?.length">
-              Categoria:
-              <ng-container
-                *ngFor="let category of article.categories; last as isLast"
-              >
-                <a [routerLink]="['/articles/category', category.slug]">
-                  {{ category.name }}
-                </a>
-                <ng-container *ngIf="!isLast">, </ng-container>
-              </ng-container>
-            </ng-container>
-            <ng-container *ngIf="article.publishedAt">
-              <span *ngIf="article.categories?.length"> | </span> Pubblicato il
-              <time [attr.datetime]="article.publishedAt">{{
-                article.publishedAt | date : "longDate"
-              }}</time>
-            </ng-container>
-          </p>
-        --></header>
+        </header>
 
-        <figure *ngIf="article.image?.url" class="image-container">
+        <!-- HERO -->
+        <figure *ngIf="article.image?.url as heroUrl" class="image-container">
           <img
-            [src]="article.image.url"
-            [alt]="article.title || 'Immagine articolo'"
+            class="hero-image"
+            [src]="heroUrl"
+            [alt]="article.title || 'Article image'"
+            loading="eager"
+            fetchpriority="high"
           />
         </figure>
 
-        <section class="introduction">
+        <!-- INTRO -->
+        <section class="introduction" *ngIf="article.introduction">
           <p>{{ article.introduction }}</p>
         </section>
 
-        <ng-container *ngFor="let sec of article.sections">
-          <section class="section-block">
-            <h2>{{ sec.heading }}</h2>
-            <ng-container *ngFor="let block of sec.content">
-              <p *ngFor="let child of block.children">{{ child.text }}</p>
-            </ng-container>
-            <figure *ngIf="sec.image?.url" class="section-image">
-              <img [src]="sec.image?.url" [alt]="sec.heading" />
-            </figure>
-          </section>
+        <ng-container>
+          <div
+            *ngIf="isMobile"
+            class="mobile-ad-container"
+            role="complementary"
+            aria-label="Sponsored content"
+          >
+            <span class="ad-badge">Ad</span>
+            <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+          </div>
+
+          <div
+            class="ad-desktop-card"
+            *ngIf="!isMobile"
+            role="complementary"
+            aria-label="Sponsored content"
+          >
+            <span class="ad-badge">Ad</span>
+            <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+          </div>
         </ng-container>
 
-        <section class="conclusion">
+        <!-- SECTIONS -->
+        <ng-container *ngFor="let sec of article.sections ?? []; let i = index">
+          <section class="section-block">
+            <h2>{{ sec.heading }}</h2>
+
+            <ng-container *ngFor="let block of sec.content ?? []">
+              <p *ngFor="let child of block.children ?? []">
+                {{ child?.text }}
+              </p>
+            </ng-container>
+
+            <figure *ngIf="sec.image?.url as imgUrl" class="section-image">
+              <img
+                [src]="imgUrl"
+                [alt]="sec.heading || 'Section image'"
+                loading="lazy"
+              />
+            </figure>
+          </section>
+
+          <!-- AD: in-content 2 (a metà articolo, dopo la 2ª sezione) -->
+        </ng-container>
+
+        <!-- CONCLUSION -->
+        <section class="conclusion" *ngIf="article.conclusion">
           <p>{{ article.conclusion }}</p>
         </section>
+
+        <ng-container>
+          <div
+            *ngIf="isMobile"
+            class="mobile-ad-container"
+            role="complementary"
+            aria-label="Sponsored content"
+          >
+            <span class="ad-badge">Ad</span>
+            <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+          </div>
+
+          <div
+            class="ad-desktop-card"
+            *ngIf="!isMobile"
+            role="complementary"
+            aria-label="Sponsored content"
+          >
+            <span class="ad-badge">Ad</span>
+            <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+          </div>
+        </ng-container>
       </article>
 
+      <!-- RELATED COCKTAILS -->
       <section
-        *ngIf="article.related_cocktails?.length"
+        *ngIf="(article.related_cocktails?.length ?? 0) > 0"
         class="related-content"
       >
-        <h3>Cocktail Correlati</h3>
+        <h3 class="correlated">Related Cocktails</h3>
         <div class="related-items-grid">
           <app-cocktail-card
-            *ngFor="let c of article.related_cocktails"
+            *ngFor="let c of article.related_cocktails ?? []"
             [cocktail]="c"
           ></app-cocktail-card>
         </div>
       </section>
 
+      <ng-container>
+        <div
+          *ngIf="isMobile"
+          class="mobile-ad-container"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+        </div>
+
+        <div
+          class="ad-desktop-card"
+          *ngIf="!isMobile"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+        </div>
+      </ng-container>
+
       <section
-        *ngIf="article.related_ingredients?.length"
+        *ngIf="(moreFromCategory?.length ?? 0) > 0"
         class="related-content"
       >
-        <h3>Ingredienti Chiave</h3>
+        <h3 class="more-from">
+          More from {{ firstCategory?.name || "this category" }}
+        </h3>
+
         <div class="related-items-grid">
-          <app-ingredient-card
-            *ngFor="let ingredient of article.related_ingredients"
-            [ingredient]="ingredient"
-          ></app-ingredient-card>
+          <app-article-card
+            *ngFor="let a of moreFromCategory ?? []; trackBy: trackByArticleId"
+            [article]="a"
+          ></app-article-card>
         </div>
       </section>
     </main>
 
-    <aside class="sidebar">
-      <app-sidebar></app-sidebar>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" role="complementary" aria-label="Sidebar">
+      <div class="sticky">
+        <app-sidebar></app-sidebar>
+      </div>
     </aside>
   </ng-container>
 </div>
