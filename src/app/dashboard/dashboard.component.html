@@ -10,7 +10,7 @@
   </div>
 
   <div *ngIf="!loading && !error" class="dashboard-content">
-    <!-- HERO (2/3) -->
+    <!-- HERO (2/3) - testo = LCP (niente immagini qui) -->
     <section class="hero-section glass-card">
       <div class="hero-text">
         <h2>Welcome to FIZZANDO</h2>
@@ -51,19 +51,21 @@
       </div>
     </section>
 
-    <!-- RANDOM (1/3) -->
+    <!-- RANDOM (1/3) - immagine lazy, srcset/sizes -->
     <section class="random-cocktail-section glass-card" *ngIf="randomCocktail">
       <h3>Your Random Cocktail</h3>
       <div class="cocktail-display">
         <img
-          [src]="getAbsoluteImageUrl(randomCocktail.image)"
-          [alt]="randomCocktail.name"
+          [ngSrc]="getBestImageUrl(randomCocktail?.image, 360)"
+          [srcset]="getImageSrcSet(randomCocktail?.image) || null"
+          sizes="(max-width: 768px) 90vw, 360px"
+          [alt]="randomCocktail?.name || 'Random cocktail'"
           class="random-cocktail-image"
           width="360"
           height="360"
+          loading="lazy"
           decoding="async"
-          loading="eager"
-          fetchpriority="high"
+          fetchpriority="low"
         />
         <h4>{{ randomCocktail.name }}</h4>
         <p class="cocktail-category">{{ randomCocktail.category }}</p>
@@ -76,7 +78,8 @@
       </div>
     </section>
 
-    <!-- AD #1 -->
+    <!-- AD #1 (defer on viewport) -->
+    @defer (on viewport) {
     <section class="ad-block">
       <ng-container>
         <div
@@ -100,12 +103,14 @@
         </div>
       </ng-container>
     </section>
+    } @placeholder {
+    <section class="ad-block ad-skeleton" aria-hidden="true"></section>
+    }
 
     <!-- QUICK LINKS -->
     <section class="quick-links-section glass-card">
       <h3>Quick Explore</h3>
       <div class="links-grid">
-        <!-- menu-aligned routes -->
         <button class="glass-button secondary" [routerLink]="['/cocktails']">
           <mat-icon>local_bar</mat-icon> All Cocktails
         </button>
@@ -146,7 +151,7 @@
         <span class="chip-label">Popular categories:</span>
         <a
           class="chip"
-          *ngFor="let cat of topCocktailCategories"
+          *ngFor="let cat of topCocktailCategories; trackBy: trackByString"
           [routerLink]="['/cocktails']"
           [queryParams]="{ search: cat }"
         >
@@ -163,13 +168,17 @@
       </div>
       <div class="cards-grid limit-4">
         <app-cocktail-card
-          *ngFor="let c of featuredCocktails | slice : 0 : 8"
+          *ngFor="
+            let c of featuredCocktails | slice : 0 : 8;
+            trackBy: trackByCocktail
+          "
           [cocktail]="c"
         ></app-cocktail-card>
       </div>
     </section>
 
-    <!-- AD #2 -->
+    <!-- AD #2 (defer on viewport) -->
+    @defer (on viewport) {
     <section class="ad-block">
       <ng-container>
         <div
@@ -193,8 +202,12 @@
         </div>
       </ng-container>
     </section>
+    } @placeholder {
+    <section class="ad-block ad-skeleton" aria-hidden="true"></section>
+    }
 
-    <!-- LATEST INGREDIENTS -->
+    <!-- LATEST INGREDIENTS (defer: viewport) -->
+    @defer (on viewport) {
     <section class="section-block glass-card" *ngIf="latestIngredients.length">
       <div class="section-head">
         <h3>Latest Ingredients</h3>
@@ -202,13 +215,20 @@
       </div>
       <div class="cards-grid limit-4">
         <app-ingredient-card
-          *ngFor="let ing of latestIngredients"
+          *ngFor="let ing of latestIngredients; trackBy: trackByIngredient"
           [ingredient]="ing"
         ></app-ingredient-card>
       </div>
     </section>
+    } @placeholder {
+    <section
+      class="section-block glass-card skeleton"
+      aria-hidden="true"
+    ></section>
+    }
 
-    <!-- LATEST ARTICLES -->
+    <!-- LATEST ARTICLES (defer: idle) -->
+    @defer (on idle) {
     <section class="section-block glass-card" *ngIf="latestArticles.length">
       <div class="section-head">
         <h3>Latest Articles</h3>
@@ -216,14 +236,21 @@
       </div>
       <div class="cards-grid limit-4">
         <app-article-card
-          *ngFor="let a of latestArticles"
+          *ngFor="let a of latestArticles; trackBy: trackByArticle"
           [article]="a"
           [priority]="false"
         ></app-article-card>
       </div>
     </section>
+    } @placeholder {
+    <section
+      class="section-block glass-card skeleton"
+      aria-hidden="true"
+    ></section>
+    }
 
-    <!-- ARTICLES BY CATEGORY -->
+    <!-- ARTICLES BY CATEGORY (defer: viewport) -->
+    @defer (on viewport) {
     <section class="articles-by-category-section">
       <h3>Explore Articles by Category</h3>
       <div class="articles-category-grid">
@@ -235,7 +262,9 @@
           </h4>
           <p>Discover the origins and evolution behind your favorite drinks.</p>
           <ul class="category-article-list">
-            <li *ngFor="let article of historyArticles">
+            <li
+              *ngFor="let article of historyArticles; trackBy: trackByArticle"
+            >
               <a [routerLink]="['/articles', article.slug]">{{
                 article.title
               }}</a>
@@ -259,7 +288,12 @@
             Learn fundamentals and pro tips for consistently great cocktails.
           </p>
           <ul class="category-article-list">
-            <li *ngFor="let article of techniquesArticles">
+            <li
+              *ngFor="
+                let article of techniquesArticles;
+                trackBy: trackByArticle
+              "
+            >
               <a [routerLink]="['/articles', article.slug]">{{
                 article.title
               }}</a>
@@ -281,7 +315,12 @@
           </h4>
           <p>Deep-dive into spirits, liqueurs, modifiers, syrups, and more.</p>
           <ul class="category-article-list">
-            <li *ngFor="let article of ingredientsArticles">
+            <li
+              *ngFor="
+                let article of ingredientsArticles;
+                trackBy: trackByArticle
+              "
+            >
               <a [routerLink]="['/articles', article.slug]">{{
                 article.title
               }}</a>
@@ -296,5 +335,11 @@
         </div>
       </div>
     </section>
+    } @placeholder {
+    <section
+      class="articles-by-category-section skeleton"
+      aria-hidden="true"
+    ></section>
+    }
   </div>
 </div>
