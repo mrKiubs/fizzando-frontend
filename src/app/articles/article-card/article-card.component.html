@@ -1,3 +1,4 @@
+<!-- === article-card.component.html === -->
 <article class="article-card">
   <a
     class="stretched-link"
@@ -10,19 +11,15 @@
         [src]="articleImageUrl"
         [attr.srcset]="srcset || null"
         [attr.sizes]="srcset ? sizes : null"
-        [alt]="
-          article.title ||
-          'Article
-      image preview'
-        "
-        loading="lazy"
-        decoding="async"
+        [alt]="article.title || 'Article image preview'"
+        [attr.loading]="priority ? null : 'lazy'"
+        [attr.fetchpriority]="priority ? 'high' : null"
+        [attr.decoding]="priority ? null : 'async'"
       />
     </div>
 
     <div class="content">
       <h3 class="card-title">{{ article.title }}</h3>
-
       <p class="intro" [attr.title]="article.introduction || ''">
         {{ article.introduction }}
       </p>

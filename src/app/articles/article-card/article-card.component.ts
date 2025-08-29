@@ -19,41 +19,38 @@ type CardArticle = Pick<
 })
 export class ArticleCardComponent implements OnInit {
   @Input() article!: CardArticle;
+  /** Se true, questa card è candidata a LCP (prima in lista) */
+  @Input() priority = false;
 
   articleImageUrl = 'assets/images/placeholder_article.png';
-  // opzionale: per srcset responsive
   srcset = '';
-  sizes = '(max-width: 600px) 100vw, (max-width: 1024px) 50vw, 33vw';
+  // Grid: mobile 1 col (100vw), tablet 2 col (~50vw), desktop col ~239px
+  sizes = '(max-width: 600px) 100vw, (max-width: 1024px) 50vw, 239px';
 
   ngOnInit(): void {
-    // 1) se il service ha già calcolato l’URL giusto per la card, usa quello
+    // 1) Se il service ha già calcolato l’URL, usa quello
     if (this.article?.imageUrl) {
       this.articleImageUrl = this.article.imageUrl;
     } else {
-      // 2) fallback locale se arriva un Article senza imageUrl
-      const img = this.article?.image;
-      if (img) {
-        const small =
-          img.formats?.small?.url ??
-          img.formats?.thumbnail?.url ??
-          img.formats?.medium?.url ??
-          img.url;
-
-        if (small) {
-          this.articleImageUrl = small.startsWith('http')
-            ? small
-            : `${env.apiUrl}${small}`;
-        }
-      }
+      // 2) Per la card usa il formato più piccolo utile: thumbnail → small → medium → original
+      const f = (this.article?.image as any)?.formats;
+      const src =
+        f?.thumbnail?.url ??
+        f?.small?.url ??
+        f?.medium?.url ??
+        (this.article as any)?.image?.url;
+      if (src) this.articleImageUrl = this.abs(src);
     }
 
-    // 3) (opzionale) costruisco la srcset per dare al browser più scelta
-    const f = this.article?.image?.formats;
+    // 3) Srcset con larghezze REALI (w descriptor)
+    const f = (this.article?.image as any)?.formats;
     const entries: string[] = [];
-    if (f?.thumbnail?.url) entries.push(this.abs(f.thumbnail.url) + ' 245w');
-    if (f?.small?.url) entries.push(this.abs(f.small.url) + ' 500w');
-    if (f?.medium?.url) entries.push(this.abs(f.medium.url) + ' 750w');
-    // volendo puoi aggiungere anche large/original se presenti
+    if (f?.thumbnail?.url && f?.thumbnail?.width)
+      entries.push(`${this.abs(f.thumbnail.url)} ${f.thumbnail.width}w`);
+    if (f?.small?.url && f?.small?.width)
+      entries.push(`${this.abs(f.small.url)} ${f.small.width}w`);
+    if (f?.medium?.url && f?.medium?.width)
+      entries.push(`${this.abs(f.medium.url)} ${f.medium.width}w`);
     this.srcset = entries.join(', ');
   }
 

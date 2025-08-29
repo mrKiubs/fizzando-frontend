@@ -20,12 +20,15 @@
         "
       >
         <!-- 1 sola card per articolo -->
-        <app-article-card [article]="article"></app-article-card>
+        <app-article-card
+          [article]="article"
+          [priority]="i === 0"
+        ></app-article-card>
 
         <!-- Ad ogni N card (N = adEvery nel TS) -->
-        <ng-container *ngIf="(i + 1) % adEvery === 0">
+        <ng-container *ngIf="i > 0 && (i + 1) % adEvery === 0">
           <div
-            *ngIf="isMobile"
+            *ngIf="showAds && isMobile"
             class="mobile-ad-container"
             role="complementary"
             aria-label="Sponsored content"
@@ -35,7 +38,7 @@
           </div>
 
           <div
-            *ngIf="!isMobile"
+            *ngIf="showAds && !isMobile"
             class="ad-desktop-card"
             role="complementary"
             aria-label="Sponsored content"
