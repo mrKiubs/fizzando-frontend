@@ -41,7 +41,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
   relatedArticles: Article[] = []; // opzionale (non usato in grid)
   loading = false;
   error = '';
-
+  showAds = false;
   // categoria
   categorySlug: string | null = null;
   categoryName = '';
@@ -78,6 +78,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
     private metaService: Meta,
     private titleService: Title,
     private renderer: Renderer2,
+
     @Inject(DOCUMENT) private doc: Document,
     @Inject(PLATFORM_ID) platformId: Object
   ) {
@@ -89,6 +90,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
         this.siteBaseUrl = '';
       }
     }
+    this.preloadFirstCardImage();
   }
 
   private pageDescriptions: {
@@ -117,6 +119,21 @@ export class ArticleListComponent implements OnInit, OnDestroy {
       this.currentPage = parseInt(qp['page'], 10) || 1;
       this.setupHeadersAndLoad();
     });
+    this.preloadFirstCardImage();
+  }
+
+  ngAfterViewInit(): void {
+    if (!this.isBrowser) return;
+    const ric: (cb: Function) => any =
+      (window as any).requestIdleCallback ||
+      ((cb: Function) => setTimeout(cb, 1));
+
+    // Usiamo setTimeout dentro il callback così Angular (Zone.js) trigghera change detection
+    ric(() =>
+      setTimeout(() => {
+        this.showAds = true;
+      }, 0)
+    );
   }
 
   ngOnDestroy(): void {
@@ -679,5 +696,79 @@ export class ArticleListComponent implements OnInit, OnDestroy {
     return this.totalItems > 0
       ? Math.min(this.currentPage * this.pageSize, this.totalItems)
       : 0;
+  }
+
+  // in ArticleListComponent (in fondo o dove preferisci)
+  private addPreconnectToAssets(): void {
+    if (!this.isBrowser) return;
+    try {
+      const u = new URL(env.apiUrl);
+      const href = `${u.protocol}//${u.host}`;
+      const head = this.doc.head;
+      if (
+        head &&
+        !head.querySelector(`link[rel="preconnect"][href="${href}"]`)
+      ) {
+        const l = this.renderer.createElement('link');
+        this.renderer.setAttribute(l, 'rel', 'preconnect');
+        this.renderer.setAttribute(l, 'href', href);
+        this.renderer.setAttribute(l, 'crossorigin', '');
+        this.renderer.appendChild(head, l);
+      }
+    } catch {}
+  }
+
+  private preloadFirstCardImage(): void {
+    if (!this.isBrowser || !this.articles?.length) return;
+    const a = this.articles[0] as any;
+    const f = a?.image?.formats || {};
+    // prendo la più adatta per mobile/prime viewport
+    const src = (f.thumbnail?.url ||
+      f.small?.url ||
+      f.medium?.url ||
+      a?.image?.url) as string | undefined;
+    if (!src) return;
+
+    const srcAbs = src.startsWith('http') ? src : `${env.apiUrl}${src}`;
+
+    // costruisco imagesrcset (se disponibile)
+    const set: string[] = [];
+    if (f.thumbnail?.url && f.thumbnail?.width)
+      set.push(
+        `${
+          f.thumbnail.url.startsWith('http')
+            ? f.thumbnail.url
+            : env.apiUrl + f.thumbnail.url
+        } ${f.thumbnail.width}w`
+      );
+    if (f.small?.url && f.small?.width)
+      set.push(
+        `${
+          f.small.url.startsWith('http')
+            ? f.small.url
+            : env.apiUrl + f.small.url
+        } ${f.small.width}w`
+      );
+    if (f.medium?.url && f.medium?.width)
+      set.push(
+        `${
+          f.medium.url.startsWith('http')
+            ? f.medium.url
+            : env.apiUrl + f.medium.url
+        } ${f.medium.width}w`
+      );
+
+    const link = this.renderer.createElement('link');
+    this.renderer.setAttribute(link, 'rel', 'preload');
+    this.renderer.setAttribute(link, 'as', 'image');
+    this.renderer.setAttribute(link, 'href', srcAbs);
+    this.renderer.setAttribute(
+      link,
+      'imagesizes',
+      '(max-width: 600px) 100vw, (max-width: 1024px) 50vw, 239px'
+    );
+    if (set.length)
+      this.renderer.setAttribute(link, 'imagesrcset', set.join(', '));
+    this.renderer.appendChild(this.doc.head, link);
   }
 }
