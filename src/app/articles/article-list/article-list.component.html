@@ -10,6 +10,7 @@
     <h1 *ngIf="mainTitle">{{ mainTitle }}</h1>
     <p *ngIf="subTitle" class="page-description">{{ subTitle }}</p>
 
+    <!-- GRID: mostra davvero gli articles -->
     <div *ngIf="!loading && !error && articles.length > 0" class="article-grid">
       <ng-container
         *ngFor="
@@ -18,13 +19,11 @@
           trackBy: trackByArticleId
         "
       >
-        <app-article-card
-          *ngFor="let a of relatedArticles; trackBy: trackByArticleId"
-          [article]="a"
-        ></app-article-card>
+        <!-- 1 sola card per articolo -->
+        <app-article-card [article]="article"></app-article-card>
 
-        <!-- Ad ogni 7 card (configurabile da TS con adEvery) -->
-        <ng-container *ngIf="i > 0 && (i + 1) % adEvery === 0">
+        <!-- Ad ogni N card (N = adEvery nel TS) -->
+        <ng-container *ngIf="(i + 1) % adEvery === 0">
           <div
             *ngIf="isMobile"
             class="mobile-ad-container"
@@ -48,6 +47,7 @@
       </ng-container>
     </div>
 
+    <!-- Stato vuoto -->
     <div *ngIf="!loading && !error && articles.length === 0">
       No articles found.
     </div>
@@ -140,28 +140,6 @@
     </div>
   </main>
 
-  <!-- 
-  @defer (on viewport) {
-  <div
-    class="banner-container"
-    role="complementary"
-    aria-label="Sponsored content"
-  >
-    <div class="banner-content">
-      <span class="ad-badge">Ad</span>
-      <ng-container>
-        <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-        <app-dev-ads
-          *ngIf="!isMobile"
-          [type]="'large-leaderboard'"
-        ></app-dev-ads>
-      </ng-container>
-    </div>
-  </div>
-  } @placeholder {
-  <div class="banner-container placeholder" aria-hidden="true"></div>
-  }
--->
   <aside class="sidebar">
     <div class="sticky">
       <app-sidebar></app-sidebar>

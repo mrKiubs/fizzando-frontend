@@ -38,7 +38,7 @@ import { combineLatest, Subscription } from 'rxjs';
 export class ArticleListComponent implements OnInit, OnDestroy {
   // LIST DATA
   articles: Article[] = [];
-  relatedArticles: Article[] = []; // ✅ usato dal template
+  relatedArticles: Article[] = []; // opzionale (non usato in grid)
   loading = false;
   error = '';
 
@@ -130,6 +130,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
   }
 
   private checkScreenWidth(): void {
+    if (!this.isBrowser) return;
     try {
       this.isMobile = window.innerWidth <= 600;
     } catch {
@@ -188,7 +189,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
         this.articles = res.data as Article[];
         this.totalItems = res.meta?.pagination?.total ?? 0;
         this.totalPages = res.meta?.pagination?.pageCount ?? 0;
-        this.relatedArticles = this.pickRelated(this.articles, 6); // ✅ popola correlati
+        this.relatedArticles = this.pickRelated(this.articles, 6);
         this.loading = false;
         this.setSeoTagsAndSchemaList();
       },
@@ -216,7 +217,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
         this.articles = res.data as Article[];
         this.totalItems = res.meta?.pagination?.total ?? 0;
         this.totalPages = res.meta?.pagination?.pageCount ?? 0;
-        this.relatedArticles = this.pickRelated(this.articles, 6); // ✅ popola correlati
+        this.relatedArticles = this.pickRelated(this.articles, 6);
         this.loading = false;
         this.setSeoTagsAndSchemaList();
       },
@@ -238,9 +239,6 @@ export class ArticleListComponent implements OnInit, OnDestroy {
   // Sceglie i correlati dalla lista corrente (semplice: primi N diversi)
   private pickRelated(list: Article[], max = 6): Article[] {
     if (!Array.isArray(list) || list.length === 0) return [];
-    // se vuoi random: clona e mescola
-    // const shuffled = [...list].sort(() => Math.random() - 0.5);
-    // return shuffled.slice(0, max);
     return list.slice(0, Math.min(max, list.length));
   }
 
@@ -479,6 +477,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
 
     const pageAbsUrl = this.getFullSiteUrl(this.router.url);
     const itemListId = pageAbsUrl + '#itemlist';
+    const collectionId = pageAbsUrl + '#collection'; // ✅
 
     const startIndex = this.pageStart || 1;
 
@@ -492,6 +491,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
       numberOfItems: this.totalItems,
       startIndex,
       url: pageAbsUrl,
+      isPartOf: { '@id': collectionId }, // ✅ collega alla CollectionPage
       itemListElement: this.articles.map((a, i) => ({
         '@type': 'ListItem',
         position: startIndex + i,
@@ -528,13 +528,17 @@ export class ArticleListComponent implements OnInit, OnDestroy {
 
     const pageAbsUrl = this.getFullSiteUrl(this.router.url);
     const itemListId = pageAbsUrl + '#itemlist';
+    const collectionId = pageAbsUrl + '#collection';
+
     const collectionPage = {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
+      '@id': collectionId, // ✅
       name: pageTitle.replace(/ \|.*$/, ''),
       description: pageDescription,
       url: pageAbsUrl,
       mainEntity: { '@id': itemListId },
+      inLanguage: 'en', // ✅
     };
     this.renderer.appendChild(
       coll,
@@ -586,7 +590,12 @@ export class ArticleListComponent implements OnInit, OnDestroy {
     this.titleService.setTitle(title);
     this.metaService.updateTag({ name: 'description', content: description });
 
-    const canonicalAbs = this.getFullSiteUrl(this.router.url);
+    // ✅ Canonical senza ?page=1
+    const canonicalPath =
+      this.currentPage === 1
+        ? this.buildUrlWithParams({ page: null })
+        : this.buildUrlWithParams({ page: this.currentPage });
+    const canonicalAbs = this.getFullSiteUrl(canonicalPath);
     this.setCanonicalLink(canonicalAbs);
 
     const prevUrl =
