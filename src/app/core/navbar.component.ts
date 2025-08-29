@@ -32,7 +32,7 @@ import {
 import { CocktailService, Cocktail } from '../services/strapi.service';
 import { IngredientService, Ingredient } from '../services/ingredient.service';
 import { ArticleService, Article } from '../services/article.service';
-import { QuizService, Quiz } from '../services/quiz.service';
+//import { QuizService, Quiz } from '../services/quiz.service';
 import { BreadcrumbsComponent } from '../assets/design-system/breadcrumbs/breadcrumbs.component';
 
 @Component({
@@ -78,7 +78,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   liveCocktailResults: Cocktail[] = [];
   liveIngredientResults: Ingredient[] = [];
   liveArticleResults: Article[] = [];
-  liveQuizResults: Quiz[] = [];
+  //liveQuizResults: Quiz[] = [];
 
   private searchTerms = new Subject<string>();
 
@@ -92,7 +92,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private cocktailService: CocktailService,
     private ingredientService: IngredientService,
     private articleService: ArticleService,
-    private quizService: QuizService,
+    // private quizService: QuizService,
     private renderer: Renderer2
   ) {}
 
@@ -137,7 +137,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.liveCocktailResults = [];
           this.liveIngredientResults = [];
           this.liveArticleResults = [];
-          this.liveQuizResults = [];
+          //this.liveQuizResults = [];
           this.liveSearchLoading = false;
 
           if (term.length < 3 && !this.isSearchInputFocused) return of(null);
@@ -181,9 +181,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
                 })
               )
             ),
-            quizzes: this.quizService
-              .getQuizzes(1, 10, term)
-              .pipe(catchError(() => of({ quizzes: [] as Quiz[], total: 0 }))),
           }).pipe(catchError(() => of(null)));
         })
       )
@@ -193,7 +190,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.liveCocktailResults = results.cocktails;
           this.liveIngredientResults = results.ingredients.data;
           this.liveArticleResults = results.articles.data;
-          this.liveQuizResults = results.quizzes.quizzes;
+          // this.liveQuizResults = results.quizzes.quizzes;
         }
       });
   }
@@ -352,7 +349,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.liveCocktailResults = [];
     this.liveIngredientResults = [];
     this.liveArticleResults = [];
-    this.liveQuizResults = [];
+    //this.liveQuizResults = [];
     this.liveSearchLoading = false;
   }
 
