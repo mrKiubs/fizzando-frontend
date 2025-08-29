@@ -66,7 +66,7 @@ export const routes: Routes = [
     component: GlossaryListComponent,
     data: { breadcrumb: '📚 Glossary' },
   },
-
+  /*
   {
     path: 'quiz',
 
@@ -82,7 +82,7 @@ export const routes: Routes = [
       },
     ],
   },
-
+*/
   {
     path: 'articles',
     children: [
