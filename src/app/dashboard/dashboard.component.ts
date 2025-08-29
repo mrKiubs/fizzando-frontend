@@ -51,7 +51,7 @@ import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.compone
     ArticleCardComponent,
     DatePipe,
     DevAdsComponent,
-    NgOptimizedImage, // immagini ottimizzate
+    NgOptimizedImage, // import ok, non usato su questa img
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
@@ -85,7 +85,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private webpageScript?: HTMLScriptElement;
   private breadcrumbsScript?: HTMLScriptElement;
 
-  // ---- Dependency Injection via inject() ----
+  // Preload handle per l’immagine random LCP
+  private preloadRandomLink?: HTMLLinkElement;
+
+  // DI
   private cocktailService = inject(CocktailService);
   private ingredientService = inject(IngredientService);
   private articleService = inject(ArticleService);
@@ -96,7 +99,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private platformId: Object = inject(PLATFORM_ID);
   private readonly isBrowser: boolean = isPlatformBrowser(this.platformId);
   private cdr = inject(ChangeDetectorRef);
-  // ------------------------------------------
 
   constructor() {
     if (this.isBrowser) this.checkScreenWidth();
@@ -117,19 +119,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadDashboardData();
-    this.applySeo(); // base SEO
+    this.applySeo();
   }
 
   ngOnDestroy(): void {
     this.dataSubscription?.unsubscribe();
     this.cleanupSeo();
+    this.removeRandomImagePreload();
   }
 
   loadDashboardData(): void {
     this.loading = true;
     this.error = null;
 
-    // Riduciamo il carico: non 1000 ma 200 elementi per la home
     this.dataSubscription = forkJoin({
       cocktailsResponse: this.cocktailService.getCocktails(
         1,
@@ -176,7 +178,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
             techniquesArticles,
             ingredientsArticles,
           }) => {
-            // Cocktails
             this.allCocktails = cocktailsResponse.data;
             this.totalCocktails =
               cocktailsResponse.meta?.pagination?.total ??
@@ -204,9 +205,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 isTall: false,
                 isWide: false,
               };
+
+              // Preload dell’immagine che sarà LCP
+              const preloadUrl = this.getBestImageUrl(
+                this.randomCocktail.image,
+                360
+              );
+              this.addRandomImagePreload(preloadUrl);
             }
 
-            // Cocktail categories (chips)
             this.categoriesCount = this.allCocktails.reduce((acc, cocktail) => {
               const cat = (cocktail.category || 'Unknown').trim();
               acc[cat] = (acc[cat] || 0) + 1;
@@ -218,7 +225,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
               .slice(0, 6)
               .map(([name]) => name);
 
-            // Ingredients & Articles
             this.latestIngredients = ingredientsResponse.data ?? [];
             this.latestArticles = articles ?? [];
 
@@ -228,30 +234,67 @@ export class DashboardComponent implements OnInit, OnDestroy {
           }
         ),
         catchError((err) => {
-          // eslint-disable-next-line no-console
           console.error('Dashboard load error:', err);
           this.error = 'Unable to load dashboard data. Please try again later.';
           return of(null);
         }),
         finalize(() => {
           this.loading = false;
-          this.applySeo(true); // aggiorna description con conteggi
+          this.applySeo(true);
           this.cdr.markForCheck();
         })
       )
       .subscribe();
   }
 
+  // ======== Preload LCP image ========
+  private addRandomImagePreload(url: string) {
+    try {
+      if (!this.isBrowser || !url) return;
+      // rimuovi eventuale preload precedente
+      this.removeRandomImagePreload();
+      const link = this.renderer.createElement('link') as HTMLLinkElement;
+      this.renderer.setAttribute(link, 'rel', 'preload');
+      this.renderer.setAttribute(link, 'as', 'image');
+      this.renderer.setAttribute(link, 'href', url);
+      // opzionale: hint tipo immagine (se le tue sono jpg sempre)
+      const isJpg = /\.jpe?g(\?|#|$)/i.test(url);
+      const isPng = /\.png(\?|#|$)/i.test(url);
+      const isWebp = /\.webp(\?|#|$)/i.test(url);
+      if (isJpg) this.renderer.setAttribute(link, 'imagesrcset', url);
+      if (isPng) this.renderer.setAttribute(link, 'imagesrcset', url);
+      if (isWebp) this.renderer.setAttribute(link, 'imagesrcset', url);
+
+      (link as any).id = 'preload-random-image';
+      this.renderer.appendChild(this.doc.head, link);
+      this.preloadRandomLink = link;
+    } catch {
+      /* no-op */
+    }
+  }
+
+  private removeRandomImagePreload() {
+    try {
+      const prev =
+        this.preloadRandomLink ||
+        this.doc.head.querySelector<HTMLLinkElement>('#preload-random-image');
+      if (prev) {
+        this.renderer.removeChild(this.doc.head, prev);
+        this.preloadRandomLink = undefined;
+      }
+    } catch {
+      /* no-op */
+    }
+  }
+
   // ======== Immagini responsive / srcset ========
   getAbsoluteImageUrl(image: StrapiImage | null | undefined): string {
-    if (!image?.url) {
+    if (!image?.url)
       return 'https://placehold.co/360x360/e0e0e0/333333?text=No+Image';
-    }
     return image.url.startsWith('http') ? image.url : env.apiUrl + image.url;
   }
 
   getBestImageUrl(image: StrapiImage | null | undefined, fallbackWidth = 360) {
-    // Usa il formato più vicino tra quelli offerti da Strapi (thumbnail/small/medium/large)
     const formats = (image as any)?.formats || {};
     const candidates: Array<{ w: number; url: string }> = [];
     if (formats?.thumbnail?.url && formats?.thumbnail?.width)
@@ -267,7 +310,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       candidates.push({ w: formats.large.width, url: formats.large.url });
 
     if (candidates.length) {
-      // prendi il più vicino al fallbackWidth
       const best = candidates.reduce((prev, cur) =>
         Math.abs(cur.w - fallbackWidth) < Math.abs(prev.w - fallbackWidth)
           ? cur
@@ -321,7 +363,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return parts.length ? parts.join(', ') : null;
   }
 
-  // ======== trackBy per *ngFor (meno lavoro sul main-thread) ========
+  // ======== trackBy ========
   trackByCocktail = (_: number, c: Cocktail | CocktailWithLayoutAndMatch) =>
     (c as any)?.id ?? (c as any)?.slug ?? _;
   trackByIngredient = (_: number, i: Ingredient) =>
@@ -329,29 +371,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
   trackByArticle = (_: number, a: Article) =>
     (a as any)?.id ?? (a as any)?.slug ?? _;
   trackByString = (_: number, s: string) => s ?? _;
-  // ---------------- SEO / Schema.org ----------------
+
+  // ======== SEO / Schema.org ========
   private applySeo(updateDescWithCounts = false): void {
     const baseUrl =
       (this.isBrowser && typeof window !== 'undefined'
         ? window.location.origin
         : '') || '';
-
     const canonical = baseUrl ? `${baseUrl}/` : '/';
     const title = 'Fizzando — Cocktails, Ingredients & Articles';
 
     const parts: string[] = [
       'Explore cocktail recipes, ingredient profiles and practical guides',
     ];
-    if (updateDescWithCounts && this.totalCocktails > 0) {
+    if (updateDescWithCounts && this.totalCocktails > 0)
       parts.unshift(`Browse ${this.totalCocktails}+ cocktails`);
-    }
     const description = parts.join('. ') + '.';
 
-    // Title + meta
     this.title.setTitle(title);
     this.meta.updateTag({ name: 'description', content: description });
 
-    // Canonical
     const head = this.doc.head;
     let linkEl = head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!linkEl) {
@@ -361,7 +400,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     this.renderer.setAttribute(linkEl, 'href', canonical);
 
-    // OG / Twitter
     this.meta.updateTag({ property: 'og:title', content: title });
     this.meta.updateTag({ property: 'og:description', content: description });
     this.meta.updateTag({ property: 'og:url', content: canonical });
@@ -372,7 +410,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.meta.updateTag({ name: 'twitter:title', content: title });
     this.meta.updateTag({ name: 'twitter:description', content: description });
 
-    // JSON-LD
     this.injectJsonLd('website-jsonld', {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
