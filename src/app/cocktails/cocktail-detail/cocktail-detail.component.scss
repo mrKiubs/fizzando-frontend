@@ -282,7 +282,6 @@
 }
 .ai-detail-block {
   .ai-block-title {
-    font-size: 1.5rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
     margin-top: 0;
@@ -291,7 +290,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 0.25rem;
     @media (max-width: 600px) {
-      font-size: 1.5rem;
+      font-size: 18px;
     }
   }
   p {
@@ -431,7 +430,8 @@ app-cocktail-card {
   flex-direction: column;
   a {
     text-transform: uppercase;
-    font-size: 28px;
+    font-size: 22px;
+    -webkit-text-fill-color: initial;
   }
 }
 .ing-type {
@@ -555,4 +555,15 @@ app-cocktail-card {
     box-shadow: none;
     background-image: none;
   }
+}
+.related-articles-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  @media (max-width: 600px) {
+    gap: 8px;
+  }
+}
+.related-articles-section {
+  margin-top: 32px;
 }

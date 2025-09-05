@@ -95,6 +95,12 @@ p.page-subtitle {
 }
 a.ingredient-link {
   color: white !important;
+  -webkit-text-fill-color: initial;
+}
+
+.ai-block-title {
+  -webkit-text-fill-color: initial;
+  font-size: 20px;
 }
 .faq-section {
   max-width: 800px;
