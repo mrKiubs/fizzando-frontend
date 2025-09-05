@@ -160,10 +160,10 @@ export class BreadcrumbsComponent implements OnInit {
         displayText = this.slugToTitle(params['slug']);
         displayIcon = undefined;
       } else if (params['externalId']) {
-        displayText = `Dettaglio: ${params['externalId']}`;
+        displayText = `Detail: ${params['externalId']}`;
         displayIcon = undefined;
       } else if (params['id']) {
-        displayText = `Dettaglio: ${params['id']}`;
+        displayText = `Detail: ${params['id']}`;
         displayIcon = undefined;
       }
 

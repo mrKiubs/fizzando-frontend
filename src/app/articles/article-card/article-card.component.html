@@ -9,9 +9,9 @@
       <img
         class="cover"
         [src]="articleImageUrl"
-        [attr.srcset]="srcset || null"
-        [attr.sizes]="srcset ? sizes : null"
         [alt]="article.title || 'Article image preview'"
+        width="400"
+        height="400"
         [attr.loading]="priority ? null : 'lazy'"
         [attr.fetchpriority]="priority ? 'high' : null"
         [attr.decoding]="priority ? null : 'async'"

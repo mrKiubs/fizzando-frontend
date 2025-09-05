@@ -112,9 +112,9 @@
           aria-label="Cocktails results"
           *ngIf="liveCocktailResults.length"
         >
-          <h4 class="group-title">
+          <p class="group-title">
             🍸 Cocktails ({{ liveCocktailResults.length }})
-          </h4>
+          </p>
           <ul role="list">
             <li *ngFor="let cocktail of liveCocktailResults" role="listitem">
               <a
