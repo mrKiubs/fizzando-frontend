@@ -6,46 +6,25 @@
 
 /* ====== Base font stack ====== */
 :root {
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --font-display: "Bebas Neue", "Impact", "Arial Black", system-ui, sans-serif;
+  font-synthesis: none;
 }
-
 html {
   scroll-behavior: auto;
 }
 
-html,
-body {
-  font-family: var(--font-sans);
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* ====== Titoli con Bebas Neue (display) ====== */
-h1,
-h2 {
-  font-family: var(--font-display);
-  /* i tuoi valori */
-  font-weight: 600;
-  letter-spacing: 0.5px; /* Bebas gradisce un pelo di tracking */
-}
-
 /* ====== Riduzione CLS: allinea x-height tra fallback e webfont ====== */
-@supports (font-size-adjust: 1) {
-  body,
-  p,
-  .page-subtitle,
-  .cocktail-card-title,
-  .cocktail-chips-container {
-    font-size-adjust: 0.56; /* valido per Inter: base solida */
-  }
-  h1,
-  h2,
-  .hero-title {
-    font-size-adjust: 0.68; /* Bebas Neue approx; regola fine se serve */
-  }
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.cocktail-card-title,
+.ingredient-link,
+.logo-text {
+  font-family: "Bebas Neue", sans-serif;
+  letter-spacing: 2px;
 }
 
 /* ====== (Opzionale) fallback universale del “contorno” titolo cross-browser ====== */
@@ -54,7 +33,6 @@ h2 {
 /* ====== Mantieni il tuo background ====== */
 
 .page-header-container h1 {
-  font-family: var(--font-display);
   font-weight: 600;
   font-size: 34px; /* ↑ più grande su mobile */
   line-height: 38px;

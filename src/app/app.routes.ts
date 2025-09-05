@@ -17,6 +17,11 @@ import { QuizDetailComponent } from './quiz/quiz-detail/quiz-detail.component';
 import { ArticleListComponent } from './articles/article-list/article-list.component';
 import { ArticleDetailComponent } from './articles/article-detail/article-detail.component';
 
+import { PrivacyPolicyComponent } from './legal/privacy-policy/privacy-policy.component';
+import { CookiePolicyComponent } from './legal/cookie-policy/cookie-policy.component';
+import { TermsConditionsComponent } from './legal/terms-conditions/terms-conditions.component';
+import { CreditsComponent } from './legal/credits-component/credits-component.component';
+
 export const routes: Routes = [
   {
     path: '',
@@ -102,7 +107,26 @@ export const routes: Routes = [
       },
     ],
   },
-
+  {
+    path: 'privacy',
+    component: PrivacyPolicyComponent,
+    data: { breadcrumb: '🔒 Privacy Policy' },
+  },
+  {
+    path: 'cookies',
+    component: CookiePolicyComponent,
+    data: { breadcrumb: '🍪 Cookie Policy' },
+  },
+  {
+    path: 'terms',
+    component: TermsConditionsComponent,
+    data: { breadcrumb: '📄 Terms & Conditions' },
+  },
+  {
+    path: 'credits',
+    component: CreditsComponent,
+    data: { breadcrumb: '🙏 Credits' },
+  },
   // Wildcard fallback (non sempre serve breadcrumb)
   {
     path: '**',

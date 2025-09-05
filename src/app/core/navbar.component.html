@@ -1,9 +1,17 @@
 <header class="app-header" [class.scrolled]="isScrolled">
   <div class="header-content">
     <div class="logo-container">
-      <a routerLink="/" class="logo-link" (click)="closeMenu()">
-        <h1 class="logo-text">FIZZANDO</h1>
-      </a>
+      <ng-container *ngIf="isHome; else brandH2">
+        <h1 class="logo-text" [attr.data-text]="'Fizzando'">
+          <a routerLink="/" class="brand-link">Fizzando</a>
+        </h1>
+      </ng-container>
+
+      <ng-template #brandH2>
+        <div role="heading" aria-level="2" [attr.data-text]="'Fizzando'">
+          <a routerLink="/" class="logo-text">Fizzando</a>
+        </div>
+      </ng-template>
     </div>
 
     <button

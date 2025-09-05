@@ -80,6 +80,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   liveArticleResults: Article[] = [];
   //liveQuizResults: Quiz[] = [];
 
+  isHome = true;
+
   private searchTerms = new Subject<string>();
 
   private routerSubscription?: Subscription;
@@ -97,11 +99,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    const url0 = this.router.url.split('?')[0] || '/';
+    this.isHome = url0 === '/';
     this.routerSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe(() => {
         const currentUrl = this.router.url;
         const urlParts = currentUrl.split('?');
+        this.isHome = urlParts[0] === '/' || urlParts[0] === '';
         const urlParams = new URLSearchParams(urlParts[1] || '');
 
         if (urlParts[0].includes('/cocktails')) {
