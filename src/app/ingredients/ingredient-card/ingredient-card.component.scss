@@ -95,18 +95,20 @@
 }
 
 .ingredient-name {
-  font-size: 26px;
+  font-size: 24px;
+  line-height: 24px;
   font-weight: 600;
-  color: #fff;
   margin: 0;
-  line-height: 26px;
-  white-space: normal;
-  word-break: break-word;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background-image: none;
+  color: #fff;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-text-fill-color: initial;
+  white-space: normal;
+  word-break: break-word;
 }
 .ingredient-type {
   color: #cccccc80;

@@ -98,23 +98,23 @@
 
 /* default: riservo 2 righe => no CLS */
 .cocktail-card-title {
-  font-size: 38px;
+  font-size: 34px;
   line-height: 32px; /* 1.05 ≈ 40px */
   font-weight: 600;
   margin: 0;
-
+  background-image: none;
+  color: #fff;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-
+  -webkit-text-fill-color: initial;
   white-space: normal;
   word-break: break-word;
 
   /* riserva 2 righe finché il font non è pronto */
   min-height: calc(2 * 40px);
-  color: #ffffffdd;
 }
 
 /* quando i font sono caricati, togli la riserva */
