@@ -48,9 +48,9 @@ img {
 .glass-button.primary,
 .glass-button.secondary {
   border-radius: 8px;
-  padding: 0.65rem 1.1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
+  padding: 8px;
+  flex-direction: column;
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -98,6 +98,9 @@ section {
 .hero-section .hero-text {
   max-width: 720px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* Random card */
@@ -161,8 +164,10 @@ section {
   min-width: 0; /* i bottoni possono comprimersi */
 }
 .quick-links-section .links-grid .glass-button.secondary {
-  height: 88px;
+  height: 78px;
   justify-content: center;
+  line-height: 15px;
+  font-size: 15px;
 }
 .quick-links-section .category-chips {
   margin-top: var(--gap);
@@ -202,13 +207,13 @@ section {
 .section-head .link-inline {
   min-width: 0;
   max-width: 100%;
-  background-color: rgba(234, 254, 255, 0.307);
+  background-color: rgba(234, 254, 255, 0.151);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 14px;
 
   &:hover {
-    background-color: rgba(241, 244, 206, 0.588);
+    background-color: rgba(241, 244, 206, 0.299);
   }
 }
 
@@ -324,4 +329,96 @@ section {
 }
 h4 {
   font-size: 32px;
+}
+
+.cocktail-display {
+  img {
+    max-width: 260px;
+  }
+  h4 {
+    margin: 16px 0 0 0;
+    -webkit-text-fill-color: initial;
+    color: #fff;
+  }
+  p {
+    margin-bottom: 16px;
+    opacity: 0.55;
+  }
+  button {
+    margin-bottom: 8px;
+    flex-direction: row;
+    padding: 8px 16px;
+  }
+}
+.hero {
+  padding: clamp(20px, 4vw, 36px);
+
+  .hero-title {
+    font-size: clamp(28px, 4.2vw, 48px);
+    line-height: 1.05;
+    margin: 0 0 8px;
+  }
+
+  .hero-subtitle {
+    font-size: 16px;
+    text-transform: uppercase;
+    line-height: 20px;
+    color: #ffffff68;
+    margin: 0 0 12px;
+  }
+
+  .hero-blurb {
+    margin: 0 0 20px;
+    max-width: 70ch;
+  }
+
+  .hero-cta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 16px 0 20px;
+
+    .cta-chip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 14px;
+      backdrop-filter: blur(6px);
+      text-decoration: none;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      will-change: transform;
+
+      &:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.28);
+      }
+
+      mat-icon {
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      strong {
+        display: block;
+        font-weight: 700;
+      }
+      small {
+        display: block;
+        color: var(--text-secondary, #ffffff68);
+      }
+    }
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    .glass-button.ghost {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  }
 }

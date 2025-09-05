@@ -277,7 +277,7 @@ menu-toggle-button:hover {
 
 .live-search-results {
   position: absolute;
-  top: 80px;
+  top: 110px;
   left: 0;
   width: calc(100% - 32px);
   z-index: 1001;
@@ -318,13 +318,14 @@ menu-toggle-button:hover {
       -webkit-backdrop-filter: blur(2px);
       margin-bottom: 8px;
       font-size: 1.2em;
-      color: #555;
+      color: #1f1f1f;
       display: flex;
       align-items: center;
       gap: 5px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       padding: 16px 16px 8px 16px;
       box-shadow: 1px 1px 8px #00000026;
+      -webkit-text-fill-color: transparent;
     }
 
     ul {
