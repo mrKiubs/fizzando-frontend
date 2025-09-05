@@ -536,6 +536,64 @@
           </div>
         </div>
 
+        <!-- Glossary (NUOVO, ultima sezione) -->
+        <div class="menu-card glossary-card">
+          <h3>📘 Glossary</h3>
+          <ul>
+            <li>
+              <a routerLink="/glossary" (click)="closeMenu()"
+                >📘 Cocktail Glossary</a
+              >
+            </li>
+          </ul>
+
+          <h4>Explore by Category</h4>
+          <div class="filter-with-button">
+            <div class="custom-select-wrapper">
+              <label class="visually-hidden" for="glossary-category-select"
+                >Glossary category</label
+              >
+              <select
+                id="glossary-category-select"
+                [(ngModel)]="selectedGlossaryCategory"
+                class="custom-select"
+              >
+                <option
+                  value=""
+                  [attr.selected]="
+                    selectedGlossaryCategory === '' ? true : null
+                  "
+                >
+                  All Categories
+                </option>
+                <option *ngFor="let cat of glossaryCategories" [value]="cat">
+                  {{ cat }}
+                </option>
+              </select>
+              <mat-icon class="select-arrow-icon" aria-hidden="true"
+                >arrow_drop_down</mat-icon
+              >
+            </div>
+
+            <button
+              type="button"
+              class="go-button glass-button secondary"
+              [class.active]="
+                selectedGlossaryCategory !== '' &&
+                selectedGlossaryCategory !== activeGlossaryCategoryInUrl
+              "
+              (click)="goGlossaryCategory()"
+              [attr.aria-label]="
+                'Go to ' +
+                (selectedGlossaryCategory || 'All Categories') +
+                ' glossary terms'
+              "
+            >
+              Go
+            </button>
+          </div>
+        </div>
+
         <!-- Home -->
         <div class="menu-card home-card">
           <h3>🏠 Home</h3>

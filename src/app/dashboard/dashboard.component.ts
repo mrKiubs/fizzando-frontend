@@ -19,9 +19,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { forkJoin, Subscription, of } from 'rxjs';
 import { DatePipe } from '@angular/common';
-import { catchError, finalize, tap } from 'rxjs/operators';
+import { catchError, finalize, tap, map } from 'rxjs/operators';
 import { env } from '../config/env';
 import { Meta, Title } from '@angular/platform-browser';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 // Services & types
 import {
@@ -32,12 +33,34 @@ import {
 } from '../services/strapi.service';
 import { IngredientService, Ingredient } from '../services/ingredient.service';
 import { ArticleService, Article } from '../services/article.service';
+import { GlossaryCardComponent } from '../glossary/glossary-card/glossary-card.component';
+import { GlossaryTerm } from '../services/glossary.service';
 
 // Cards
 import { CocktailCardComponent } from '../cocktails/cocktail-card/cocktail-card.component';
 import { IngredientCardComponent } from '../ingredients/ingredient-card/ingredient-card.component';
 import { ArticleCardComponent } from '../articles/article-card/article-card.component';
 import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.component';
+
+interface StrapiGlossaryResponse {
+  data: Array<{
+    id: number;
+    attributes?: {
+      term?: string;
+      slug?: string;
+      category?: string;
+      description?: string;
+    };
+  }>;
+  meta: {
+    pagination: {
+      total: number;
+      page: number;
+      pageSize: number;
+      pageCount: number;
+    };
+  };
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -49,9 +72,10 @@ import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.compone
     CocktailCardComponent,
     IngredientCardComponent,
     ArticleCardComponent,
+    GlossaryCardComponent, // 👈 per le card Glossary
     DatePipe,
     DevAdsComponent,
-    NgOptimizedImage, // import ok, non usato su questa img
+    NgOptimizedImage,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
@@ -73,6 +97,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   categoriesCount: Record<string, number> = {};
   topCocktailCategories: string[] = [];
 
+  // 👇 NUOVO
+  randomGlossaryTerms: GlossaryTerm[] = [];
+
   totalCocktails = 0;
   loading = true;
   error: string | null = null;
@@ -92,6 +119,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private cocktailService = inject(CocktailService);
   private ingredientService = inject(IngredientService);
   private articleService = inject(ArticleService);
+  private http = inject(HttpClient);
   private meta = inject(Meta);
   private title = inject(Title);
   private renderer: Renderer2 = inject(Renderer2);
@@ -128,9 +156,39 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.removeRandomImagePreload();
   }
 
+  // ======== Load + Random helpers ========
+  private sampleArray<T>(arr: T[], count: number): T[] {
+    if (!Array.isArray(arr) || arr.length === 0) return [];
+    if (count >= arr.length) return [...arr];
+    // Fisher–Yates parziale
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a.slice(0, count);
+  }
+
   loadDashboardData(): void {
     this.loading = true;
     this.error = null;
+
+    // pool più ampie per randomizzare
+    const ING_POOL = 32;
+    const ART_POOL = 24;
+    const GLO_POOL = 40;
+
+    const baseUrl = (env.apiUrl || '').replace(/\/$/, '');
+    const glossaryUrl = `${baseUrl}/api/glossary-terms`;
+
+    // params per glossary
+    const glossaryParams = new HttpParams()
+      .set('pagination[pageSize]', String(GLO_POOL))
+      .set('fields[0]', 'term')
+      .set('fields[1]', 'slug')
+      .set('fields[2]', 'category')
+      .set('fields[3]', 'description')
+      .set('sort', 'term:asc'); // ordine stabile, poi campiono
 
     this.dataSubscription = forkJoin({
       cocktailsResponse: this.cocktailService.getCocktails(
@@ -144,14 +202,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ),
       ingredientsResponse: this.ingredientService.getIngredients(
         1,
-        8,
+        ING_POOL, // pool più ampia
         undefined,
         undefined,
         undefined,
         true,
         false
       ),
-      articles: this.articleService.getLatestArticles(8),
+      articlesResponse: this.articleService.getLatestArticles(ART_POOL),
       historyArticles: this.articleService.getArticlesByCategorySlug(
         'history',
         1,
@@ -167,26 +225,62 @@ export class DashboardComponent implements OnInit, OnDestroy {
         1,
         3
       ),
+      glossaryResponse: this.http
+        .get<StrapiGlossaryResponse>(glossaryUrl, { params: glossaryParams })
+        .pipe(
+          catchError((err) => {
+            console.error('Glossary fetch error (dashboard):', err);
+            return of<StrapiGlossaryResponse>({
+              data: [],
+              meta: {
+                pagination: { total: 0, page: 1, pageSize: 0, pageCount: 0 },
+              },
+            });
+          })
+        ),
     })
       .pipe(
         tap(
           ({
             cocktailsResponse,
             ingredientsResponse,
-            articles,
+            articlesResponse,
             historyArticles,
             techniquesArticles,
             ingredientsArticles,
+            glossaryResponse,
           }) => {
+            // === COCKTAILS ===
             this.allCocktails = cocktailsResponse.data;
             this.totalCocktails =
               cocktailsResponse.meta?.pagination?.total ??
               this.allCocktails.length;
 
-            this.featuredCocktails = this.allCocktails
-              .slice(0, 10)
-              .map((c) => ({ ...c, isTall: false, isWide: false }));
+            // Random cocktail (hero)
+            if (this.allCocktails.length > 0) {
+              const [picked] = this.sampleArray(this.allCocktails, 1);
+              if (picked) {
+                this.randomCocktail = {
+                  ...picked,
+                  isTall: false,
+                  isWide: false,
+                };
 
+                // Preload LCP image
+                const preloadUrl = this.getBestImageUrl(
+                  this.randomCocktail.image,
+                  360
+                );
+                this.addRandomImagePreload(preloadUrl);
+              }
+            }
+
+            // Featured (random 8 da tutta la pool)
+            this.featuredCocktails = this.sampleArray(this.allCocktails, 8).map(
+              (c) => ({ ...c, isTall: false, isWide: false })
+            );
+
+            // (Mantengo latestCocktails se ti serve altrove)
             this.latestCocktails = [...this.allCocktails]
               .sort(
                 (a, b) =>
@@ -196,24 +290,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
               .slice(0, 10)
               .map((c) => ({ ...c, isTall: false, isWide: false }));
 
-            if (this.allCocktails.length > 0) {
-              const randomIndex = Math.floor(
-                Math.random() * this.allCocktails.length
-              );
-              this.randomCocktail = {
-                ...this.allCocktails[randomIndex],
-                isTall: false,
-                isWide: false,
-              };
-
-              // Preload dell’immagine che sarà LCP
-              const preloadUrl = this.getBestImageUrl(
-                this.randomCocktail.image,
-                360
-              );
-              this.addRandomImagePreload(preloadUrl);
-            }
-
+            // Categories → top chip
             this.categoriesCount = this.allCocktails.reduce((acc, cocktail) => {
               const cat = (cocktail.category || 'Unknown').trim();
               acc[cat] = (acc[cat] || 0) + 1;
@@ -225,12 +302,39 @@ export class DashboardComponent implements OnInit, OnDestroy {
               .slice(0, 6)
               .map(([name]) => name);
 
-            this.latestIngredients = ingredientsResponse.data ?? [];
-            this.latestArticles = articles ?? [];
+            // === INGREDIENTS (random 8 dalla pool) ===
+            const ingPool = ingredientsResponse.data ?? [];
+            this.latestIngredients = this.sampleArray(ingPool, 8);
 
+            // === ARTICLES (random 8 dalla pool) ===
+            const artPool = articlesResponse ?? [];
+            this.latestArticles = this.sampleArray(artPool, 8);
+
+            // === ARTICLES per sezioni ===
             this.historyArticles = historyArticles?.data ?? [];
             this.techniquesArticles = techniquesArticles?.data ?? [];
             this.ingredientsArticles = ingredientsArticles?.data ?? [];
+
+            // === GLOSSARY (random 4) ===
+            const mappedGlossary: GlossaryTerm[] = (
+              glossaryResponse?.data ?? []
+            ).map((item) => ({
+              id: item.id,
+              term:
+                item.attributes?.term ??
+                (item as any).term ??
+                'No Term Provided',
+              slug: item.attributes?.slug ?? (item as any).slug ?? '',
+              category:
+                item.attributes?.category ??
+                (item as any).category ??
+                'Uncategorized',
+              description:
+                item.attributes?.description ??
+                (item as any).description ??
+                'No description provided.',
+            }));
+            this.randomGlossaryTerms = this.sampleArray(mappedGlossary, 4);
           }
         ),
         catchError((err) => {
@@ -251,20 +355,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private addRandomImagePreload(url: string) {
     try {
       if (!this.isBrowser || !url) return;
-      // rimuovi eventuale preload precedente
       this.removeRandomImagePreload();
       const link = this.renderer.createElement('link') as HTMLLinkElement;
       this.renderer.setAttribute(link, 'rel', 'preload');
       this.renderer.setAttribute(link, 'as', 'image');
       this.renderer.setAttribute(link, 'href', url);
-      // opzionale: hint tipo immagine (se le tue sono jpg sempre)
-      const isJpg = /\.jpe?g(\?|#|$)/i.test(url);
-      const isPng = /\.png(\?|#|$)/i.test(url);
-      const isWebp = /\.webp(\?|#|$)/i.test(url);
-      if (isJpg) this.renderer.setAttribute(link, 'imagesrcset', url);
-      if (isPng) this.renderer.setAttribute(link, 'imagesrcset', url);
-      if (isWebp) this.renderer.setAttribute(link, 'imagesrcset', url);
-
       (link as any).id = 'preload-random-image';
       this.renderer.appendChild(this.doc.head, link);
       this.preloadRandomLink = link;
@@ -371,6 +466,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   trackByArticle = (_: number, a: Article) =>
     (a as any)?.id ?? (a as any)?.slug ?? _;
   trackByString = (_: number, s: string) => s ?? _;
+  trackByGlossary = (_: number, g: GlossaryTerm) => g?.id ?? g?.slug ?? _;
 
   // ======== SEO / Schema.org ========
   private applySeo(updateDescWithCounts = false): void {

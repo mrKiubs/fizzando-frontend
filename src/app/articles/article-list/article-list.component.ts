@@ -99,12 +99,117 @@ export class ArticleListComponent implements OnInit, OnDestroy {
     'all-articles': {
       title: 'All Articles & Guides',
       description:
-        'Explore our comprehensive collection of articles and guides on the world of cocktails. Discover recipes, techniques, and insights.',
+        'Browse all cocktail articles and guides in one place. Explore recipes, techniques, history, and expert tips to elevate your drink knowledge.',
     },
     'default-category': {
       title: 'Articles & Guides',
       description:
-        'Explore articles and guides on this specific topic. Dive into detailed insights and inspiring content.',
+        'Discover articles and guides on cocktails, spirits, and mixology. Learn essential tips, expert insights, and creative ideas for every occasion.',
+    },
+    'advanced-mixology': {
+      title: 'Advanced Mixology',
+      description:
+        'Dive deep into advanced mixology. Learn cutting-edge techniques, creative flavor pairings, and professional bartender secrets.',
+    },
+    'bartending-techniques': {
+      title: 'Bartending Techniques',
+      description:
+        'Master bartending techniques with step-by-step guides. From shaking and stirring to layering, learn skills to craft perfect drinks.',
+    },
+    'best-3-cocktails': {
+      title: 'Best 3 Cocktails',
+      description:
+        'Discover the top 3 cocktails for every taste and occasion. Quick, curated picks with recipes, tips, and variations to try at home.',
+    },
+    'classic-cocktails': {
+      title: 'Classic Cocktails',
+      description:
+        'Explore timeless classic cocktails like the Martini, Negroni, and Old Fashioned. Learn recipes, origins, and how to perfect each serve.',
+    },
+    'cocktail-ingredients': {
+      title: 'Cocktail Ingredients',
+      description:
+        'Understand cocktail ingredients from spirits to syrups. Discover how flavors combine, substitutions, and must-have essentials for your bar.',
+    },
+    'cocktail-innovation': {
+      title: 'Cocktail Innovation',
+      description:
+        'Stay ahead with cocktail innovation. Explore new techniques, creative twists, and modern trends shaping the future of mixology.',
+    },
+    'drink-history': {
+      title: 'Drink History',
+      description:
+        'Uncover the fascinating history behind cocktails and spirits. Learn the stories, origins, and cultural influences of iconic drinks.',
+    },
+    'easy-cocktail-recipes': {
+      title: 'Easy Cocktail Recipes',
+      description:
+        'Find easy cocktail recipes for beginners and home bartenders. Simple, quick, and delicious drinks made with a few ingredients.',
+    },
+    'exotic-sips': {
+      title: 'Exotic Sips',
+      description:
+        'Travel the world through exotic sips. Explore rare ingredients, tropical blends, and adventurous flavors for unique cocktail experiences.',
+    },
+    'famous-aperitifs': {
+      title: 'Famous Aperitifs',
+      description:
+        'Discover famous aperitifs that open every meal in style. From Spritz to Vermouth, learn recipes and traditions of pre-dinner drinks.',
+    },
+    'food-pairings': {
+      title: 'Food Pairings',
+      description:
+        'Learn expert cocktail and food pairings. Discover how flavors complement, balance, and elevate dining experiences with the right drink.',
+    },
+    'glassware-guide': {
+      title: 'Glassware Guide',
+      description:
+        'Find the right glass for every cocktail. Our glassware guide covers styles, functions, and tips for professional-quality presentation.',
+    },
+    'home-bar-essentials': {
+      title: 'Home Bar Essentials',
+      description:
+        'Build the perfect home bar. Explore must-have tools, ingredients, and tips for creating cocktails like a professional bartender at home.',
+    },
+    'mocktails-and-zero-proof': {
+      title: 'Mocktails & Zero Proof',
+      description:
+        'Enjoy creative mocktails and zero-proof cocktails. Refreshing, flavorful, and alcohol-free drinks for every occasion.',
+    },
+    'non-alcoholic-drinks': {
+      title: 'Non-Alcoholic Drinks',
+      description:
+        'Explore non-alcoholic drinks beyond mocktails. From sodas and infusions to creative blends, discover refreshing alcohol-free options.',
+    },
+    'party-drinks': {
+      title: 'Party Drinks',
+      description:
+        'Make every party unforgettable with crowd-pleasing drinks. Explore big-batch cocktails, festive punches, and celebratory recipes.',
+    },
+    'seasonal-drinks': {
+      title: 'Seasonal Drinks',
+      description:
+        'Sip with the seasons. Discover cocktails inspired by fresh ingredients and holidays, perfect for spring, summer, autumn, and winter.',
+    },
+    'spirits-guide': {
+      title: 'Spirits Guide',
+      description:
+        'Navigate the world of spirits with our guide. Learn about vodka, gin, rum, tequila, whiskey, and how to use them in cocktails.',
+    },
+    'summer-cocktails': {
+      title: 'Summer Cocktails',
+      description:
+        'Stay cool with refreshing summer cocktails. Light, fruity, and vibrant recipes perfect for hot days and outdoor gatherings.',
+    },
+    'tropical-drinks': {
+      title: 'Tropical Drinks',
+      description:
+        'Escape to paradise with tropical drinks. Discover exotic cocktails with rum, fruit juices, and island-inspired flavors.',
+    },
+    'winter-warmers': {
+      title: 'Winter Warmers',
+      description:
+        'Cozy up with winter warmers. Explore hot cocktails, spiced blends, and comforting drinks to keep you warm all season.',
     },
   };
 
@@ -166,14 +271,14 @@ export class ArticleListComponent implements OnInit, OnDestroy {
         this.pageDescriptions['default-category'];
 
       this.mainTitle = currentInfo.title;
-      this.subTitle = `Category: ${this.categoryName} - ${currentInfo.description}`;
+      this.subTitle = `${currentInfo.description}`;
       pageTitleSuffix = ` | ${this.categoryName} Guides`;
 
       if (
         !this.pageDescriptions[this.categorySlug] &&
         this.categorySlug !== 'default-category'
       ) {
-        this.subTitle = `Category: ${this.categoryName} - Explore articles and guides on this topic.`;
+        this.subTitle = `Explore articles and guides on this topic.`;
       }
 
       this.loadArticlesByCategory(

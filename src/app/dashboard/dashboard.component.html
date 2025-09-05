@@ -402,6 +402,23 @@
     ></section>
     }
 
+    <!-- GLOSSARY (random 4) -->
+    <section
+      class="section-block glass-card"
+      *ngIf="randomGlossaryTerms.length"
+    >
+      <div class="section-head">
+        <h3>Discover Glossary Terms</h3>
+        <a class="link-inline" [routerLink]="['/glossary']">View all</a>
+      </div>
+      <div class="cards-grid limit-4">
+        <app-glossary-card
+          *ngFor="let t of randomGlossaryTerms; trackBy: trackByGlossary"
+          [term]="t"
+        ></app-glossary-card>
+      </div>
+    </section>
+
     <!-- AD #1 (defer on viewport) -->
     @defer (on viewport) {
     <section class="ad-block">
