@@ -11,41 +11,46 @@
 
   <div *ngIf="!loading && !error" class="dashboard-content">
     <!-- HERO -->
-    <section class="hero-section glass-card">
+    <section class="hero-section glass-card hero">
       <div class="hero-text">
-        <h2>Welcome to FIZZANDO</h2>
-        <p>
-          Fizzando is your modern companion for discovering, learning, and
-          mixing great drinks. From timeless classics to fresh signatures, we
-          break recipes down with clear ratios, tested tips, and bar-ready
-          technique so you can make better cocktails at home or behind the
-          stick.
-        </p>
-        <p>
-          Explore an ever-growing library of cocktails, deep ingredient
-          profiles, step-by-step tutorials, and practical buying advice. Filter
-          by base spirit, style, difficulty, or occasion; save favorites; and
-          sharpen your knowledge with in-depth articles.
+        <h2 class="hero-title">Make Better Cocktails.</h2>
+
+        <p class="hero-subtitle">
+          Fizzando is the easy way to learn recipes, master techniques, and
+          build a smarter home bar.
         </p>
 
-        <ul class="hero-links">
-          <li>
-            <a [routerLink]="['/cocktails']">Cocktails</a> — browse recipes by
-            spirit, style, or technique
-          </li>
-          <li>
-            <a [routerLink]="['/ingredients']">Ingredients</a> — understand
-            spirits, liqueurs, syrups, bitters, and more
-          </li>
-          <li>
-            <a [routerLink]="['/articles']">Articles &amp; Guides</a> — history,
-            methods, tools, and bar science
-          </li>
-        </ul>
+        <p class="hero-blurb">
+          Explore tested cocktail recipes, deep ingredient profiles, and
+          step-by-step guides. Filter by spirit, style, or occasion and start
+          mixing with confidence.
+        </p>
 
-        <button class="glass-button primary" [routerLink]="['/cocktails']">
-          Browse all Cocktails <mat-icon>arrow_forward</mat-icon>
-        </button>
+        <nav class="hero-cta" aria-label="Key destinations">
+          <a class="cta-chip" [routerLink]="['/cocktails']">
+            <mat-icon aria-hidden="true">local_bar</mat-icon>
+            <span>
+              <strong>Cocktail Recipes</strong>
+              <small>Classic to modern</small>
+            </span>
+          </a>
+
+          <a class="cta-chip" [routerLink]="['/ingredients']">
+            <mat-icon aria-hidden="true">science</mat-icon>
+            <span>
+              <strong>Ingredient Explorer</strong>
+              <small>Spirits & mixers</small>
+            </span>
+          </a>
+
+          <a class="cta-chip" [routerLink]="['/find-cocktail']">
+            <mat-icon aria-hidden="true">search</mat-icon>
+            <span>
+              <strong>Find by Ingredients</strong>
+              <small>What can I make?</small>
+            </span>
+          </a>
+        </nav>
       </div>
     </section>
 
@@ -54,10 +59,10 @@
       <h3>Your Random Cocktail</h3>
       <div class="cocktail-display">
         <img
-          [src]="getBestImageUrl(randomCocktail?.image, 360)"
-          [attr.srcset]="getImageSrcSet(randomCocktail?.image) ?? null"
+          [src]="getBestImageUrl(randomCocktail.image, 360)"
+          [attr.srcset]="getImageSrcSet(randomCocktail.image) ?? null"
           sizes="(max-width: 768px) 90vw, 360px"
-          [alt]="randomCocktail?.name || 'Random cocktail'"
+          [alt]="randomCocktail.name || 'Random cocktail'"
           class="random-cocktail-image"
           width="360"
           height="360"
@@ -103,54 +108,6 @@
     } @placeholder {
     <section class="ad-block ad-skeleton" aria-hidden="true"></section>
     }
-
-    <!-- QUICK LINKS -->
-    <section class="quick-links-section glass-card">
-      <h3>Quick Explore</h3>
-      <div class="links-grid">
-        <button class="glass-button secondary" [routerLink]="['/cocktails']">
-          <mat-icon>local_bar</mat-icon> All Cocktails
-        </button>
-        <button class="glass-button secondary" [routerLink]="['/ingredients']">
-          <mat-icon>science</mat-icon> All Ingredients
-        </button>
-        <button class="glass-button secondary" [routerLink]="['/articles']">
-          <mat-icon>article</mat-icon> All Articles
-        </button>
-        <button
-          class="glass-button secondary"
-          [routerLink]="['/find-cocktail']"
-        >
-          <mat-icon>search</mat-icon> Find by Ingredients
-        </button>
-        <button
-          class="glass-button secondary"
-          [routerLink]="['/cocktails']"
-          [queryParams]="{ alcoholic: 'Alcoholic' }"
-        >
-          <mat-icon>liquor</mat-icon> Alcoholic
-        </button>
-        <button
-          class="glass-button secondary"
-          [routerLink]="['/cocktails']"
-          [queryParams]="{ alcoholic: 'Non Alcoholic' }"
-        >
-          <mat-icon>local_drink</mat-icon> Non-Alcoholic
-        </button>
-      </div>
-
-      <div class="category-chips" *ngIf="topCocktailCategories.length">
-        <span class="chip-label">Popular categories:</span>
-        <a
-          class="chip"
-          *ngFor="let cat of topCocktailCategories; trackBy: trackByString"
-          [routerLink]="['/cocktails']"
-          [queryParams]="{ search: cat }"
-        >
-          {{ cat }}
-        </a>
-      </div>
-    </section>
 
     <!-- FEATURED COCKTAILS -->
     <section class="section-block glass-card" *ngIf="featuredCocktails.length">
@@ -218,6 +175,57 @@
     ></section>
     }
 
+    <!-- QUICK LINKS -->
+    <section class="quick-links-section glass-card">
+      <div class="section-head">
+        <h3>Quick Explore</h3>
+      </div>
+
+      <div class="links-grid">
+        <button class="glass-button secondary" [routerLink]="['/cocktails']">
+          <mat-icon>local_bar</mat-icon> All Cocktails
+        </button>
+        <button class="glass-button secondary" [routerLink]="['/ingredients']">
+          <mat-icon>science</mat-icon> All Ingredients
+        </button>
+        <button class="glass-button secondary" [routerLink]="['/articles']">
+          <mat-icon>article</mat-icon> All Articles
+        </button>
+        <button
+          class="glass-button secondary"
+          [routerLink]="['/find-cocktail']"
+        >
+          <mat-icon>search</mat-icon> Find by Ingredients
+        </button>
+        <button
+          class="glass-button secondary"
+          [routerLink]="['/cocktails']"
+          [queryParams]="{ alcoholic: 'Alcoholic' }"
+        >
+          <mat-icon>liquor</mat-icon> Alcoholic
+        </button>
+        <button
+          class="glass-button secondary"
+          [routerLink]="['/cocktails']"
+          [queryParams]="{ alcoholic: 'Non Alcoholic' }"
+        >
+          <mat-icon>local_drink</mat-icon> Non-Alcoholic
+        </button>
+      </div>
+
+      <div class="category-chips" *ngIf="topCocktailCategories.length">
+        <span class="chip-label">Popular categories:</span>
+        <a
+          class="chip"
+          *ngFor="let cat of topCocktailCategories; trackBy: trackByString"
+          [routerLink]="['/cocktails']"
+          [queryParams]="{ search: cat }"
+        >
+          {{ cat }}
+        </a>
+      </div>
+    </section>
+
     <!-- LATEST ARTICLES (defer: idle) -->
     @defer (on idle) {
     <section class="section-block glass-card" *ngIf="latestArticles.length">
@@ -238,6 +246,34 @@
       class="section-block glass-card skeleton"
       aria-hidden="true"
     ></section>
+    }
+
+    <!-- AD #1 (defer on viewport) -->
+    @defer (on viewport) {
+    <section class="ad-block">
+      <ng-container>
+        <div
+          *ngIf="isMobile"
+          class="mobile-ad-container"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+        </div>
+        <div
+          class="ad-desktop-card"
+          *ngIf="!isMobile"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+        </div>
+      </ng-container>
+    </section>
+    } @placeholder {
+    <section class="ad-block ad-skeleton" aria-hidden="true"></section>
     }
 
     <!-- ARTICLES BY CATEGORY (defer: viewport) -->
