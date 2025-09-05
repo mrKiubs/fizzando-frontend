@@ -118,11 +118,19 @@
   .accordion-content-wrapper {
     padding: 16px 8px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     flex-wrap: wrap;
     gap: 16px;
-    justify-content: center;
-    align-items: stretch;
+    justify-content: space-around;
+    align-items: end;
+    width: 100%;
+    @media (max-width: 600px) {
+      height: 230px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    //
   }
 }
 
@@ -296,7 +304,7 @@ hr {
   }
 
   @media (min-width: 1200px) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

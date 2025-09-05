@@ -1,6 +1,6 @@
 <div class="page-header-container">
   <h1>Cocktail Glossary</h1>
-  <h2>Unlock the Language of Mixology: Terms, Techniques & Definitions</h2>
+  <h2>Unlock the Language of Mixology: Terms, Techniques &amp; Definitions</h2>
   <p class="page-subtitle">
     Welcome to our comprehensive <b>Cocktail Glossary</b>! Whether you're a
     seasoned mixologist or just starting your journey, this is your go-to
@@ -11,6 +11,7 @@
   </p>
 </div>
 
+<!-- SEARCH -->
 <div class="search-bar-container">
   <div class="custom-search-input-wrapper">
     <input
@@ -19,21 +20,24 @@
       placeholder="Search terms..."
       [(ngModel)]="searchTerm"
       (input)="onSearchTermChange()"
+      aria-label="Search glossary terms"
     />
     <mat-icon
       class="clear-search-icon"
       *ngIf="searchTerm"
       (click)="clearFilters(); searchTerm = ''"
+      aria-hidden="true"
       >close</mat-icon
     >
-    <mat-icon class="search-icon">search</mat-icon>
+    <mat-icon class="search-icon" aria-hidden="true">search</mat-icon>
   </div>
 </div>
 
+<!-- FILTERS -->
 <div class="filters-accordion" [class.expanded]="isExpanded">
   <div class="accordion-header" (click)="toggleExpansion()">
     <h3 class="accordion-title">
-      <mat-icon class="accordion-icon">filter_list</mat-icon>
+      <mat-icon class="accordion-icon" aria-hidden="true">filter_list</mat-icon>
       Filters
     </h3>
     <span class="active-filters-summary" *ngIf="!isExpanded">
@@ -55,6 +59,7 @@
             [(ngModel)]="selectedCategory"
             (change)="applyFilters()"
             (click)="$event.stopPropagation()"
+            aria-label="Filter by category"
           >
             <option value="">All Categories</option>
             <option
@@ -64,13 +69,15 @@
               {{ category }}
             </option>
           </select>
-          <mat-icon class="select-arrow-icon">arrow_drop_down</mat-icon>
+          <mat-icon class="select-arrow-icon" aria-hidden="true"
+            >arrow_drop_down</mat-icon
+          >
         </div>
       </div>
 
       <div class="filter-group filter-button-row">
         <button class="glass-button secondary" (click)="clearFilters()">
-          <mat-icon>clear_all</mat-icon>
+          <mat-icon aria-hidden="true">clear_all</mat-icon>
           Clear Filters
         </button>
       </div>
@@ -79,37 +86,180 @@
 </div>
 
 <hr />
+
+<!-- STATUS -->
+<div
+  class="page-status"
+  *ngIf="!loading && !error && totalItems > 0"
+  role="status"
+  aria-live="polite"
+>
+  <span class="page-status__page"
+    >Page {{ currentPage }} of {{ totalPages }}</span
+  >
+  <span class="page-status__sep" aria-hidden="true">•</span>
+  <span class="page-status__range">
+    Showing {{ pageStart }}–{{ pageEnd }} of {{ totalItems }}
+  </span>
+</div>
+
+<!-- LOADING / ERROR -->
 <div *ngIf="loading" class="loading-message">Loading terms...</div>
 <div *ngIf="error" class="error-message">{{ error }}</div>
 
-<div class="glossary-grid-container" *ngIf="!error && terms.length > 0">
-  <app-glossary-card
-    *ngFor="let term of terms; trackBy: trackByTermId"
-    [term]="term"
-  ></app-glossary-card>
-</div>
+<!-- GRID + ADS (slot ogni adInterval) -->
 <div
-  *ngIf="!loading && !error && terms.length === 0"
+  class="glossary-grid-container"
+  *ngIf="!loading && !error && visibleTerms.length > 0"
+>
+  <ng-container
+    *ngFor="let term of visibleTerms; let i = index; trackBy: trackByTermId"
+  >
+    <app-glossary-card [term]="term"></app-glossary-card>
+
+    <!-- slot adv ogni N card -->
+    <ng-container *ngIf="i > 0 && (i + 1) % adInterval === 0">
+      <div
+        *ngIf="isMobile"
+        class="mobile-ad-container glossary-card"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
+        <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+      </div>
+
+      <div
+        class="ad-desktop-card glossary-card"
+        *ngIf="!isMobile"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
+        <app-dev-ads [type]="'square'"></app-dev-ads>
+      </div>
+    </ng-container>
+  </ng-container>
+</div>
+
+<div
+  *ngIf="!loading && !error && visibleTerms.length === 0"
   class="no-results-message"
 >
   No terms found with the selected filters.
 </div>
 
-<div class="load-more-container">
-  <div class="term-count-summary" *ngIf="!loading && totalItems > 0">
-    Showing {{ terms.length }} of {{ totalItems }} terms.
-  </div>
+<!-- PAGINATION (identico a IngredientList) -->
+<div class="pagination-container" *ngIf="!loading && totalPages > 1">
+  <div class="pagination-controls">
+    <button
+      class="glass-button secondary"
+      [disabled]="currentPage === 1"
+      (click)="goToPage(currentPage - 1)"
+      aria-label="Go to previous page"
+    >
+      Previous
+    </button>
 
-  <button
-    class="glass-button primary"
-    (click)="loadMore()"
-    *ngIf="terms.length < totalItems && !loading"
-  >
-    Load {{ nextLoadAmount }} more ({{ totalItems - terms.length }}
-    remaining)
-  </button>
+    <div class="page-numbers" role="navigation" aria-label="Pagination">
+      <!-- Prima pagina -->
+      <ng-container *ngIf="totalPages > 1">
+        <span
+          *ngIf="currentPage === 1"
+          class="page-number active"
+          aria-current="page"
+          >1</span
+        >
+        <a
+          *ngIf="currentPage !== 1"
+          [attr.href]="buildUrlWithParams({ page: 1 })"
+          class="page-number"
+          (click)="$event.preventDefault(); goToPage(1)"
+          >1</a
+        >
+      </ng-container>
+
+      <!-- Ellissi sinistra -->
+      <span *ngIf="showFirstEllipsis()" class="ellipsis" aria-hidden="true"
+        >…</span
+      >
+
+      <!-- Pagine centrali -->
+      <ng-container *ngFor="let page of getVisiblePages()">
+        <span
+          *ngIf="page === currentPage"
+          class="page-number active"
+          aria-current="page"
+          >{{ page }}</span
+        >
+        <a
+          *ngIf="page !== currentPage"
+          [attr.href]="buildUrlWithParams({ page: page })"
+          class="page-number"
+          (click)="$event.preventDefault(); goToPage(page)"
+          >{{ page }}</a
+        >
+      </ng-container>
+
+      <!-- Ellissi destra -->
+      <span *ngIf="showLastEllipsis()" class="ellipsis" aria-hidden="true"
+        >…</span
+      >
+
+      <!-- Ultima pagina -->
+      <ng-container *ngIf="totalPages > 1">
+        <span
+          *ngIf="currentPage === totalPages"
+          class="page-number active"
+          aria-current="page"
+        >
+          {{ totalPages }}
+        </span>
+        <a
+          *ngIf="currentPage !== totalPages"
+          [attr.href]="buildUrlWithParams({ page: totalPages })"
+          class="page-number"
+          (click)="$event.preventDefault(); goToPage(totalPages)"
+          >{{ totalPages }}</a
+        >
+      </ng-container>
+    </div>
+
+    <button
+      class="glass-button secondary"
+      [disabled]="currentPage === totalPages"
+      (click)="goToPage(currentPage + 1)"
+      aria-label="Go to next page"
+    >
+      Next
+    </button>
+  </div>
 </div>
 
+<!-- Blocchi adv fuori dalla lista -->
+<ng-container>
+  <div
+    *ngIf="isMobile"
+    class="mobile-ad-container"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
+    <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+  </div>
+
+  <div
+    class="ad-desktop-card"
+    *ngIf="!isMobile"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
+    <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+  </div>
+</ng-container>
+
+<!-- FEATURE BOX -->
 <div class="key-features-section">
   <h3>Why Explore Our Cocktail Glossary?</h3>
   <div class="feature-item">
@@ -142,102 +292,126 @@
   </div>
 </div>
 
-<div class="faq-section">
-  <h2>Frequently Asked Questions about the Cocktail Glossary</h2>
+<!-- FAQ + Banner laterale (identico schema IngredientList) -->
+@defer (on viewport) {
+<div class="bottom-container">
+  <div class="faq-section">
+    <h2>Frequently Asked Questions about the Cocktail Glossary</h2>
 
-  <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[0])">
-      What kind of terms can I find in the Cocktail Glossary?
-      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[0].isExpanded"
-        >expand_more</mat-icon
+    <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[0])">
+        What kind of terms can I find in the Cocktail Glossary?
+        <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[0].isExpanded"
+          >expand_more</mat-icon
+        >
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@accordionAnimation]="faqs[0].isExpanded ? 'open' : 'closed'"
       >
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@accordionAnimation]="faqs[0].isExpanded ? 'open' : 'closed'"
-    >
-      <p class="faq-answer">
-        Our Cocktail Glossary includes a wide range of terms, from common
-        cocktail ingredients and bar tools to advanced mixology techniques,
-        historical definitions, and types of drinks.
-      </p>
+        <p class="faq-answer">
+          Our Cocktail Glossary includes a wide range of terms, from common
+          cocktail ingredients and bar tools to advanced mixology techniques,
+          historical definitions, and types of drinks.
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[1])">
+        How can I search for a specific term?
+        <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[1].isExpanded"
+          >expand_more</mat-icon
+        >
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@accordionAnimation]="faqs[1].isExpanded ? 'open' : 'closed'"
+      >
+        <p class="faq-answer">
+          You can use the search bar at the top of the glossary page. Simply
+          type in the term you are looking for, and the results will filter
+          automatically as you type.
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[2])">
+        Can I filter terms by category?
+        <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[2].isExpanded"
+          >expand_more</mat-icon
+        >
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@accordionAnimation]="faqs[2].isExpanded ? 'open' : 'closed'"
+      >
+        <p class="faq-answer">
+          Yes, you can! Open the <b>"Filters"</b> section by clicking on it.
+          There's a dropdown menu for <b>"Category"</b> where you can select
+          specific categories like <b>"Techniques"</b>, <b>"Spirits"</b>,
+          <b>"Garnish"</b>, etc., to narrow down your search.
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[3])">
+        What if I can't find a term I'm looking for?
+        <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[3].isExpanded"
+          >expand_more</mat-icon
+        >
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@accordionAnimation]="faqs[3].isExpanded ? 'open' : 'closed'"
+      >
+        <p class="faq-answer">
+          While our glossary is comprehensive, it's always growing. If you can't
+          find a specific term, please visit our Contact Us page with your
+          suggestion! We're always happy to expand our resources.
+        </p>
+      </div>
+    </div>
+
+    <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
+      <h3 class="faq-question" (click)="toggleFaq(faqs[4])">
+        How often is the glossary updated?
+        <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[4].isExpanded"
+          >expand_more</mat-icon
+        >
+      </h3>
+      <div
+        class="faq-answer-wrapper"
+        [@accordionAnimation]="faqs[4].isExpanded ? 'open' : 'closed'"
+      >
+        <p class="faq-answer">
+          We regularly review and update our glossary to ensure accuracy and to
+          add new terms as they emerge in the world of cocktails. Our goal is to
+          keep it a relevant and valuable resource for all enthusiasts.
+        </p>
+      </div>
     </div>
   </div>
 
-  <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[1])">
-      How can I search for a specific term?
-      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[1].isExpanded"
-        >expand_more</mat-icon
-      >
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@accordionAnimation]="faqs[1].isExpanded ? 'open' : 'closed'"
-    >
-      <p class="faq-answer">
-        You can use the search bar at the top of the glossary page. Simply type
-        in the term you are looking for, and the results will filter
-        automatically as you type.
-      </p>
-    </div>
-  </div>
-
-  <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[2])">
-      Can I filter terms by category?
-      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[2].isExpanded"
-        >expand_more</mat-icon
-      >
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@accordionAnimation]="faqs[2].isExpanded ? 'open' : 'closed'"
-    >
-      <p class="faq-answer">
-        Yes, you can! Open the <b>"Filters"</b> section by clicking on it.
-        There's a dropdown menu for <b>"Category"</b> where you can select
-        specific categories like <b>"Techniques"</b>, <b>"Spirits"</b>,
-        <b>"Garnish"</b>, etc., to narrow down your search.
-      </p>
-    </div>
-  </div>
-
-  <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[3])">
-      What if I can't find a term I'm looking for?
-      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[3].isExpanded"
-        >expand_more</mat-icon
-      >
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@accordionAnimation]="faqs[3].isExpanded ? 'open' : 'closed'"
-    >
-      <p class="faq-answer">
-        While our glossary is comprehensive, it's always growing. If you can't
-        find a specific term, please visit our Contact Us page with your
-        suggestion! We're always happy to expand our resources.
-      </p>
-    </div>
-  </div>
-
-  <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
-    <h3 class="faq-question" (click)="toggleFaq(faqs[4])">
-      How often is the glossary updated?
-      <mat-icon class="faq-toggle-icon" [class.rotated]="faqs[4].isExpanded"
-        >expand_more</mat-icon
-      >
-    </h3>
-    <div
-      class="faq-answer-wrapper"
-      [@accordionAnimation]="faqs[4].isExpanded ? 'open' : 'closed'"
-    >
-      <p class="faq-answer">
-        We regularly review and update our glossary to ensure accuracy and to
-        add new terms as they emerge in the world of cocktails. Our goal is to
-        keep it a relevant and valuable resource for all enthusiasts.
-      </p>
+  <div
+    class="banner-container"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <div class="banner-content">
+      <span class="ad-badge">Ad</span>
+      <ng-container>
+        <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
+        <app-dev-ads *ngIf="!isMobile" [type]="'half-page'"></app-dev-ads>
+      </ng-container>
     </div>
   </div>
 </div>
+} @placeholder {
+<div class="bottom-container placeholder" aria-hidden="true">
+  <div class="faq-section skeleton"></div>
+  <div class="banner-container skeleton"></div>
+</div>
+}

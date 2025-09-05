@@ -32,7 +32,7 @@ import {
 import { CocktailService, Cocktail } from '../services/strapi.service';
 import { IngredientService, Ingredient } from '../services/ingredient.service';
 import { ArticleService, Article } from '../services/article.service';
-//import { QuizService, Quiz } from '../services/quiz.service';
+import { GlossaryService } from '../services/glossary.service'; // 👈 NUOVO
 import { BreadcrumbsComponent } from '../assets/design-system/breadcrumbs/breadcrumbs.component';
 
 @Component({
@@ -70,6 +70,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   selectedIngredientType = '';
   selectedArticleCategory = '';
 
+  // 👇 NUOVO stato per Glossary
+  selectedGlossaryCategory = '';
+  glossaryCategories: string[] = [];
+  activeGlossaryCategoryInUrl = '';
+
   activeCocktailCategoryInUrl = '';
   activeIngredientTypeInUrl = '';
   activeArticleCategoryInUrl = '';
@@ -94,13 +99,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private cocktailService: CocktailService,
     private ingredientService: IngredientService,
     private articleService: ArticleService,
-    // private quizService: QuizService,
+    private glossaryService: GlossaryService, // 👈 NUOVO
     private renderer: Renderer2
   ) {}
 
   ngOnInit(): void {
     const url0 = this.router.url.split('?')[0] || '/';
     this.isHome = url0 === '/';
+
+    // 👇 Fetch dinamico categorie Glossary
+    this.glossaryService.getCategories().subscribe({
+      next: (cats) => (this.glossaryCategories = cats || []),
+      error: () => (this.glossaryCategories = []),
+    });
+
     this.routerSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe(() => {
@@ -131,6 +143,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
         } else {
           this.selectedArticleCategory = '';
           this.activeArticleCategoryInUrl = '';
+        }
+
+        // 👇 rileva categoria attiva in /glossary
+        if (urlParts[0].includes('/glossary')) {
+          this.selectedGlossaryCategory = urlParams.get('category') || '';
+          this.activeGlossaryCategoryInUrl = this.selectedGlossaryCategory;
+        } else {
+          this.selectedGlossaryCategory = '';
+          this.activeGlossaryCategoryInUrl = '';
         }
       });
 
@@ -382,6 +403,16 @@ export class NavbarComponent implements OnInit, OnDestroy {
       : {};
     this.router
       .navigate(['/articles'], { queryParams })
+      .then(() => this.closeMenu());
+  }
+
+  // 👇 NUOVO
+  goGlossaryCategory(): void {
+    const queryParams = this.selectedGlossaryCategory
+      ? { category: this.selectedGlossaryCategory }
+      : {};
+    this.router
+      .navigate(['/glossary'], { queryParams })
       .then(() => this.closeMenu());
   }
 }
