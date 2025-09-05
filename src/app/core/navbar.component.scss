@@ -35,52 +35,76 @@
   color: #fff;
 }
 
-.logo-text {
+.logo-text,
+.menu-toggle-button {
   font-size: 32px;
   font-weight: 800;
   letter-spacing: 3px;
   line-height: 1.08;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+
+  /* testo "ritagliato" sul background */
   -webkit-background-clip: text;
   background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 
+  /* 1) gradiente colore (statico) + 2) fascia di luce (animata) */
   background-image: linear-gradient(
       110deg,
-      #ff6b6b 0%,
-      #feca57 18%,
-      #ffdd59 33%,
-      #1dd1a1 50%,
-      #54a0ff 68%,
-      #a29bfe 85%
+      #ff8c8c 0%,
+      #ffd28a 18%,
+      #fff176 33%,
+      #7de5b8 50%,
+      #82b1ff 68%,
+      #b388ff 85%
     ),
     linear-gradient(
       120deg,
       rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.65) 14%,
-      rgba(255, 255, 255, 0) 30%
+      rgba(255, 255, 255, 0) 42%,
+      rgba(255, 255, 255, 0.92) 49%,
+      rgba(255, 255, 255, 1) 50%,
+      rgba(255, 255, 255, 0.92) 51%,
+      rgba(255, 255, 255, 0) 58%,
+      rgba(255, 255, 255, 0) 100%
     );
-  background-size: 200% 100%, 200% 100%;
-  background-position: 0% 50%, -150% 50%; /* riflesso parte fuori a sinistra */
+
+  /* il colore occupa tutto, la luce è una banda più stretta e intensa */
+  background-size: 200% 100%, 250% 100%;
+  /* colore fermo, riflesso parte fuori a sinistra */
+  background-position: 0% 50%, -200% 50%;
   background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
 
-  transition: background-position 0.9s ease; /* anima anche il 2° layer */
+  /* aiuta a far "spiccare" la luce sopra i colori */
+  background-blend-mode: normal, screen;
+
+  /* leggerissimo contorno per far percepire meglio l’effetto */
+  text-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.18);
+
+  will-change: background-position;
 }
 
-.logo-text:hover {
-  background-position: 0% 50%, 150% 50%; /* sposta il riflesso a destra */
+.logo-text:hover,
+menu-toggle-button:hover {
+  animation: shine-sweep 1.1s ease-out forwards;
 }
 
-@keyframes shine {
-  0% {
-    background-position: 0% 50%, -130% 50%;
+@keyframes shine-sweep {
+  from {
+    /* colore fermo, riflesso parte tutto a SINISTRA */
+    background-position: 0% 50%, -200% 50%;
   }
-  100% {
-    background-position: 0% 50%, 130% 50%;
+  to {
+    /* colore fermo, riflesso esce tutto a DESTRA */
+    background-position: 0% 50%, 200% 50%;
+  }
+}
+
+/* opzionale: rispetta preferenza riduzione animazioni */
+@media (prefers-reduced-motion: reduce) {
+  .logo-text:hover,
+  .menu-toggle-button:hover {
+    animation: none;
   }
 }
 
