@@ -36,17 +36,6 @@ body::before {
   will-change: transform, opacity;
   transform: translateZ(0);
 }
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-.cocktail-card-title,
-.ingredient-link {
-  font-family: "Bebas Neue", sans-serif;
-  letter-spacing: 0.05em;
-}
 
 // Puoi applicare stili globali o un effetto di base qui
 
@@ -348,6 +337,7 @@ a.ingredient-link {
 html,
 body {
   overscroll-behavior-y: none;
+  font-family: "Inter", Times, serif;
 }
 * {
   -webkit-tap-highlight-color: transparent;
