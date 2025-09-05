@@ -127,8 +127,8 @@ export class ArticleDetailComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: (err) => {
-        console.error('Errore nel caricamento del dettaglio articolo:', err);
-        this.error = "Impossibile caricare i dettagli dell'articolo.";
+        console.error('Error loading article detail:', err);
+        this.error = 'Unable to load the article details.';
         this.loading = false;
       },
     });

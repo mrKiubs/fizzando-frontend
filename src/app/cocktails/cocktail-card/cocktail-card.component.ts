@@ -49,7 +49,7 @@ export class CocktailCardComponent implements OnInit {
 
   public fontsLoaded = false;
 
-  // SSR-safe: verifichiamo se siamo in browser prima di usare window
+  // SSR-safe
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
@@ -67,7 +67,6 @@ export class CocktailCardComponent implements OnInit {
         this.fontsLoaded = true;
       });
     } else if (this.isBrowser) {
-      // fallback se Font Loading API non c'è
       requestAnimationFrame(() => {
         this.fontsLoaded = true;
       });
@@ -77,17 +76,13 @@ export class CocktailCardComponent implements OnInit {
   @HostListener('click', ['$event'])
   onCardClick(event: MouseEvent): void {
     if (!this.isBrowser) return;
-
     const target = event.target as HTMLElement | null;
     const clickedLinkOrButton = !!(
       target &&
       (target.closest('a') || target.closest('button'))
     );
-
-    // Usare window solo lato browser
     const isMobile =
       typeof window !== 'undefined' ? window.innerWidth <= 768 : false;
-
     if (isMobile && !clickedLinkOrButton) {
       this.router.navigate(['/cocktails', this.cocktail.slug]);
     }
@@ -205,6 +200,7 @@ export class CocktailCardComponent implements OnInit {
     return `${cleanedBaseUrl}${cleanedUrl}`;
   }
 
+  // === CARD IMAGE (già presente) ===
   getCocktailCardImageSrcset(image: StrapiImage | null | undefined): string {
     if (!image?.formats) return '';
     const sources: string[] = [];
@@ -227,6 +223,41 @@ export class CocktailCardComponent implements OnInit {
       image.formats?.small?.url || image.formats?.thumbnail?.url || image.url;
     if (!relOrAbs) return 'assets/no-image.png';
     return this.makeAbsoluteUrl(this.apiUrl, relOrAbs);
+  }
+
+  // === NEW: thumbnail ingrediente (20x20) ===
+  getIngredientThumbUrl(ingredientName: string): string | null {
+    if (!ingredientName || !this.cocktail?.ingredients_list?.length)
+      return null;
+
+    // Prova a mappare il nome con l’oggetto ingrediente completo (se presente)
+    const found = this.cocktail.ingredients_list.find(
+      (item) =>
+        (item?.ingredient?.name || '').toLowerCase() ===
+        ingredientName.toLowerCase()
+    );
+
+    if (!found) return null;
+
+    const img: StrapiImage | string | null | undefined =
+      (found as any)?.ingredient?.image ||
+      (found as any)?.ingredient?.image_url ||
+      null;
+
+    // Varianti Strapi (preferisci thumbnail/small)
+    if (img && typeof img !== 'string') {
+      const url =
+        img.formats?.thumbnail?.url || img.formats?.small?.url || img.url;
+      return url ? this.makeAbsoluteUrl(this.apiUrl, url) : null;
+    }
+
+    // Se l’immagine è già una stringa URL
+    if (typeof img === 'string' && img) {
+      return this.makeAbsoluteUrl(this.apiUrl, img);
+    }
+
+    // Nessuna immagine trovata → non mostrare nulla
+    return null;
   }
 
   get matchedIngredientsBadgeText(): {

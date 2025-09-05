@@ -21,8 +21,11 @@
             class="hero-image"
             [src]="heroUrl"
             [alt]="article.title || 'Article image'"
+            width="325"
+            height="325"
             loading="eager"
             fetchpriority="high"
+            decoding="async"
           />
         </figure>
 
