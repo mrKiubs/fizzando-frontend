@@ -52,7 +52,9 @@
 /* La card interna */
 .cocktail-card {
   @include m.glass-card;
-
+  content-visibility: auto;
+  contain-intrinsic-size: 230px 530px;
+  contain: layout paint;
   min-height: 320px; /* usa la tua altezza media reale */
   display: grid;
   grid-template-rows: auto 1fr; /* immagine sopra, contenuto sotto */

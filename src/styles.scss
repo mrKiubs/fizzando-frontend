@@ -9,9 +9,11 @@
   font-synthesis: none;
 }
 html {
-  scroll-behavior: auto;
+  scrollbar-gutter: stable;
 }
-
+* {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
 /* ====== Riduzione CLS: allinea x-height tra fallback e webfont ====== */
 
 h1,
