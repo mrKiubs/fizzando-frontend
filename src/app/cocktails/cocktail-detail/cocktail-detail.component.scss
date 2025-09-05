@@ -264,11 +264,12 @@
 .ingredient-list li span:not(.ingredient-measure) {
   color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
-  font-size: 1.05rem;
+  font-size: 15px;
   flex-grow: 1;
   text-align: left;
   order: 1;
   z-index: 2;
+  line-height: 15px;
 }
 
 /* AI Details */
