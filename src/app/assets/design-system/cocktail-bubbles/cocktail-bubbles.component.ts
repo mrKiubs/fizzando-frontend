@@ -22,7 +22,6 @@ interface Bubble {
 @Component({
   selector: 'app-cocktail-bubbles',
   standalone: true,
-  host: { ngSkipHydration: 'true' },
   templateUrl: './cocktail-bubbles.component.html',
   styleUrls: ['./cocktail-bubbles.component.scss'],
   imports: [CommonModule],

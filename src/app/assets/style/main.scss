@@ -336,11 +336,9 @@ a.ingredient-link {
 }
 
 .app-main {
-  min-height: 100dvh;
-  contain: layout paint;
-  backface-visibility: hidden;
-  will-change: transform, opacity;
   padding: 16px;
+  z-index: 2;
+  position: relative;
 
   @media (max-width: 767px) {
     padding: 16px 8px;

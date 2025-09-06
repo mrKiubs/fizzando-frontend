@@ -13,38 +13,6 @@
 }
 
 /* Base Glass Card Styles */
-.glass-card {
-  background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-  padding: 16px;
-  color: #fff;
-  width: 100%;
-  box-sizing: border-box;
-  @media (max-width: 600px) {
-    padding: 8px;
-  }
-}
-
-/* Mini Glass Card */
-.glass-card-mini {
-  background-color: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  @media (max-width: 600px) {
-    padding: 8px;
-  }
-}
 
 /* Glass Button */
 .glass-button {
