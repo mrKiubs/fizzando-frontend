@@ -157,8 +157,6 @@ section {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--gap);
-  content-visibility: auto;
-  contain-intrinsic-size: 300px;
 }
 .quick-links-section .links-grid > * {
   min-width: 0; /* i bottoni possono comprimersi */
@@ -186,8 +184,6 @@ section {
 .cards-grid {
   display: grid;
   gap: var(--gap);
-  content-visibility: auto;
-  contain-intrinsic-size: 600px;
 }
 .cards-grid.limit-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -222,8 +218,6 @@ section {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--gap);
-  content-visibility: auto;
-  contain-intrinsic-size: 800px;
 }
 .category-card {
   display: flex;
