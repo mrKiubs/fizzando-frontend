@@ -72,7 +72,7 @@ interface StrapiGlossaryResponse {
     CocktailCardComponent,
     IngredientCardComponent,
     ArticleCardComponent,
-    GlossaryCardComponent, // 👈 per le card Glossary
+    GlossaryCardComponent,
     DatePipe,
     DevAdsComponent,
     NgOptimizedImage,
@@ -475,7 +475,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         ? window.location.origin
         : '') || '';
     const canonical = baseUrl ? `${baseUrl}/` : '/';
-    const title = 'Fizzando — Cocktails, Ingredients & Articles';
+    const title = 'Fizzando — Make Better Cocktails';
 
     const parts: string[] = [
       'Explore cocktail recipes, ingredient profiles and practical guides',

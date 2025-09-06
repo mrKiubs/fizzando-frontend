@@ -57,9 +57,9 @@
         {{ getIngredientNameById(id) }}
         <mat-icon
           class="chip-remove-icon"
+          svgIcon="close"
           (click)="toggleIngredientSelection(id)"
-          fontSet="material-icons"
-          fontIcon="close"
+          aria-label="Remove ingredient"
         ></mat-icon>
       </div>
     </div>
@@ -69,8 +69,7 @@
       class="glass-button secondary clear-all-button"
       (click)="clearSelectedIngredients()"
     >
-      <mat-icon fontSet="material-icons" fontIcon="clear_all"></mat-icon> Clear
-      All
+      <mat-icon svgIcon="clear_all" aria-hidden="true"></mat-icon> Clear All
     </button>
   </div>
 
