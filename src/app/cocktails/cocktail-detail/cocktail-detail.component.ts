@@ -589,7 +589,7 @@ export class CocktailDetailComponent
         },
         cocktail.ai_alcohol_content && {
           '@type': 'Comment',
-          text: `Alcohol Content: ${cocktail.ai_alcohol_content}`,
+          text: `Alcohol Content: ~${cocktail.ai_alcohol_content}`,
         },
       ].filter(Boolean),
       mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
