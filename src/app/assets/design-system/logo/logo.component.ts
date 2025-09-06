@@ -14,7 +14,7 @@ type LogoSize = 'sm' | 'md' | 'lg';
 })
 export class LogoComponent {
   @Input() text = 'Fizzando';
-  @Input() tagline = 'Make Better Cocktail'; // opzionale; rimuovi se non ti serve
+  @Input() tagline = 'Make Better Cocktails'; // opzionale; rimuovi se non ti serve
   @Input() size: LogoSize = 'md';
   @Input() isHome = false; // <-- H1 in home, H2 altrove
   @Input() homeLink: string | any[] = ['/']; // path del link alla home
