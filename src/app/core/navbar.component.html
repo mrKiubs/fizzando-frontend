@@ -1,6 +1,6 @@
 <header class="app-header" [class.scrolled]="isScrolled">
   <div class="header-content">
-    <app-logo></app-logo>
+    <app-logo (click)="closeMenu()"></app-logo>
 
     <button
       #menuToggle
