@@ -108,33 +108,51 @@
   </div>
 </div>
 
-<!-- AD TOP -->
-<ng-container>
-  <div
-    *ngIf="isMobile"
-    class="mobile-ad-container"
-    role="complementary"
-    aria-label="Sponsored content"
-  >
-    <span class="ad-badge">Ad</span>
-    <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
-  </div>
+<!-- STATUS ALERT (just below search, before <hr>) -->
+<!-- STATUS ALERT (green, bouncing arrows) -->
+<div
+  *ngIf="!error && selectedIngredientIds.length > 0"
+  class="results-alert success bouncy"
+  role="status"
+  aria-live="polite"
+>
+  <ng-container *ngIf="loadingCocktails; else countsLoaded">
+    <mat-icon
+      class="status-icon spinner"
+      svgIcon="search"
+      aria-hidden="true"
+    ></mat-icon>
+    <span>Searching cocktails…</span>
+  </ng-container>
 
-  <div
-    class="ad-desktop-card"
-    *ngIf="!isMobile"
-    role="complementary"
-    aria-label="Sponsored content"
-  >
-    <span class="ad-badge">Ad</span>
-    <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
-  </div>
-</ng-container>
+  <ng-template #countsLoaded>
+    <div class="arrows">
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+    </div>
+
+    <span class="status-text">
+      <b>{{ perfectMatchCocktails.length }}</b>
+      {{
+        perfectMatchCocktails.length === 1 ? "perfect match" : "perfect matches"
+      }}
+      found — <b>{{ partialMatchCocktails.length }}</b>
+      {{
+        partialMatchCocktails.length === 1 ? "partial match" : "partial matches"
+      }}
+      found
+    </span>
+
+    <div class="arrows">
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+    </div>
+  </ng-template>
+</div>
 
 <hr />
-
-<div *ngIf="loadingCocktails" class="loading-message">Loading cocktails...</div>
-<div *ngIf="error" class="error-message">{{ error }}</div>
 
 <!-- RISULTATI -->
 <ng-container
