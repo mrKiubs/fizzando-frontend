@@ -6,7 +6,6 @@
   height: 100%;
   overflow: hidden; /* Nasconde le bollicine una volta fuori dalla viewport */
   pointer-events: none;
-  z-index: -2;
 }
 
 .bubble {
@@ -51,4 +50,10 @@
       translateX(calc(var(--spiral-amplitude) * 0.5)) scale(1.1);
     /* L'opacità è sempre 1, non viene modificata qui */
   }
+}
+/* il componente intero come overlay della viewport */
+:host {
+  position: fixed;
+  inset: 0; /* top/right/bottom/left: 0 */
+  pointer-events: none; /* non blocca i click sulla pagina */
 }
