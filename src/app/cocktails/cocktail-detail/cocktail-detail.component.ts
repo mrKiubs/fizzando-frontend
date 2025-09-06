@@ -17,7 +17,7 @@ import {
   DOCUMENT,
   isPlatformBrowser,
   Location,
-  NgOptimizedImage, // ✅ per ottimizzare l'LCP image
+  NgOptimizedImage, // ✅ LCP image
 } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import {
@@ -74,6 +74,7 @@ export class CocktailDetailComponent
   isMobile = false;
 
   relatedArticles: Article[] = [];
+  /** ✅ Preferisci env.siteUrl in SSR per canonical assoluto */
   private siteBaseUrl = '';
   private cocktailSchemaScript: HTMLScriptElement | undefined;
 
@@ -86,12 +87,14 @@ export class CocktailDetailComponent
     imageUrl: string;
     slug: string;
   } | null = null;
+
   nextCocktail: {
     externalId: string;
     name: string;
     imageUrl: string;
     slug: string;
   } | null = null;
+
   similarCocktails: CocktailWithLayoutAndMatch[] = [];
 
   private routeSubscription?: Subscription;
@@ -110,17 +113,55 @@ export class CocktailDetailComponent
     private location: Location,
     private articleService: ArticleService
   ) {
-    if (this.isBrowser) {
-      this.checkScreenWidth();
+    // 🔗 Base URL per canonical/preload: in SSR usa env.siteUrl se presente
+    if (env && (env as any).siteUrl) {
+      this.siteBaseUrl = (env as any).siteUrl;
+    } else if (this.isBrowser) {
       this.siteBaseUrl = window.location.origin;
     } else {
-      this.siteBaseUrl = '';
+      this.siteBaseUrl = ''; // fallback relativo in SSR se non configurato
     }
+
+    if (this.isBrowser) {
+      this.checkScreenWidth();
+    }
+  }
+
+  // ========== Lifecycle ==========
+  ngOnInit(): void {
+    // ✅ Se in futuro usi un Route Resolver, sfrutta lo snapshot SSR-safe
+    const resolved = this.route.snapshot.data['cocktail'] as Cocktail | null;
+    if (resolved) {
+      this.cocktail = resolved;
+      this.loading = false;
+      this.setSeoTagsAndSchema(); // <-- description & co. subito disponibili in SSR
+      this.loadSimilarCocktails();
+      this.fetchRelatedArticles();
+    }
+
+    // Carica elenco per prev/next (e per fallback client se nessun resolver)
+    this.allCocktailsSubscription = this.cocktailService
+      .getCocktails(1, 1000)
+      .subscribe({
+        next: (response) => {
+          this.allCocktails = response.data.sort((a, b) =>
+            a.name.localeCompare(b.name)
+          );
+          if (this.cocktail) {
+            this.setNavigationCocktails(this.cocktail.external_id);
+          }
+          // Mantieni la subscribe alle route params per navigazioni client-side
+          this.subscribeToRouteParams(!resolved);
+        },
+        error: () => {
+          this.error = 'Could not load all cocktails for navigation.';
+          this.subscribeToRouteParams(!resolved);
+        },
+      });
   }
 
   ngAfterViewInit(): void {
     if (!this.isBrowser || !this.affiliateCardList) return;
-
     const listElement = this.affiliateCardList.nativeElement as HTMLElement;
 
     // Scorrimento orizzontale con wheel fuori da Angular
@@ -136,23 +177,6 @@ export class CocktailDetailComponent
     });
   }
 
-  ngOnInit(): void {
-    this.allCocktailsSubscription = this.cocktailService
-      .getCocktails(1, 1000)
-      .subscribe({
-        next: (response) => {
-          this.allCocktails = response.data.sort((a, b) =>
-            a.name.localeCompare(b.name)
-          );
-          this.subscribeToRouteParams();
-        },
-        error: () => {
-          this.error = 'Could not load all cocktails for navigation.';
-          this.subscribeToRouteParams();
-        },
-      });
-  }
-
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
     this.allCocktailsSubscription?.unsubscribe();
@@ -162,15 +186,24 @@ export class CocktailDetailComponent
     this.cleanupSeo();
   }
 
-  private subscribeToRouteParams(): void {
+  // ========== Routing/Data ==========
+  private subscribeToRouteParams(shouldHandleFirst = true): void {
     this.routeSubscription = this.route.paramMap.subscribe((params) => {
-      const cocktailSlug = params.get('slug');
-      if (cocktailSlug) {
-        this.loadCocktailDetail(cocktailSlug);
-      } else {
+      const slug = params.get('slug');
+
+      if (!slug) {
         this.error = 'Cocktail slug not found.';
         this.loading = false;
+        return;
       }
+
+      // Se abbiamo già risolto al primo giro e il primo slug combacia, salta il doppio caricamento
+      if (!shouldHandleFirst) {
+        shouldHandleFirst = true; // attiva gestioni successive
+        return;
+      }
+
+      this.loadCocktailDetail(slug);
     });
   }
 
@@ -180,37 +213,38 @@ export class CocktailDetailComponent
     this.similarCocktails = [];
     this.cleanupSeo();
 
-    const cachedCocktail = this.allCocktails.find((c) => c.slug === slug);
-    if (cachedCocktail) {
-      this.cocktail = cachedCocktail;
+    const cached = this.allCocktails.find((c) => c.slug === slug);
+    if (cached) {
+      this.cocktail = cached;
       this.loading = false;
       this.setNavigationCocktails(this.cocktail.external_id);
       this.loadSimilarCocktails();
       this.fetchRelatedArticles();
-      this.setSeoTagsAndSchema();
-    } else {
-      this.cocktailDetailSubscription = this.cocktailService
-        .getCocktailBySlug(slug)
-        .subscribe({
-          next: (res: Cocktail | null) => {
-            if (!res) {
-              this.error = 'Cocktail not found.';
-              this.loading = false;
-              return;
-            }
-            this.cocktail = res;
-            this.loading = false;
-            this.setNavigationCocktails(this.cocktail.external_id);
-            this.loadSimilarCocktails();
-            this.fetchRelatedArticles();
-            this.setSeoTagsAndSchema();
-          },
-          error: () => {
-            this.error = 'Could not load cocktail details from API.';
-            this.loading = false;
-          },
-        });
+      this.setSeoTagsAndSchema(); // ✅ aggiorna head
+      return;
     }
+
+    this.cocktailDetailSubscription = this.cocktailService
+      .getCocktailBySlug(slug)
+      .subscribe({
+        next: (res: Cocktail | null) => {
+          if (!res) {
+            this.error = 'Cocktail not found.';
+            this.loading = false;
+            return;
+          }
+          this.cocktail = res;
+          this.loading = false;
+          this.setNavigationCocktails(this.cocktail.external_id);
+          this.loadSimilarCocktails();
+          this.fetchRelatedArticles();
+          this.setSeoTagsAndSchema(); // ✅ aggiorna head
+        },
+        error: () => {
+          this.error = 'Could not load cocktail details from API.';
+          this.loading = false;
+        },
+      });
   }
 
   loadSimilarCocktails(): void {
@@ -232,11 +266,14 @@ export class CocktailDetailComponent
 
   setNavigationCocktails(currentExternalId: string): void {
     if (!this.allCocktails?.length) return;
+
     this.currentCocktailIndex = this.allCocktails.findIndex(
       (c) => c.external_id === currentExternalId
     );
+
     this.previousCocktail = null;
     this.nextCocktail = null;
+
     if (this.currentCocktailIndex > 0) {
       const prev = this.allCocktails[this.currentCocktailIndex - 1];
       this.previousCocktail = {
@@ -270,6 +307,7 @@ export class CocktailDetailComponent
       });
   }
 
+  // ========== UI helpers ==========
   goBack(): void {
     this.location.back();
   }
@@ -301,7 +339,7 @@ export class CocktailDetailComponent
     this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
   }
 
-  /** ✅ Uniforme al listato: 1 ad ogni 6 card (evita ad finale “di coda”) */
+  /** ✅ Uniforme al listato: 1 ad ogni 6 card (evita ad “di coda”) */
   getCocktailsAndAds(): any[] {
     const items: any[] = [];
     const len = this.similarCocktails.length;
@@ -322,33 +360,51 @@ export class CocktailDetailComponent
     return `${this.siteBaseUrl}${path}`;
   }
 
+  // ========== SEO ==========
   private setSeoTagsAndSchema(): void {
     if (!this.cocktail) return;
 
     const cocktailName = this.cocktail.name;
-    const cocktailDescription =
-      this.cocktail.ai_description || this.cocktail.instructions;
+
+    // ✅ Sanitize + lunghezza “umana” per SSR/SEO
+    const cocktailDescription = (
+      this.cocktail.ai_description ||
+      this.cocktail.instructions ||
+      ''
+    )
+      .replace(/<[^>]*>/g, '') // togli HTML eventuale
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 180); // ~160-180 char
+
     const cocktailImageUrl = this.getCocktailImageUrl(this.cocktail); // ✅ hero LCP
     const cocktailUrl = this.getFullSiteUrl(this.router.url);
 
+    // <title>
     this.titleService.setTitle(`${cocktailName} | Fizzando`);
-    this.metaService.updateTag({
-      name: 'description',
-      content: cocktailDescription,
-    });
 
+    // ✅ Description: rimuovi, poi update con selettore (SSR-safe)
+    this.metaService.removeTag("name='description'");
+    this.metaService.updateTag(
+      { name: 'description', content: cocktailDescription },
+      "name='description'"
+    );
+
+    // canonical assoluto se possibile
+    const canonicalHref = cocktailUrl || this.router.url;
     const canonicalTag: HTMLLinkElement | null = this.document.querySelector(
       'link[rel="canonical"]'
     );
     if (canonicalTag) {
-      canonicalTag.setAttribute('href', cocktailUrl);
+      canonicalTag.setAttribute('href', canonicalHref);
     } else {
       const linkTag = this.renderer.createElement('link');
       this.renderer.setAttribute(linkTag, 'rel', 'canonical');
-      this.renderer.setAttribute(linkTag, 'href', cocktailUrl);
+      this.renderer.setAttribute(linkTag, 'href', canonicalHref);
       this.renderer.appendChild(this.document.head, linkTag);
     }
 
+    // Open Graph
     this.metaService.updateTag({ property: 'og:title', content: cocktailName });
     this.metaService.updateTag({
       property: 'og:description',
@@ -358,13 +414,14 @@ export class CocktailDetailComponent
       property: 'og:image',
       content: cocktailImageUrl,
     });
-    this.metaService.updateTag({ property: 'og:url', content: cocktailUrl });
+    this.metaService.updateTag({ property: 'og:url', content: canonicalHref });
     this.metaService.updateTag({ property: 'og:type', content: 'article' });
     this.metaService.updateTag({
       property: 'og:site_name',
       content: 'Fizzando',
     });
 
+    // Twitter
     this.metaService.updateTag({
       name: 'twitter:card',
       content: 'summary_large_image',
@@ -407,6 +464,7 @@ export class CocktailDetailComponent
     if (!this.cocktail) return;
     this.cleanupJsonLd();
 
+    const schema = this.generateCocktailSchema(this.cocktail);
     this.cocktailSchemaScript = this.renderer.createElement('script');
     this.renderer.setAttribute(
       this.cocktailSchemaScript,
@@ -420,14 +478,14 @@ export class CocktailDetailComponent
     );
     this.renderer.appendChild(
       this.cocktailSchemaScript,
-      this.renderer.createText(
-        JSON.stringify(this.generateCocktailSchema(this.cocktail))
-      )
+      this.renderer.createText(JSON.stringify(schema))
     );
     this.renderer.appendChild(this.document.head, this.cocktailSchemaScript);
   }
 
   private cleanupSeo(): void {
+    // ✅ pulizia completa (inclusa description)
+    this.metaService.removeTag("name='description'");
     this.metaService.removeTag("property='og:title'");
     this.metaService.removeTag("property='og:description'");
     this.metaService.removeTag("property='og:image'");
@@ -467,7 +525,11 @@ export class CocktailDetailComponent
       '@type': 'Recipe',
       name: cocktail.name,
       image: [imageUrl],
-      description: cocktail.ai_description || cocktail.instructions,
+      description: (cocktail.ai_description || cocktail.instructions || '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 300),
       author: { '@type': 'Organization', name: 'Fizzando' },
       datePublished: cocktail.createdAt,
       recipeCategory: cocktail.category || 'Cocktail',
@@ -475,7 +537,9 @@ export class CocktailDetailComponent
       keywords: [
         cocktail.category,
         cocktail.alcoholic,
-        ...cocktail.ingredients_list.map((i: any) => i.ingredient.name),
+        ...(cocktail.ingredients_list || []).map(
+          (i: any) => i.ingredient?.name
+        ),
       ]
         .filter(Boolean)
         .join(', '),
@@ -485,11 +549,14 @@ export class CocktailDetailComponent
         '@type': 'NutritionInformation',
         calories: 'Approx 180 calories',
       },
-      recipeIngredient: cocktail.ingredients_list.map((i: any) =>
-        i.measure ? `${i.measure} ${i.ingredient.name}` : i.ingredient.name
+      recipeIngredient: (cocktail.ingredients_list || []).map((i: any) =>
+        i.measure ? `${i.measure} ${i.ingredient?.name}` : i.ingredient?.name
       ),
       recipeInstructions: [
-        { '@type': 'HowToStep', text: cocktail.instructions },
+        {
+          '@type': 'HowToStep',
+          text: (cocktail.instructions || '').replace(/\s+/g, ' ').trim(),
+        },
       ],
       comment: [
         cocktail.ai_pairing && {
