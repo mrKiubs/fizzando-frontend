@@ -1,0 +1,93 @@
+:host {
+  display: inline-block;
+}
+
+.logo {
+  /* dimensioni base */
+  &.size-sm {
+    --logo-fs: 24px;
+    --tag-fs: 11px;
+  }
+  &.size-md {
+    --logo-fs: 32px;
+    --tag-fs: 12px;
+  }
+  &.size-lg {
+    --logo-fs: 40px;
+    --tag-fs: 13px;
+  }
+
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: inherit; /* per la tagline */
+}
+a {
+  height: 100%;
+  display: inline-block;
+}
+
+/* === TITOLO con gradiente + riflesso (tua logica) === */
+.logo-text {
+  height: 25px;
+  font-size: 34px;
+  /* font-weight: 100; */
+  letter-spacing: 3px;
+  line-height: 30px;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(
+      110deg,
+      #ff8c8c 0%,
+      #ffd28a 18%,
+      #fff176 33%,
+      #7de5b8 50%,
+      #82b1ff 68%,
+      #b388ff 85%
+    ),
+    linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0) 42%,
+      rgba(255, 255, 255, 0.92) 49%,
+      rgb(255, 255, 255) 50%,
+      rgba(255, 255, 255, 0.92) 51%,
+      rgba(255, 255, 255, 0) 58%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  background-size: 200% 100%, 250% 100%;
+  background-position: 0% 50%, -200% 50%;
+  background-repeat: no-repeat;
+  background-blend-mode: normal, screen;
+  text-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.18);
+  will-change: background-position;
+}
+
+/* hover: sweep della luce */
+.logo-text:hover {
+  animation: shine-sweep 1.1s ease-out forwards;
+}
+
+@keyframes shine-sweep {
+  from {
+    background-position: 0% 50%, -200% 50%;
+  }
+  to {
+    background-position: 0% 50%, 200% 50%;
+  }
+}
+
+/* Tagline */
+.logo-tagline {
+  /* font-size: var(--tag-fs, 12px); */
+  letter-spacing: 0;
+  line-height: 1;
+  opacity: 0.3;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: floralwhite;
+  font-family: "Bebas Neue", sans-serif;
+  text-shadow: 1px 1px 2px black;
+}

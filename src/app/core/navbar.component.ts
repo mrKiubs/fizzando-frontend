@@ -34,6 +34,7 @@ import { IngredientService, Ingredient } from '../services/ingredient.service';
 import { ArticleService, Article } from '../services/article.service';
 import { GlossaryService } from '../services/glossary.service'; // 👈 NUOVO
 import { BreadcrumbsComponent } from '../assets/design-system/breadcrumbs/breadcrumbs.component';
+import { LogoComponent } from '../assets/design-system/logo/logo.component';
 
 @Component({
   selector: 'app-navbar',
@@ -45,6 +46,7 @@ import { BreadcrumbsComponent } from '../assets/design-system/breadcrumbs/breadc
     MatIconModule,
     RouterModule,
     BreadcrumbsComponent,
+    LogoComponent,
   ],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
