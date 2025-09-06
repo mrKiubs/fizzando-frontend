@@ -19,6 +19,12 @@
     [value]="searchTerm()"
     (input)="onSearchInput($event)"
     aria-label="Search cocktails by name"
+    autocomplete="off"
+    autocorrect="off"
+    autocapitalize="off"
+    spellcheck="false"
+    inputmode="search"
+    enterkeyhint="search"
   />
 
   <mat-icon

@@ -21,6 +21,12 @@
       [(ngModel)]="searchTerm"
       (input)="onSearchTermChange()"
       aria-label="Search glossary terms"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      inputmode="search"
+      enterkeyhint="search"
     />
     <mat-icon
       class="clear-search-icon"

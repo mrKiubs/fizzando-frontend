@@ -58,6 +58,12 @@
               ? 'true'
               : 'false'
           "
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          inputmode="search"
+          enterkeyhint="search"
         />
         <button
           *ngIf="overlaySearchTerm.length > 0"
@@ -100,9 +106,9 @@
           aria-label="Cocktails results"
           *ngIf="liveCocktailResults.length"
         >
-          <p class="group-title">
+          <h4 class="group-title">
             🍸 Cocktails ({{ liveCocktailResults.length }})
-          </p>
+          </h4>
           <ul role="list">
             <li *ngFor="let cocktail of liveCocktailResults" role="listitem">
               <a
