@@ -23,6 +23,12 @@
       placeholder="Search quizzes..."
       [(ngModel)]="searchTerm"
       (input)="onSearchTermChange()"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      inputmode="search"
+      enterkeyhint="search"
     />
     <mat-icon
       class="clear-search-icon"

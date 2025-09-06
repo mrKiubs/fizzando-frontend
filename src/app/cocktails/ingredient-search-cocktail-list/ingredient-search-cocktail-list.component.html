@@ -20,6 +20,12 @@
       placeholder="Search and add ingredients..."
       [(ngModel)]="ingredientSearchTerm"
       (input)="onIngredientSearchTermChange()"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      inputmode="search"
+      enterkeyhint="search"
     />
     <mat-icon
       class="search-icon"
@@ -93,6 +99,12 @@
             type="checkbox"
             [checked]="selectedIngredientIds.includes(ingredient.external_id)"
             (change)="toggleIngredientSelection(ingredient.external_id)"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            inputmode="search"
+            enterkeyhint="search"
           />
           {{ ingredient.name }}
         </label>

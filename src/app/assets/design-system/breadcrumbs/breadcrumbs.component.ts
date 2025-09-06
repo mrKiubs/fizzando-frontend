@@ -8,7 +8,13 @@ import {
   PRIMARY_OUTLET,
 } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { filter, distinctUntilChanged, map } from 'rxjs/operators';
+import {
+  filter,
+  distinctUntilChanged,
+  map,
+  startWith,
+  shareReplay,
+} from 'rxjs/operators';
 import { Observable } from 'rxjs';
 
 interface Breadcrumb {
@@ -50,9 +56,11 @@ export class BreadcrumbsComponent implements OnInit {
 
   ngOnInit(): void {
     this.breadcrumbs$ = this.router.events.pipe(
-      filter((event) => event instanceof NavigationEnd),
-      distinctUntilChanged(),
-      map(() => this.generateBreadcrumbs(this.activatedRoute.root))
+      filter((e) => e instanceof NavigationEnd),
+      startWith(new NavigationEnd(0, this.router.url, this.router.url)),
+      map(() => this.generateBreadcrumbs(this.activatedRoute.root)),
+      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+      shareReplay(1)
     );
   }
 

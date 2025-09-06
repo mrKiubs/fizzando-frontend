@@ -294,8 +294,8 @@
       top: 0;
       z-index: 10;
       background-color: #f9f9f9d3;
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       margin-bottom: 8px;
       font-size: 1.2em;
       color: #1f1f1f;
@@ -305,8 +305,9 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       padding: 16px 16px 8px 16px;
       box-shadow: 1px 1px 8px #00000026;
-      -webkit-text-fill-color: transparent;
+      -webkit-text-fill-color: initial;
       color: #000;
+      text-shadow: none;
     }
 
     ul {
