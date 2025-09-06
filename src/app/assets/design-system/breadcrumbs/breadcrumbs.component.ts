@@ -168,10 +168,10 @@ export class BreadcrumbsComponent implements OnInit {
         displayText = this.slugToTitle(params['slug']);
         displayIcon = undefined;
       } else if (params['externalId']) {
-        displayText = `Detail: ${params['externalId']}`;
+        displayText = this.prettifySlug(params['externalId']);
         displayIcon = undefined;
       } else if (params['id']) {
-        displayText = `Detail: ${params['id']}`;
+        displayText = `${params['id']}`;
         displayIcon = undefined;
       }
 
@@ -248,5 +248,14 @@ export class BreadcrumbsComponent implements OnInit {
 
   onLinkClicked(): void {
     this.linkClicked.emit();
+  }
+
+  private prettifySlug(val: string | null | undefined): string {
+    if (!val) return '';
+    return val
+      .replace(/[-_]+/g, ' ') // trattini/underscore → spazio
+      .replace(/\s+/g, ' ') // spazi multipli → singolo
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase()); // Title Case
   }
 }
