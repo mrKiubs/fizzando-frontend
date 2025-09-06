@@ -537,14 +537,10 @@ p.ingredient-card-legend {
 
 /* Lista: fallback di altezza coerente anche quando passa da loading → dati */
 .cocktail-list {
-  content-visibility: auto;
-  contain-intrinsic-size: 900px; /* stima: 2–3 righe mobile */
-  min-height: 560px; /* almeno 2 righe + gap */
 }
 
 @media (min-width: 768px) {
   .cocktail-list {
-    contain-intrinsic-size: 1200px;
   }
 }
 
@@ -562,8 +558,6 @@ p.ingredient-card-legend {
 
 /* FAQ: evita jump quando si materializza la sezione (se era fuori viewport) */
 .faq-section {
-  content-visibility: auto;
-  contain-intrinsic-size: 600px; /* stima altezza blocco FAQ “foldato” */
 }
 
 .ad-desktop-card.ingredients-card {

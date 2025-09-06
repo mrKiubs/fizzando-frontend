@@ -9,14 +9,12 @@
           ? 'Photo of ' + cocktail.name + ' cocktail'
           : 'Cocktail photo'
       "
-      [attr.width]="250"
-      [attr.height]="250"
       class="cocktail-card-image"
       [attr.loading]="isLcp ? null : 'lazy'"
       [attr.fetchpriority]="isLcp ? 'high' : null"
       decoding="async"
       [attr.srcset]="getCocktailCardImageSrcset(cocktail.image)"
-      [attr.sizes]="'(max-width: 768px) 76px, 238px'"
+      [attr.sizes]="'(max-width: 512px) 76px, 238px'"
     />
 
     <!-- badge reso “decorativo” agli screen reader -->
