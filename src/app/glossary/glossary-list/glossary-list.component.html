@@ -91,6 +91,41 @@
   </div>
 </div>
 
+<!-- STATUS ALERT (green, bouncing arrows) -->
+<div
+  *ngIf="!error"
+  class="results-alert success bouncy"
+  role="status"
+  aria-live="polite"
+>
+  <ng-container *ngIf="loading; else countsLoadedGLOSS">
+    <mat-icon class="status-icon spinner" aria-hidden="true">search</mat-icon>
+    <span>Searching terms…</span>
+  </ng-container>
+
+  <ng-template #countsLoadedGLOSS>
+    <div class="arrows" aria-hidden="true">
+      <mat-icon>arrow_drop_down</mat-icon>
+      <mat-icon>arrow_drop_down</mat-icon>
+      <mat-icon>arrow_drop_down</mat-icon>
+    </div>
+
+    <span class="status-text">
+      <b>{{ totalItems }}</b>
+      {{ totalItems === 1 ? "term" : "terms" }} found
+      <ng-container *ngIf="getActiveFiltersText() !== 'No filters active'">
+        — filters: <b>{{ getActiveFiltersText() }}</b>
+      </ng-container>
+    </span>
+
+    <div class="arrows" aria-hidden="true">
+      <mat-icon>arrow_drop_down</mat-icon>
+      <mat-icon>arrow_drop_down</mat-icon>
+      <mat-icon>arrow_drop_down</mat-icon>
+    </div>
+  </ng-template>
+</div>
+
 <hr />
 
 <!-- STATUS -->

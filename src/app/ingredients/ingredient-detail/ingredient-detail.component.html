@@ -40,11 +40,16 @@
             {{ ingredient.isAlcoholic ? "Alcoholic" : "Non-Alcoholic" }}
             <span
               *ngIf="
-                ingredient.ai_alcohol_content &&
+                ingredient?.ai_alcohol_content &&
                 ingredient.ai_alcohol_content !== 'Non-alcoholic'
               "
             >
-              (~{{ ingredient.ai_alcohol_content | formatAbv }})
+              (<ng-container
+                *ngIf="
+                  +('' + ingredient.ai_alcohol_content).replace('%', '') !== 0
+                "
+                >~</ng-container
+              >{{ ingredient.ai_alcohol_content | formatAbv }})
             </span>
 
             <span
