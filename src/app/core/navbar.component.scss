@@ -90,11 +90,13 @@
 
 .menu-toggle-button {
   cursor: pointer;
-  width: 50px;
+  width: 46px;
   height: 50px;
   display: flex;
   align-items: center;
   justify-content: end;
+  margin: 0;
+  padding: 0;
 
   /* 🔧 NON tagliare il glifo delle Material Icons */
   mat-icon {
