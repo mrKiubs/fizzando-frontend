@@ -429,26 +429,37 @@ body {
   width: 2rem;
   height: 2rem;
   border-radius: 50%; // Forma circolare
-  font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
-  text-decoration: none;
-  background: rgba(255, 255, 255, 0.1);
-  transition: background 0.3s ease, transform 0.2s ease;
+
   cursor: pointer;
+
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.85rem;
+  line-height: 1.2;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
   &:hover:not(.active) {
     background: rgba(255, 255, 255, 0.2);
   }
 
   &.active {
-    background: var(--primary-color); // Colore di evidenza per la pagina attiva
-    color: var(--primary-text);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    pointer-events: none; // Disabilita il click sulla pagina attiva
+    color: rgba(255, 255, 255, 0.45);
+    border: none;
+    pointer-events: none;
+    box-shadow: none;
   }
 }
-
+.ellipsis {
+  color: white;
+}
 /* --- Media Queries per adattamento su schermi più grandi (desktop) --- */
 @media (min-width: 768px) {
   .pagination-container {
