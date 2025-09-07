@@ -127,6 +127,45 @@
   }
 </div>
 
+<!-- STATUS ALERT (green, bouncing arrows) -->
+<div
+  *ngIf="!error"
+  class="results-alert success bouncy"
+  role="status"
+  aria-live="polite"
+>
+  <ng-container *ngIf="loading; else countsLoadedCL">
+    <mat-icon
+      class="status-icon spinner"
+      svgIcon="search"
+      aria-hidden="true"
+    ></mat-icon>
+    <span>Searching cocktails…</span>
+  </ng-container>
+
+  <ng-template #countsLoadedCL>
+    <div class="arrows" aria-hidden="true">
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+    </div>
+
+    <span class="status-text">
+      <b>{{ totalItems }}</b>
+      {{ totalItems === 1 ? "cocktail" : "cocktails" }} found
+      <ng-container *ngIf="getActiveFiltersText() !== 'No filters active'">
+        — filters: <b>{{ getActiveFiltersText() }}</b>
+      </ng-container>
+    </span>
+
+    <div class="arrows" aria-hidden="true">
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+    </div>
+  </ng-template>
+</div>
+
 <hr />
 
 <p class="cocktail-card-legend">
