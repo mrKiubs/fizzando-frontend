@@ -193,15 +193,28 @@
 <!-- PAGINATION (identico a IngredientList) -->
 <div class="pagination-container" *ngIf="!loading && totalPages > 1">
   <div class="pagination-controls">
-    <button
-      class="glass-button secondary"
-      [disabled]="currentPage === 1"
-      (click)="goToPage(currentPage - 1)"
-      aria-label="Go to previous page"
-    >
-      Previous
-    </button>
+    <!-- Prev: sempre visibile -->
+    <ng-container *ngIf="currentPage > 1; else prevDisabledGLOSS">
+      <a
+        [attr.href]="buildUrlWithParams({ page: currentPage - 1 })"
+        class="page-number nav-arrow"
+        aria-label="Go to previous page"
+        (click)="$event.preventDefault(); goToPage(currentPage - 1)"
+      >
+        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+      </a>
+    </ng-container>
+    <ng-template #prevDisabledGLOSS>
+      <span
+        class="page-number nav-arrow disabled"
+        aria-disabled="true"
+        aria-label="Previous page (disabled)"
+      >
+        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+      </span>
+    </ng-template>
 
+    <!-- Pagine -->
     <div class="page-numbers" role="navigation" aria-label="Pagination">
       <!-- Prima pagina -->
       <ng-container *ngIf="totalPages > 1">
@@ -209,15 +222,17 @@
           *ngIf="currentPage === 1"
           class="page-number active"
           aria-current="page"
-          >1</span
         >
+          1
+        </span>
         <a
           *ngIf="currentPage !== 1"
           [attr.href]="buildUrlWithParams({ page: 1 })"
           class="page-number"
           (click)="$event.preventDefault(); goToPage(1)"
-          >1</a
         >
+          1
+        </a>
       </ng-container>
 
       <!-- Ellissi sinistra -->
@@ -231,15 +246,17 @@
           *ngIf="page === currentPage"
           class="page-number active"
           aria-current="page"
-          >{{ page }}</span
         >
+          {{ page }}
+        </span>
         <a
           *ngIf="page !== currentPage"
           [attr.href]="buildUrlWithParams({ page: page })"
           class="page-number"
           (click)="$event.preventDefault(); goToPage(page)"
-          >{{ page }}</a
         >
+          {{ page }}
+        </a>
       </ng-container>
 
       <!-- Ellissi destra -->
@@ -261,19 +278,32 @@
           [attr.href]="buildUrlWithParams({ page: totalPages })"
           class="page-number"
           (click)="$event.preventDefault(); goToPage(totalPages)"
-          >{{ totalPages }}</a
         >
+          {{ totalPages }}
+        </a>
       </ng-container>
     </div>
 
-    <button
-      class="glass-button secondary"
-      [disabled]="currentPage === totalPages"
-      (click)="goToPage(currentPage + 1)"
-      aria-label="Go to next page"
-    >
-      Next
-    </button>
+    <!-- Next: sempre visibile -->
+    <ng-container *ngIf="currentPage < totalPages; else nextDisabledGLOSS">
+      <a
+        [attr.href]="buildUrlWithParams({ page: currentPage + 1 })"
+        class="page-number nav-arrow"
+        aria-label="Go to next page"
+        (click)="$event.preventDefault(); goToPage(currentPage + 1)"
+      >
+        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      </a>
+    </ng-container>
+    <ng-template #nextDisabledGLOSS>
+      <span
+        class="page-number nav-arrow disabled"
+        aria-disabled="true"
+        aria-label="Next page (disabled)"
+      >
+        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      </span>
+    </ng-template>
   </div>
 </div>
 

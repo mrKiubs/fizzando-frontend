@@ -248,15 +248,28 @@
 <!-- PAGINATION (come CocktailList) -->
 <div class="pagination-container" *ngIf="!loading && totalPages > 1">
   <div class="pagination-controls">
-    <button
-      class="glass-button secondary"
-      [disabled]="currentPage === 1"
-      (click)="goToPage(currentPage - 1)"
-      aria-label="Go to previous page"
-    >
-      Previous
-    </button>
+    <!-- Prev: sempre visibile -->
+    <ng-container *ngIf="currentPage > 1; else prevDisabledING">
+      <a
+        [attr.href]="buildUrlWithParams({ page: currentPage - 1 })"
+        class="page-number nav-arrow"
+        aria-label="Go to previous page"
+        (click)="$event.preventDefault(); goToPage(currentPage - 1)"
+      >
+        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+      </a>
+    </ng-container>
+    <ng-template #prevDisabledING>
+      <span
+        class="page-number nav-arrow disabled"
+        aria-disabled="true"
+        aria-label="Previous page (disabled)"
+      >
+        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+      </span>
+    </ng-template>
 
+    <!-- Pagine -->
     <div class="page-numbers" role="navigation" aria-label="Pagination">
       <!-- Prima pagina -->
       <ng-container *ngIf="totalPages > 1">
@@ -326,14 +339,26 @@
       </ng-container>
     </div>
 
-    <button
-      class="glass-button secondary"
-      [disabled]="currentPage === totalPages"
-      (click)="goToPage(currentPage + 1)"
-      aria-label="Go to next page"
-    >
-      Next
-    </button>
+    <!-- Next: sempre visibile -->
+    <ng-container *ngIf="currentPage < totalPages; else nextDisabledING">
+      <a
+        [attr.href]="buildUrlWithParams({ page: currentPage + 1 })"
+        class="page-number nav-arrow"
+        aria-label="Go to next page"
+        (click)="$event.preventDefault(); goToPage(currentPage + 1)"
+      >
+        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      </a>
+    </ng-container>
+    <ng-template #nextDisabledING>
+      <span
+        class="page-number nav-arrow disabled"
+        aria-disabled="true"
+        aria-label="Next page (disabled)"
+      >
+        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      </span>
+    </ng-template>
   </div>
 </div>
 
