@@ -383,7 +383,10 @@ body {
 .pagination-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem; // Spazio tra gli elementi
+  gap: 6px;
+  @media (max-width: 768px) {
+    gap: 4;
+  }
 }
 
 /* Stili per i bottoni "Previous" e "Next" */
@@ -475,7 +478,10 @@ body {
   }
 
   .pagination-controls {
-    gap: 1rem;
+    gap: 12px;
+    @media (max-width: 768px) {
+      gap: 0;
+    }
   }
 
   .page-numbers {
