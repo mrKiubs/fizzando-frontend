@@ -127,7 +127,10 @@
           </article>
         </div>
       </div>
-
+      <!-- Progress (tempo rimasto) -->
+      <div class="carousel-progress" *ngIf="autoplayMs > 0" aria-hidden="true">
+        <div class="bar" [style.width.%]="progressPct"></div>
+      </div>
       <!-- Controls -->
       <button
         class="carousel-btn prev"
@@ -163,27 +166,77 @@
 
     <!-- RANDOM (1/3) – LCP -->
     <section class="random-cocktail-section glass-card" *ngIf="randomCocktail">
-      <h3>Your Random Cocktail</h3>
       <div class="cocktail-display">
+        <h3>Your Random Cocktail</h3>
+
         <img
-          [src]="getBestImageUrl(randomCocktail.image, 360)"
-          [attr.srcset]="getImageSrcSet(randomCocktail.image) ?? null"
-          sizes="(max-width: 768px) 90vw, 360px"
+          [src]="getBestImageUrl(randomCocktail.image, 420)"
+          [attr.srcset]="getImageSrcSet(randomCocktail.image)"
+          sizes="(max-width: 768px) 90vw, 420px"
           [alt]="randomCocktail.name || 'Random cocktail'"
-          class="random-cocktail-image"
-          width="360"
-          height="360"
+          width="420"
+          height="420"
           loading="eager"
           fetchpriority="high"
           decoding="async"
+          class="random-cocktail-image"
         />
-        <h4>{{ randomCocktail.name }}</h4>
-        <p class="cocktail-category">{{ randomCocktail.category }}</p>
+        <div class="content-random">
+          <h4>{{ randomCocktail.name }}</h4>
+          <button
+            class="glass-button secondary"
+            [routerLink]="['/cocktails', randomCocktail.slug]"
+          >
+            View Recipe <mat-icon>visibility</mat-icon>
+          </button>
+        </div>
+      </div>
+      <hr />
+      <h3>Quick links</h3>
+      <div class="quick-link-home">
         <button
-          class="glass-button secondary"
-          [routerLink]="['/cocktails', randomCocktail.slug]"
+          class="hero-button glass-button secondary"
+          [routerLink]="['/cocktails']"
         >
-          View Recipe <mat-icon>visibility</mat-icon>
+          Cocktails Explorer
+        </button>
+        <button
+          class="hero-button glass-button secondary"
+          [routerLink]="['/ingredients']"
+        >
+          Ingredients Explorer
+        </button>
+        <button
+          class="hero-button glass-button secondary"
+          [routerLink]="['/articles']"
+        >
+          All Articles
+        </button>
+        <button
+          class="hero-button glass-button secondary"
+          [routerLink]="['/find-cocktail']"
+        >
+          Find by Ingredients
+        </button>
+        <button
+          class="hero-button glass-button secondary"
+          [routerLink]="['/cocktails']"
+          [queryParams]="{ alcoholic: 'Alcoholic' }"
+        >
+          Alcoholic
+        </button>
+        <button
+          class="hero-button glass-button secondary"
+          [routerLink]="['/cocktails']"
+          [queryParams]="{ alcoholic: 'Non Alcoholic' }"
+        >
+          Non-Alcoholic
+        </button>
+        <button
+          class="hero-button glass-button secondary"
+          [routerLink]="['/glossary']"
+        >
+          GLossary
         </button>
       </div>
     </section>
@@ -225,9 +278,11 @@
         <app-cocktail-card
           *ngFor="
             let c of featuredCocktails | slice : 0 : 8;
+            let i = index;
             trackBy: trackByCocktail
           "
           [cocktail]="c"
+          [isLcp]="i === 0"
         ></app-cocktail-card>
       </div>
     </section>

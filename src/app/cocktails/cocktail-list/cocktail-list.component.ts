@@ -262,7 +262,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Titolo provvisorio (aggiornato dopo la prima load)
     this.titleService.setTitle(
-      'Cocktail Explorer: Recipes, Ingredients & Guides | Fizzando'
+      'Cocktails Explorer: Recipes, Ingredients & Guides | Fizzando'
     );
 
     // reagisci ai parametri di query
@@ -550,8 +550,8 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     if (this._selectedAlcoholic()) parts.push(this._selectedAlcoholic());
 
     const base = parts.length
-      ? `Cocktail Explorer • ${parts.join(' • ')}`
-      : 'Cocktail Explorer';
+      ? `Cocktails Explorer • ${parts.join(' • ')}`
+      : 'Cocktails Explorer';
     const pageSuffix =
       this.totalPages > 1
         ? ` (Page ${this.currentPage}${
@@ -653,7 +653,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       '@id': itemListId,
-      name: 'Cocktail Explorer',
+      name: 'Cocktails Explorer',
       inLanguage: 'en',
       itemListOrder: 'https://schema.org/ItemListOrderAscending',
       // totale risultati (non solo la pagina corrente)
