@@ -1,7 +1,14 @@
 // src/app/services/glossary.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, ReplaySubject, of } from 'rxjs';
+import {
+  Observable,
+  BehaviorSubject,
+  ReplaySubject,
+  of,
+  from,
+  EMPTY,
+} from 'rxjs';
 import {
   map,
   tap,
@@ -10,6 +17,10 @@ import {
   distinctUntilChanged,
   debounceTime,
   finalize,
+  concatMap,
+  reduce,
+  startWith,
+  shareReplay,
 } from 'rxjs/operators';
 import { env } from '../config/env';
 
@@ -51,7 +62,16 @@ export class GlossaryService {
   private _totalItems = 0;
   private _currentPage = 1;
 
-  // Dati della pagina corrente (emette solo quando arrivano davvero)
+  // ====== micro-cache GET (params-keyed) ======
+  private reqCache = new Map<string, { t: number; obs: Observable<any> }>();
+  private readonly REQ_TTL_MS = 30_000;
+
+  // ====== categories cache (mem + localStorage) ======
+  private readonly CAT_LS_KEY = 'glossary_categories_v1';
+  private readonly CAT_LS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+  private readonly CAT_PAGE_SIZE = 200;
+
+  // Dati della pagina corrente
   public termsSubject = new ReplaySubject<{
     terms: GlossaryTerm[];
     total: number;
@@ -59,7 +79,7 @@ export class GlossaryService {
     resetTerms: boolean;
   }>(1);
 
-  // Loading pilotato dal servizio (on ogni richiesta, off su finalize)
+  // Loading pilotato dal servizio
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
 
@@ -75,22 +95,19 @@ export class GlossaryService {
   });
 
   constructor(private http: HttpClient) {
-    // carica le categorie una volta
-    this.fetchAllCategories().subscribe();
+    // warm categories (leggero e cache-izzato)
+    this.warmCategories().subscribe();
 
     // stream principale
     this.queryParamsTrigger
       .pipe(
-        debounceTime(0),
+        debounceTime(150), // <- evita spam durante la digitazione
         distinctUntilChanged(
           (a, b) =>
             a.searchTerm === b.searchTerm &&
             a.selectedCategory === b.selectedCategory &&
             a.page === b.page &&
             a.resetTerms === b.resetTerms
-        ),
-        tap((params) =>
-          console.log('SERVICE (1): queryParamsTrigger emitted:', params)
         ),
         tap(() => this.loadingSubject.next(true)),
         switchMap((params) => {
@@ -113,64 +130,64 @@ export class GlossaryService {
           if (params.searchTerm) {
             httpParams = httpParams.set(
               'filters[term][$containsi]',
-              params.searchTerm.toLowerCase()
+              params.searchTerm.trim()
             );
           }
 
-          return this.http
-            .get<StrapiResponse>(this.apiUrl, { params: httpParams })
-            .pipe(
-              map((response) => {
-                const terms: GlossaryTerm[] = (response?.data ?? []).map(
-                  (item) => ({
-                    id: item.id,
-                    term:
-                      item.attributes?.term ?? item.term ?? 'No Term Provided',
-                    slug: item.attributes?.slug ?? item.slug ?? '',
-                    category:
-                      item.attributes?.category ??
-                      item.category ??
-                      'Uncategorized',
-                    description:
-                      item.attributes?.description ??
-                      item.description ??
-                      'No description provided.',
-                  })
-                );
-                return {
-                  terms,
-                  total: response?.meta?.pagination?.total ?? 0,
-                  requestedPage: params.page,
-                  resetTerms: true, // server pagination: niente accumulo
-                };
-              }),
-              catchError((err) => {
-                if (
-                  err?.name === 'AbortError' ||
-                  /aborted/i.test(err?.message ?? '')
-                ) {
-                  // abort "legittimi" (HMR/rapid nav) → non inchiodare il loader
-                  return of({
-                    terms: [],
-                    total: this._totalItems,
-                    requestedPage: this._currentPage,
-                    resetTerms: true,
-                  });
-                }
-                console.error('Error fetching filtered glossary terms:', err);
+          return this.getWithCache<StrapiResponse>(
+            this.apiUrl,
+            httpParams
+          ).pipe(
+            map((response) => {
+              const terms: GlossaryTerm[] = (response?.data ?? []).map(
+                (item) => ({
+                  id: item.id,
+                  term:
+                    item.attributes?.term ?? item.term ?? 'No Term Provided',
+                  slug: item.attributes?.slug ?? item.slug ?? '',
+                  category:
+                    item.attributes?.category ??
+                    item.category ??
+                    'Uncategorized',
+                  description:
+                    item.attributes?.description ??
+                    item.description ??
+                    'No description provided.',
+                })
+              );
+              return {
+                terms,
+                total: response?.meta?.pagination?.total ?? 0,
+                requestedPage: params.page,
+                resetTerms: true, // server pagination: niente accumulo
+              };
+            }),
+            catchError((err) => {
+              if (
+                err?.name === 'AbortError' ||
+                /aborted/i.test(err?.message ?? '')
+              ) {
+                // abort "legittimi" (HMR/rapid nav)
                 return of({
                   terms: [],
                   total: this._totalItems,
-                  requestedPage: params.page,
+                  requestedPage: this._currentPage,
                   resetTerms: true,
                 });
-              }),
-              finalize(() => this.loadingSubject.next(false))
-            );
+              }
+              console.error('Error fetching filtered glossary terms:', err);
+              return of({
+                terms: [],
+                total: this._totalItems,
+                requestedPage: params.page,
+                resetTerms: true,
+              });
+            }),
+            finalize(() => this.loadingSubject.next(false))
+          );
         })
       )
       .subscribe((data) => {
-        // prendi la pagina così com'è dal server
         this._currentTerms = data.terms;
         this._totalItems = data.total;
         this._currentPage = data.requestedPage;
@@ -229,35 +246,124 @@ export class GlossaryService {
     );
   }
 
-  private fetchAllCategories(): Observable<void> {
-    const params = new HttpParams()
-      .set('pagination[pageSize]', '10000')
-      .set('fields[0]', 'category');
+  // ======= CATEGORIES (senza pageSize=10000) =======
+  private warmCategories(): Observable<void> {
+    // 1) prova localStorage (TTL 24h)
+    const lsOk = typeof window !== 'undefined' && !!window.localStorage;
+    if (lsOk) {
+      try {
+        const raw = localStorage.getItem(this.CAT_LS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as {
+            t: number;
+            cats: string[];
+          };
+          if (
+            Array.isArray(parsed.cats) &&
+            Date.now() - parsed.t < this.CAT_LS_TTL_MS
+          ) {
+            this.allUniqueCategoriesSubject.next(
+              parsed.cats.slice().sort((a, b) => a.localeCompare(b))
+            );
+            return of(void 0);
+          }
+        }
+      } catch {}
+    }
 
-    return this.http.get<StrapiResponse>(this.apiUrl, { params }).pipe(
-      map((response) => {
-        const categories = new Set<string>();
-        (response?.data ?? []).forEach((item) => {
-          const c = item.attributes?.category ?? item.category;
-          if (c) categories.add(c);
-        });
-        this.allUniqueCategoriesSubject.next(
-          Array.from(categories).sort((a, b) => a.localeCompare(b))
+    // 2) fetch paginato molto leggero: solo fields=category
+    const firstParams = new HttpParams()
+      .set('fields[0]', 'category')
+      .set('sort', 'category:asc')
+      .set('pagination[pageSize]', String(this.CAT_PAGE_SIZE))
+      .set('pagination[page]', '1')
+      .set('pagination[withCount]', 'true');
+
+    return this.getWithCache<StrapiResponse>(this.apiUrl, firstParams).pipe(
+      switchMap((first) => {
+        const pageCount = first?.meta?.pagination?.pageCount ?? 1;
+        const firstCats = this.extractCategories(first);
+
+        if (pageCount <= 1) {
+          const cats = Array.from(firstCats).sort((a, b) => a.localeCompare(b));
+          this.allUniqueCategoriesSubject.next(cats);
+          if (lsOk) {
+            try {
+              localStorage.setItem(
+                this.CAT_LS_KEY,
+                JSON.stringify({ t: Date.now(), cats })
+              );
+            } catch {}
+          }
+          return of(void 0);
+        }
+
+        // pagine successive in SEQUENZA (no burst), fino a max 50 pagine
+        const pages = Array.from(
+          { length: Math.min(pageCount, 50) - 1 },
+          (_, i) => i + 2
+        );
+
+        return from(pages).pipe(
+          concatMap((p) => {
+            const params = new HttpParams()
+              .set('fields[0]', 'category')
+              .set('sort', 'category:asc')
+              .set('pagination[pageSize]', String(this.CAT_PAGE_SIZE))
+              .set('pagination[page]', String(p))
+              .set('pagination[withCount]', 'false');
+            return this.getWithCache<StrapiResponse>(this.apiUrl, params);
+          }),
+          map((res) => this.extractCategories(res)),
+          startWith(firstCats),
+          reduce((acc, set) => {
+            set.forEach((c) => acc.add(c));
+            return acc;
+          }, new Set<string>()),
+          tap((set) => {
+            const cats = Array.from(set).sort((a, b) => a.localeCompare(b));
+            this.allUniqueCategoriesSubject.next(cats);
+            if (lsOk) {
+              try {
+                localStorage.setItem(
+                  this.CAT_LS_KEY,
+                  JSON.stringify({ t: Date.now(), cats })
+                );
+              } catch {}
+            }
+          }),
+          map(() => void 0),
+          catchError((err) => {
+            console.error('Error fetching categories (paged):', err);
+            // fallback: nessuna categoria
+            this.allUniqueCategoriesSubject.next([]);
+            return of(void 0);
+          })
         );
       }),
       catchError((err) => {
-        console.error('Error fetching all categories for glossary:', err);
+        console.error('Error fetching first categories page:', err);
         this.allUniqueCategoriesSubject.next([]);
         return of(void 0);
-      }),
-      map(() => void 0)
+      })
     );
+  }
+
+  private extractCategories(response: StrapiResponse): Set<string> {
+    const out = new Set<string>();
+    (response?.data ?? []).forEach((item) => {
+      const c = item.attributes?.category ?? item.category;
+      if (c) out.add(String(c));
+    });
+    return out;
   }
 
   // ===== Streams esposti =====
   getCategories(): Observable<string[]> {
     return this.allUniqueCategoriesSubject.pipe(
-      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
+      distinctUntilChanged(
+        (a, b) => a.length === b.length && a.every((v, i) => v === b[i])
+      )
     );
   }
 
@@ -272,5 +378,16 @@ export class GlossaryService {
 
   getTotalItems(): Observable<number> {
     return this.totalItemsSubject.asObservable();
+  }
+
+  // ===== util =====
+  private getWithCache<T>(url: string, params: HttpParams): Observable<T> {
+    const key = `${url}?${params.toString()}`;
+    const hit = this.reqCache.get(key);
+    const now = Date.now();
+    if (hit && now - hit.t < this.REQ_TTL_MS) return hit.obs as Observable<T>;
+    const obs = this.http.get<T>(url, { params }).pipe(shareReplay(1));
+    this.reqCache.set(key, { t: now, obs });
+    return obs;
   }
 }

@@ -114,7 +114,7 @@ export class QuizListComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           // DEBUGGING: Log the raw response
-          console.log('Raw Service Response (already mapped):', response);
+          //console.log('Raw Service Response (already mapped):', response);
 
           // *** MODIFICA CHIAVE QUI: response contiene direttamente 'quizzes' e 'total' ***
           const newQuizzes: Quiz[] = response.quizzes; // Accedi a 'quizzes'
@@ -127,7 +127,7 @@ export class QuizListComponent implements OnInit, OnDestroy {
           }
 
           this.loading = false;
-          console.log('Final Quizzes Array:', this.quizzes); // Log the final array
+          //console.log('Final Quizzes Array:', this.quizzes); // Log the final array
         },
         error: (err: HttpErrorResponse) => {
           this.loading = false;
