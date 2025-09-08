@@ -345,7 +345,9 @@ h4 {
   }
 }
 .hero {
-  padding: clamp(20px, 4vw, 36px);
+  padding: clamp(20px, 4vw, 46px);
+  padding-top: 12px;
+  padding-bottom: 12px;
 
   .hero-title {
     font-size: clamp(28px, 4.2vw, 48px);
@@ -415,4 +417,259 @@ h4 {
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
   }
+}
+
+/* =======================
+   Carousel – FIX altezza 0
+   ======================= */
+
+.carousel {
+  /* fallback: se per qualsiasi motivo l’inline style mancasse */
+  --slides: 4;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  border-radius: 16px;
+}
+
+.carousel-viewport {
+  position: relative;
+  overflow: hidden;
+  inline-size: 100%;
+  isolation: isolate;
+  height: 100%;
+}
+
+.carousel-track {
+  display: flex;
+  width: calc(var(--slides) * 100%);
+  will-change: transform;
+  transition: transform 500ms ease;
+  /* ❌ NON usare contain-size qui, fa collassare l’altezza! */
+  contain: layout paint style; /* rimosso "size" */
+  min-width: 0; /* anti overflow orizzontale */
+  /* opzionale: allinea verticalmente le slide all'altezza dei loro contenuti */
+  align-items: stretch;
+}
+
+/* ogni slide occupa 1/N della track (= 100% viewport carosello) */
+.slide {
+  flex: 0 0 calc(100% / var(--slides));
+  box-sizing: border-box;
+  padding: clamp(16px, 3vw, 28px);
+  display: grid;
+  align-items: center;
+  justify-items: start;
+  gap: clamp(8px, 1.5vw, 16px);
+  max-width: 100%;
+  min-width: 0; /* evita che il contenuto allarghi la slide */
+  /* ✅ garantisce che il contenuto possa determinare l'altezza */
+  /* (niente height fisse, niente contain-size sui genitori) */
+}
+
+.slide > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.slide .hero-text,
+.slide .slide-content {
+  width: min(100%, 70ch);
+}
+
+.slide img,
+.slide picture,
+.slide video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* Controlli & dots — invariati */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.0784313725);
+  border-radius: 50%;
+  line-height: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: #ffffff7d;
+
+  transition: all 0.3s ease;
+}
+.carousel-btn.prev {
+  inset-inline-start: 0.5rem;
+  @media (max-width: 600px) {
+    display: none;
+  }
+}
+.carousel-btn.next {
+  inset-inline-end: 0.5rem;
+  @media (max-width: 600px) {
+    display: none;
+  }
+}
+.carousel-btn:hover {
+  border: 1px solid #fff;
+}
+.carousel-btn:active {
+  transform: translateY(-50%) scale(0.98);
+}
+
+.carousel-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+}
+.carousel-dots .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: transparent;
+  /* opacity: 0.7; */
+  padding: 2px;
+  border-radius: 50%;
+  font-weight: 600;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  background: #ffffff14;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  text-align: center;
+  color: #ffffffa6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px #0000001a;
+
+  &:hover {
+    border: 1px solid #fff;
+  }
+}
+.carousel-dots .dot.active {
+  background: #ffffff0f;
+  border: none;
+  box-shadow: none;
+  cursor: auto;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .carousel {
+    border-radius: 12px;
+  }
+  .slide {
+    padding: clamp(12px, 3vw, 20px);
+  }
+  .carousel-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+@media (max-width: 600px) {
+  .carousel {
+    border-radius: 10px;
+  }
+  .carousel-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* Riduci motion */
+@media (prefers-reduced-motion: reduce) {
+  .carousel-track {
+    transition: none !important;
+  }
+  .carousel-btn:active {
+    transform: translateY(-50%);
+  }
+}
+
+.slide-content {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+
+  gap: 0px;
+  margin-bottom: 16px;
+  h2 {
+    text-align: center;
+    font-size: 26px !important;
+    line-height: 30px !important;
+
+    @media (min-width: 600px) {
+      font-size: 46px !important;
+      line-height: 50px !important;
+
+      &.first {
+        font-size: 26px !important;
+        line-height: 30px !important;
+      }
+    }
+  }
+
+  &.slide1 {
+    gap: 36px;
+  }
+
+  button {
+    display: flex;
+    flex-direction: row;
+    width: fit-content;
+    margin: 24px auto;
+  }
+}
+.emoticon {
+  font-size: 100px;
+  width: 100%;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.em-slide3 {
+    font-size: 90px;
+    span {
+      font-size: 50px;
+    }
+  }
+
+  &.em-slide4 {
+    font-size: 50px;
+    span {
+      font-size: 25px;
+
+      &.result {
+        font-size: 75px;
+      }
+    }
+  }
+}
+
+.hero-line2 {
+  font-weight: 600;
+  margin-bottom: 16px !important;
 }
