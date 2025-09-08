@@ -17,7 +17,7 @@ import {
   DOCUMENT,
   isPlatformBrowser,
   Location,
-  NgOptimizedImage, // ✅ LCP image
+  NgOptimizedImage,
 } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import {
@@ -27,13 +27,14 @@ import {
 } from '../../services/strapi.service';
 import { MatIconModule } from '@angular/material/icon';
 import { Subscription } from 'rxjs';
-import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-card.component';
-import { env } from '../../config/env';
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
 import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
 import { Title, Meta } from '@angular/platform-browser';
 import { ArticleService, Article } from '../../services/article.service';
 import { ArticleCardComponent } from '../../articles/article-card/article-card.component';
+import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-card.component';
+
+import { env } from '../../config/env';
 
 interface ProductItem {
   title: string;
@@ -50,11 +51,11 @@ interface ProductItem {
     CommonModule,
     MatIconModule,
     RouterLink,
-    CocktailCardComponent,
     DevAdsComponent,
     AffiliateProductComponent,
     NgOptimizedImage,
     ArticleCardComponent,
+    CocktailCardComponent,
   ],
   templateUrl: './cocktail-detail.component.html',
   styleUrls: ['./cocktail-detail.component.scss'],
@@ -62,24 +63,18 @@ interface ProductItem {
 export class CocktailDetailComponent
   implements OnInit, OnDestroy, AfterViewInit
 {
+  // ===== Platform / Zone =====
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly ngZone = inject(NgZone);
 
+  // ===== State =====
   cocktail: Cocktail | undefined;
   loading = true;
   error: string | null = null;
+
   allCocktails: Cocktail[] = [];
   currentCocktailIndex = -1;
-  isMobile = false;
-
-  relatedArticles: Article[] = [];
-  /** ✅ Preferisci env.siteUrl in SSR per canonical assoluto */
-  private siteBaseUrl = '';
-  private cocktailSchemaScript: HTMLScriptElement | undefined;
-
-  @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
-  private wheelListenerCleanup?: () => void;
 
   previousCocktail: {
     externalId: string;
@@ -87,7 +82,6 @@ export class CocktailDetailComponent
     imageUrl: string;
     slug: string;
   } | null = null;
-
   nextCocktail: {
     externalId: string;
     name: string;
@@ -96,7 +90,22 @@ export class CocktailDetailComponent
   } | null = null;
 
   similarCocktails: CocktailWithLayoutAndMatch[] = [];
+  relatedArticles: Article[] = [];
 
+  isMobile = false;
+
+  /** ✅ Sblocca gli Ad solo quando i dati sono pronti e siamo nel browser */
+  contentReady = false;
+
+  /** ✅ Base URL assoluta per canonical/og:url in SSR */
+  private siteBaseUrl = '';
+  private cocktailSchemaScript: HTMLScriptElement | undefined;
+
+  // ===== Refs / listeners =====
+  @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
+  private wheelListenerCleanup?: () => void;
+
+  // ===== Subs =====
   private routeSubscription?: Subscription;
   private allCocktailsSubscription?: Subscription;
   private similarCocktailsSubscription?: Subscription;
@@ -113,33 +122,30 @@ export class CocktailDetailComponent
     private location: Location,
     private articleService: ArticleService
   ) {
-    // 🔗 Base URL per canonical/preload: in SSR usa env.siteUrl se presente
-    if (env && (env as any).siteUrl) {
-      this.siteBaseUrl = (env as any).siteUrl;
-    } else if (this.isBrowser) {
-      this.siteBaseUrl = window.location.origin;
-    } else {
-      this.siteBaseUrl = ''; // fallback relativo in SSR se non configurato
-    }
+    this.siteBaseUrl = (env as any)?.siteUrl
+      ? (env as any).siteUrl
+      : this.isBrowser
+      ? window.location.origin
+      : '';
 
-    if (this.isBrowser) {
-      this.checkScreenWidth();
-    }
+    if (this.isBrowser) this.checkScreenWidth();
   }
 
-  // ========== Lifecycle ==========
+  // ===== Lifecycle =====
   ngOnInit(): void {
-    // ✅ Se in futuro usi un Route Resolver, sfrutta lo snapshot SSR-safe
+    // Se stai usando un resolver SSR
     const resolved = this.route.snapshot.data['cocktail'] as Cocktail | null;
     if (resolved) {
       this.cocktail = resolved;
       this.loading = false;
-      this.setSeoTagsAndSchema(); // <-- description & co. subito disponibili in SSR
+      this.setNavigationCocktails(this.cocktail.external_id);
+      this.setSeoTagsAndSchema();
       this.loadSimilarCocktails();
       this.fetchRelatedArticles();
+      this.unlockAdsWhenStable();
     }
 
-    // Carica elenco per prev/next (e per fallback client se nessun resolver)
+    // Carica elenco (prev/next) + fallback client
     this.allCocktailsSubscription = this.cocktailService
       .getCocktails(1, 1000)
       .subscribe({
@@ -147,10 +153,8 @@ export class CocktailDetailComponent
           this.allCocktails = response.data.sort((a, b) =>
             a.name.localeCompare(b.name)
           );
-          if (this.cocktail) {
+          if (this.cocktail)
             this.setNavigationCocktails(this.cocktail.external_id);
-          }
-          // Mantieni la subscribe alle route params per navigazioni client-side
           this.subscribeToRouteParams(!resolved);
         },
         error: () => {
@@ -171,9 +175,8 @@ export class CocktailDetailComponent
         listElement.scrollLeft += event.deltaY;
       };
       listElement.addEventListener('wheel', handler, { passive: false });
-      this.wheelListenerCleanup = () => {
+      this.wheelListenerCleanup = () =>
         listElement.removeEventListener('wheel', handler as any);
-      };
     });
   }
 
@@ -186,23 +189,20 @@ export class CocktailDetailComponent
     this.cleanupSeo();
   }
 
-  // ========== Routing/Data ==========
+  // ===== Routing/Data =====
   private subscribeToRouteParams(shouldHandleFirst = true): void {
     this.routeSubscription = this.route.paramMap.subscribe((params) => {
       const slug = params.get('slug');
-
       if (!slug) {
         this.error = 'Cocktail slug not found.';
         this.loading = false;
         return;
       }
 
-      // Se abbiamo già risolto al primo giro e il primo slug combacia, salta il doppio caricamento
       if (!shouldHandleFirst) {
-        shouldHandleFirst = true; // attiva gestioni successive
+        shouldHandleFirst = true; // attiva per le successive
         return;
       }
-
       this.loadCocktailDetail(slug);
     });
   }
@@ -211,6 +211,7 @@ export class CocktailDetailComponent
     this.loading = true;
     this.error = null;
     this.similarCocktails = [];
+    this.contentReady = false; // blocca ads tra una navigazione e l’altra
     this.cleanupSeo();
 
     const cached = this.allCocktails.find((c) => c.slug === slug);
@@ -220,7 +221,8 @@ export class CocktailDetailComponent
       this.setNavigationCocktails(this.cocktail.external_id);
       this.loadSimilarCocktails();
       this.fetchRelatedArticles();
-      this.setSeoTagsAndSchema(); // ✅ aggiorna head
+      this.setSeoTagsAndSchema();
+      this.unlockAdsWhenStable();
       return;
     }
 
@@ -231,6 +233,7 @@ export class CocktailDetailComponent
           if (!res) {
             this.error = 'Cocktail not found.';
             this.loading = false;
+            this.contentReady = false;
             return;
           }
           this.cocktail = res;
@@ -238,13 +241,25 @@ export class CocktailDetailComponent
           this.setNavigationCocktails(this.cocktail.external_id);
           this.loadSimilarCocktails();
           this.fetchRelatedArticles();
-          this.setSeoTagsAndSchema(); // ✅ aggiorna head
+          this.setSeoTagsAndSchema();
+          this.unlockAdsWhenStable();
         },
         error: () => {
           this.error = 'Could not load cocktail details from API.';
           this.loading = false;
+          this.contentReady = false;
         },
       });
+  }
+
+  private unlockAdsWhenStable(): void {
+    if (!this.isBrowser) return;
+    // Evita ExpressionChanged & garantisce che il contenuto principale sia in DOM
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => {
+        this.ngZone.run(() => (this.contentReady = true));
+      });
+    });
   }
 
   loadSimilarCocktails(): void {
@@ -255,18 +270,14 @@ export class CocktailDetailComponent
     this.similarCocktailsSubscription = this.cocktailService
       .getSimilarCocktails(this.cocktail)
       .subscribe({
-        next: (res: Cocktail[]) => {
-          this.similarCocktails = res as CocktailWithLayoutAndMatch[];
-        },
-        error: () => {
-          this.similarCocktails = [];
-        },
+        next: (res: Cocktail[]) =>
+          (this.similarCocktails = res as CocktailWithLayoutAndMatch[]),
+        error: () => (this.similarCocktails = []),
       });
   }
 
   setNavigationCocktails(currentExternalId: string): void {
     if (!this.allCocktails?.length) return;
-
     this.currentCocktailIndex = this.allCocktails.findIndex(
       (c) => c.external_id === currentExternalId
     );
@@ -307,7 +318,7 @@ export class CocktailDetailComponent
       });
   }
 
-  // ========== UI helpers ==========
+  // ===== UI helpers =====
   goBack(): void {
     this.location.back();
   }
@@ -339,7 +350,7 @@ export class CocktailDetailComponent
     this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
   }
 
-  /** ✅ Uniforme al listato: 1 ad ogni 6 card (evita ad “di coda”) */
+  /** 1 ad ogni 6 card */
   getCocktailsAndAds(): any[] {
     const items: any[] = [];
     const len = this.similarCocktails.length;
@@ -360,39 +371,35 @@ export class CocktailDetailComponent
     return `${this.siteBaseUrl}${path}`;
   }
 
-  // ========== SEO ==========
+  // ===== SEO =====
   private setSeoTagsAndSchema(): void {
     if (!this.cocktail) return;
 
     const cocktailName = this.cocktail.name;
-
-    // ✅ Sanitize + lunghezza “umana” per SSR/SEO
     const cocktailDescription = (
       this.cocktail.ai_description ||
       this.cocktail.instructions ||
       ''
     )
-      .replace(/<[^>]*>/g, '') // togli HTML eventuale
+      .replace(/<[^>]*>/g, '')
       .replace(/\s+/g, ' ')
       .trim()
-      .slice(0, 180); // ~160-180 char
+      .slice(0, 180);
 
-    const cocktailImageUrl = this.getCocktailImageUrl(this.cocktail); // ✅ hero LCP
+    const cocktailImageUrl = this.getCocktailImageUrl(this.cocktail);
     const cocktailUrl = this.getFullSiteUrl(this.router.url);
 
-    // <title>
     this.titleService.setTitle(`${cocktailName} | Fizzando`);
 
-    // ✅ Description: rimuovi, poi update con selettore (SSR-safe)
     this.metaService.removeTag("name='description'");
     this.metaService.updateTag(
       { name: 'description', content: cocktailDescription },
       "name='description'"
     );
 
-    // canonical assoluto se possibile
+    // canonical
     const canonicalHref = cocktailUrl || this.router.url;
-    const canonicalTag: HTMLLinkElement | null = this.document.querySelector(
+    const canonicalTag = this.document.querySelector<HTMLLinkElement>(
       'link[rel="canonical"]'
     );
     if (canonicalTag) {
@@ -404,7 +411,7 @@ export class CocktailDetailComponent
       this.renderer.appendChild(this.document.head, linkTag);
     }
 
-    // Open Graph
+    // OG / Twitter
     this.metaService.updateTag({ property: 'og:title', content: cocktailName });
     this.metaService.updateTag({
       property: 'og:description',
@@ -421,7 +428,6 @@ export class CocktailDetailComponent
       content: 'Fizzando',
     });
 
-    // Twitter
     this.metaService.updateTag({
       name: 'twitter:card',
       content: 'summary_large_image',
@@ -439,7 +445,7 @@ export class CocktailDetailComponent
       content: cocktailImageUrl,
     });
 
-    // ✅ PRELOAD hero LCP (evita duplicati)
+    // Preload LCP hero (no duplicati)
     const existing = this.document.querySelector<HTMLLinkElement>(
       'link[rel="preload"][as="image"][data-preload-hero="1"]'
     );
@@ -484,7 +490,6 @@ export class CocktailDetailComponent
   }
 
   private cleanupSeo(): void {
-    // ✅ pulizia completa (inclusa description)
     this.metaService.removeTag("name='description'");
     this.metaService.removeTag("property='og:title'");
     this.metaService.removeTag("property='og:description'");
@@ -498,20 +503,16 @@ export class CocktailDetailComponent
     this.metaService.removeTag("name='twitter:image'");
     this.cleanupJsonLd();
 
-    // ✅ rimuovi eventuale preload hero precedente
+    // Rimuovi eventuale preload precedente
     const oldPreload = this.document.querySelector(
       'link[rel="preload"][as="image"][data-preload-hero="1"]'
     );
-    if (oldPreload) {
-      this.renderer.removeChild(this.document.head, oldPreload);
-    }
+    if (oldPreload) this.renderer.removeChild(this.document.head, oldPreload);
   }
 
   private cleanupJsonLd(): void {
     const oldScript = this.document.getElementById('cocktail-schema');
-    if (oldScript) {
-      this.renderer.removeChild(this.document.head, oldScript);
-    }
+    if (oldScript) this.renderer.removeChild(this.document.head, oldScript);
   }
 
   generateCocktailSchema(cocktail: any): any {
