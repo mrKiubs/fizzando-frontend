@@ -89,6 +89,7 @@ interface StrapiGlossaryResponse {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
+  // ===== DATA =====
   allCocktails: Cocktail[] = [];
   featuredCocktails: CocktailWithLayoutAndMatch[] = [];
   latestCocktails: CocktailWithLayoutAndMatch[] = [];
@@ -104,42 +105,48 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   categoriesCount: Record<string, number> = {};
   topCocktailCategories: string[] = [];
 
-  // 👇 Random glossary per sezione “Discover Glossary Terms”
   randomGlossaryTerms: GlossaryTerm[] = [];
 
   totalCocktails = 0;
   loading = true;
   error: string | null = null;
 
-  isMobile = false;
-  private dataSubscription?: Subscription;
+  // ===== PLATFORM / CD =====
+  private platformId: Object = inject(PLATFORM_ID);
+  private readonly isBrowser: boolean = isPlatformBrowser(this.platformId);
+  private cdr = inject(ChangeDetectorRef);
+  private renderer: Renderer2 = inject(Renderer2);
+  private doc: Document = inject(DOCUMENT);
+  private appRef = inject(ApplicationRef);
+  private zone = inject(NgZone);
 
-  // SEO helpers
-  private websiteScript?: HTMLScriptElement;
-  private webpageScript?: HTMLScriptElement;
-  private breadcrumbsScript?: HTMLScriptElement;
-
-  // Preload handle per l’immagine random LCP (rimane, non dà fastidio)
-  private preloadRandomLink?: HTMLLinkElement;
-
-  // DI
+  // ===== SERVICES =====
   private cocktailService = inject(CocktailService);
   private ingredientService = inject(IngredientService);
   private articleService = inject(ArticleService);
   private http = inject(HttpClient);
   private meta = inject(Meta);
   private title = inject(Title);
-  private renderer: Renderer2 = inject(Renderer2);
-  private doc: Document = inject(DOCUMENT);
-  private platformId: Object = inject(PLATFORM_ID);
-  private readonly isBrowser: boolean = isPlatformBrowser(this.platformId);
-  private cdr = inject(ChangeDetectorRef);
 
-  // ===== Carousel DI / refs
-  private appRef = inject(ApplicationRef);
-  private zone = inject(NgZone);
+  // ===== VIEW / RESPONSIVE =====
+  isMobile = false;
   @ViewChild('carouselRoot', { static: false })
   carouselRoot?: ElementRef<HTMLElement>;
+
+  // SEO helpers
+  private websiteScript?: HTMLScriptElement;
+  private webpageScript?: HTMLScriptElement;
+  private breadcrumbsScript?: HTMLScriptElement;
+
+  // Preload handle per random LCP
+  private preloadRandomLink?: HTMLLinkElement;
+
+  // Subscriptions
+  private dataSubscription?: Subscription;
+
+  // ===== Ads gating (SSR-safe) =====
+  /** Mostra gli Ad solo quando i dati sono pronti e siamo nel browser */
+  contentReady = false;
 
   constructor() {
     if (this.isBrowser) this.checkScreenWidth();
@@ -161,7 +168,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     this.loadDashboardData();
     this.applySeo();
-    // ⚠️ niente autoplay qui – parte in ngAfterViewInit dopo isStable
   }
 
   ngAfterViewInit(): void {
@@ -169,7 +175,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.appRef.isStable.pipe(filter(Boolean), take(1)).subscribe(() => {
       if (!this.isBrowser) return;
       this.setupCarouselVisibilityObserver();
-      this.startAutoplay(); // parte fuori da Angular (vedi startAutoplay)
+      this.startAutoplay(); // parte fuori da Angular
     });
   }
 
@@ -185,7 +191,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   private sampleArray<T>(arr: T[], count: number): T[] {
     if (!Array.isArray(arr) || arr.length === 0) return [];
     if (count >= arr.length) return [...arr];
-    // Fisher–Yates parziale
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -198,7 +203,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loading = true;
     this.error = null;
 
-    // pool più ampie per randomizzare
     const ING_POOL = 32;
     const ART_POOL = 24;
     const GLO_POOL = 40;
@@ -206,14 +210,13 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     const baseUrl = (env.apiUrl || '').replace(/\/$/, '');
     const glossaryUrl = `${baseUrl}/api/glossary-terms`;
 
-    // params per glossary
     const glossaryParams = new HttpParams()
       .set('pagination[pageSize]', String(GLO_POOL))
       .set('fields[0]', 'term')
       .set('fields[1]', 'slug')
       .set('fields[2]', 'category')
       .set('fields[3]', 'description')
-      .set('sort', 'term:asc'); // ordine stabile, poi campiono
+      .set('sort', 'term:asc');
 
     this.dataSubscription = forkJoin({
       cocktailsResponse: this.cocktailService.getCocktails(
@@ -326,18 +329,13 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
               .slice(0, 6)
               .map(([name]) => name);
 
-            // INGREDIENTS (random 8 dalla pool)
+            // INGREDIENTS (random 8)
             const ingPool = ingredientsResponse.data ?? [];
             this.latestIngredients = this.sampleArray(ingPool, 8);
 
-            // ARTICLES (random 8 dalla pool)
+            // ARTICLES (random 8)
             const artPool = articlesResponse ?? [];
             this.latestArticles = this.sampleArray(artPool, 8);
-
-            // ARTICLES per sezioni
-            this.historyArticles = historyArticles?.data ?? [];
-            this.techniquesArticles = techniquesArticles?.data ?? [];
-            this.ingredientsArticles = ingredientsArticles?.data ?? [];
 
             // GLOSSARY (random 4)
             const mappedGlossary: GlossaryTerm[] = (
@@ -369,10 +367,25 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
         finalize(() => {
           this.loading = false;
           this.applySeo(true);
+          this.unlockAdsWhenStable(); // ✅ sblocca ads solo ora
           this.cdr.markForCheck();
         })
       )
       .subscribe();
+  }
+
+  // ======== Ads unlock (SSR-safe) ========
+  private unlockAdsWhenStable(): void {
+    if (!this.isBrowser) return;
+    // Evita ExpressionChanged & garantisce che il contenuto sia in DOM
+    this.zone.runOutsideAngular(() => {
+      requestAnimationFrame(() => {
+        this.zone.run(() => {
+          this.contentReady = true;
+          this.cdr.markForCheck();
+        });
+      });
+    });
   }
 
   // ======== Preload LCP image ========
@@ -608,10 +621,8 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   private startAutoplay() {
     if (!this.isBrowser || this.autoplayId != null || this.autoplayMs <= 0)
       return;
-    // crea l’interval FUORI da Angular
     this.zone.runOutsideAngular(() => {
       this.autoplayId = window.setInterval(() => {
-        // rientra in Angular solo per cambiare lo stato
         this.zone.run(() => this.nextSlide(true));
       }, this.autoplayMs);
     });
@@ -656,7 +667,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isAnimating = true;
     this.currentSlide = (this.currentSlide + 1) % this.slidesCount;
     if (!fromAuto) this.restartAutoplay();
-    // fine animazione (coerente con CSS 500ms)
     setTimeout(() => (this.isAnimating = false), 520);
     this.cdr.markForCheck();
   }

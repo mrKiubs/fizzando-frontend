@@ -10,8 +10,6 @@
   </div>
 
   <div *ngIf="!loading && !error" class="dashboard-content">
-    <!-- HERO -->
-
     <!-- CAROUSEL -->
     <section
       #carouselRoot
@@ -42,13 +40,10 @@
           <article class="slide">
             <div class="slide-content slide1">
               <app-logo [size]="'lg'"></app-logo>
-              <!-- SOTTO-TITOLO SEO -->
               <h2 class="hero-subtitle first">
                 Discover cocktail recipes<br />mixology tips<br />ingredient
                 guides
               </h2>
-
-              <!-- FRASI BREVI -->
               <p class="hero-line">
                 Shake it, stir it, make it yours — cocktails made simple.
                 <br />
@@ -64,7 +59,6 @@
               <h2 class="hero-subtitle">
                 Discover Hundreds of Cocktail Recipes
               </h2>
-
               <div class="emoticon">🍹</div>
               <p class="hero-line2">
                 EXPLORE COCKTAIL RECIPES FROM CLASSIC TO MODERN CREATIONS
@@ -165,14 +159,9 @@
           (click)="goToSlide(i)"
         ></button>
       </div>
-      <!--
-      <p class="sr-only" aria-live="polite">
-        Slide {{ currentSlide + 1 }} of 4
-      </p>
-      -->
     </section>
 
-    <!-- RANDOM (1/3) – LCP: eager + fetchpriority=high -->
+    <!-- RANDOM (1/3) – LCP -->
     <section class="random-cocktail-section glass-card" *ngIf="randomCocktail">
       <h3>Your Random Cocktail</h3>
       <div class="cocktail-display">
@@ -199,33 +188,32 @@
       </div>
     </section>
 
-    <!-- AD #1 (defer on viewport) -->
-    @defer (on viewport) {
-    <section class="ad-block">
-      <ng-container>
-        <div
-          *ngIf="isMobile"
-          class="mobile-ad-container"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
+    <!-- ===================== AD #1 (defer + SSR-safe) ===================== -->
+    <ng-container *ngIf="contentReady">
+      @defer (on viewport) {
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <div *ngIf="isMobile" class="mobile-ad-container">
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
         </div>
-        <div
-          class="ad-desktop-card"
-          *ngIf="!isMobile"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
+        <div *ngIf="!isMobile" class="ad-desktop-card">
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
         </div>
-      </ng-container>
-    </section>
-    } @placeholder {
-    <section class="ad-block ad-skeleton" aria-hidden="true"></section>
-    }
+      </section>
+      } @placeholder {
+      <!-- Placeholder con altezza fissa per zero-CLS -->
+      <section
+        class="ad-block ad-skeleton"
+        aria-hidden="true"
+        style="height: 90px"
+      ></section>
+      }
+    </ng-container>
 
     <!-- FEATURED COCKTAILS -->
     <section class="section-block glass-card" *ngIf="featuredCocktails.length">
@@ -244,33 +232,31 @@
       </div>
     </section>
 
-    <!-- AD #2 (defer on viewport) -->
-    @defer (on viewport) {
-    <section class="ad-block">
-      <ng-container>
-        <div
-          *ngIf="isMobile"
-          class="mobile-ad-container"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
+    <!-- ===================== AD #2 (defer + SSR-safe) ===================== -->
+    <ng-container *ngIf="contentReady">
+      @defer (on viewport) {
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <div *ngIf="isMobile" class="mobile-ad-container">
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
         </div>
-        <div
-          class="ad-desktop-card"
-          *ngIf="!isMobile"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
+        <div *ngIf="!isMobile" class="ad-desktop-card">
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
         </div>
-      </ng-container>
-    </section>
-    } @placeholder {
-    <section class="ad-block ad-skeleton" aria-hidden="true"></section>
-    }
+      </section>
+      } @placeholder {
+      <section
+        class="ad-block ad-skeleton"
+        aria-hidden="true"
+        style="height: 90px"
+      ></section>
+      }
+    </ng-container>
 
     <!-- LATEST INGREDIENTS (defer: viewport) -->
     @defer (on viewport) {
@@ -366,40 +352,37 @@
     ></section>
     }
 
-    <!-- AD #1 (defer on viewport) -->
-    @defer (on viewport) {
-    <section class="ad-block">
-      <ng-container>
-        <div
-          *ngIf="isMobile"
-          class="mobile-ad-container"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
+    <!-- ===================== AD #3 (defer + SSR-safe) ===================== -->
+    <ng-container *ngIf="contentReady">
+      @defer (on viewport) {
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <div *ngIf="isMobile" class="mobile-ad-container">
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
         </div>
-        <div
-          class="ad-desktop-card"
-          *ngIf="!isMobile"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
+        <div *ngIf="!isMobile" class="ad-desktop-card">
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
         </div>
-      </ng-container>
-    </section>
-    } @placeholder {
-    <section class="ad-block ad-skeleton" aria-hidden="true"></section>
-    }
+      </section>
+      } @placeholder {
+      <section
+        class="ad-block ad-skeleton"
+        aria-hidden="true"
+        style="height: 90px"
+      ></section>
+      }
+    </ng-container>
 
     <!-- ARTICLES BY CATEGORY (defer: viewport) -->
     @defer (on viewport) {
     <section class="articles-by-category-section">
       <h3>Explore Articles by Category</h3>
       <div class="articles-category-grid">
-        <!-- categorie (solo titoli linkati) -->
         <div class="category-card glass-card">
           <h4>
             <a [routerLink]="['/articles/category', 'advanced-mixology']"
@@ -573,32 +556,30 @@
       </div>
     </section>
 
-    <!-- AD #1 (defer on viewport) -->
-    @defer (on viewport) {
-    <section class="ad-block">
-      <ng-container>
-        <div
-          *ngIf="isMobile"
-          class="mobile-ad-container"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
+    <!-- ===================== AD #4 (defer + SSR-safe) ===================== -->
+    <ng-container *ngIf="contentReady">
+      @defer (on viewport) {
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <div *ngIf="isMobile" class="mobile-ad-container">
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
         </div>
-        <div
-          class="ad-desktop-card"
-          *ngIf="!isMobile"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
+        <div *ngIf="!isMobile" class="ad-desktop-card">
           <span class="ad-badge">Ad</span>
           <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
         </div>
-      </ng-container>
-    </section>
-    } @placeholder {
-    <section class="ad-block ad-skeleton" aria-hidden="true"></section>
-    }
+      </section>
+      } @placeholder {
+      <section
+        class="ad-block ad-skeleton"
+        aria-hidden="true"
+        style="height: 90px"
+      ></section>
+      }
+    </ng-container>
   </div>
 </div>

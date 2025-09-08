@@ -246,25 +246,26 @@
     }
   </ng-container>
 
-  <!-- Related: 1 ad ogni 6 card -->
-  <section
-    class="related-cocktails-section"
-    *ngIf="similarCocktails.length > 0"
-  >
+  <!-- Related con ad in-loop -->
+  <section class="related-cocktails-section" *ngIf="relatedWithAds.length > 0">
     <h2 class="section-title">
       🍹 If you liked the {{ cocktail?.name }}, try these too!
     </h2>
 
     <div class="related-cocktail-cards-grid">
-      <ng-container *ngFor="let item of getCocktailsAndAds(); let i = index">
-        <ng-container *ngIf="isCocktail(item); else adBlock">
+      <ng-container
+        *ngFor="let item of relatedWithAds; trackBy: trackByRelated"
+      >
+        <!-- Card cocktail -->
+        <ng-container *ngIf="!$any(item).isAd; else adTpl">
           <app-cocktail-card
-            [cocktail]="item"
-            [routerLink]="['/cocktails', item.slug]"
+            [cocktail]="$any(item)"
+            [routerLink]="['/cocktails', $any(item).slug]"
           ></app-cocktail-card>
         </ng-container>
 
-        <ng-template #adBlock>
+        <!-- Ad in-grid -->
+        <ng-template #adTpl>
           <ng-container *ngIf="contentReady">
             @defer (on viewport) {
             <div
