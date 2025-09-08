@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, BehaviorSubject, throwError } from 'rxjs';
-import { map, filter, take, catchError, tap } from 'rxjs/operators';
+import { map, filter, catchError, finalize, shareReplay } from 'rxjs/operators';
 import { env } from '../config/env';
 
 // --- NUOVA INTERFACCIA: Article (per la relazione) ---
@@ -12,7 +12,6 @@ export interface Article {
   title: string;
   slug: string;
   content: string;
-  // Aggiungi qui altri campi dell'articolo se necessario
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
@@ -62,9 +61,9 @@ export interface Ingredient {
   ai_alcohol_content: string | null;
 
   // --- CAMPI AGGIUNTI/RIPRISTINATI ---
-  ingredient_type: string | null; // Enumeration in Strapi, trattato come stringa
-  ai_cocktail_substitutes: any | null; // JSON in Strapi, trattato come any (o un'interfaccia più specifica se conosci la struttura)
-  article: Article | null; // Relazione manyToOne con Article
+  ingredient_type: string | null;
+  ai_cocktail_substitutes: any | null;
+  article: Article | null;
 
   createdAt: string;
   updatedAt: string;
@@ -89,74 +88,102 @@ export interface StrapiSingleResponse<T> {
   meta: any;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class IngredientService {
   private apiUrl = env.apiUrl;
   private baseUrl = `${this.apiUrl}/api/ingredients`;
 
+  // Cache "ALL" con TTL per evitare dati stantii + peso in RAM
   private _allIngredientsCache: Ingredient[] | null = null;
+  private _allIngredientsCacheAt = 0;
+  private readonly ALL_TTL_MS = 3 * 60 * 1000; // 3 minuti
+
   private _allIngredientsLoadingSubject = new BehaviorSubject<boolean>(false);
   private _allIngredientsDataSubject = new BehaviorSubject<Ingredient[] | null>(
     null
   );
 
+  // Micro-cache per coalescere richieste identiche ravvicinate
+  private requestCache = new Map<string, { t: number; obs: Observable<any> }>();
+  private readonly REQ_TTL_MS = 30 * 1000; // 30s
+
   constructor(private http: HttpClient) {}
 
+  // ---------- Helpers ----------
+
+  private joinUrl(base: string, path: string): string {
+    const b = base.replace(/\/+$/, '');
+    const p = path.replace(/^\/+/, '');
+    return `${b}/${p}`;
+  }
+
   private getAbsoluteImageUrl(imageUrl: string | null | undefined): string {
-    if (!imageUrl) {
-      return 'assets/no-image.png';
-    }
-    // Usa env.apiUrl per l'URL base
+    if (!imageUrl) return 'assets/no-image.png';
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
     }
-    const cleanedUrl = imageUrl.startsWith('/')
-      ? imageUrl.substring(1)
-      : imageUrl;
-    return `${this.apiUrl}/${cleanedUrl}`;
+    return this.joinUrl(this.apiUrl, imageUrl);
   }
 
   private processIngredientImage(
     image: StrapiImage | null
   ): StrapiImage | null {
-    if (!image) {
-      return null;
-    }
+    if (!image) return null;
 
-    if (image.url) {
-      image.url = this.getAbsoluteImageUrl(image.url);
-    } else {
-      image.url = 'assets/no-image.png';
-    }
+    image.url = this.getAbsoluteImageUrl(image.url || 'assets/no-image.png');
 
     if (image.formats) {
       for (const key in image.formats) {
         if (Object.prototype.hasOwnProperty.call(image.formats, key)) {
-          const format = (image.formats as any)[key];
-          if (format && format.url) {
-            format.url = this.getAbsoluteImageUrl(format.url);
-          }
+          const fmt = (image.formats as any)[key];
+          if (fmt?.url) fmt.url = this.getAbsoluteImageUrl(fmt.url);
         }
       }
     }
     return image;
   }
 
+  private cacheKey(url: string, params: HttpParams): string {
+    return `${url}?${params.toString()}`;
+  }
+
+  private getWithRequestCache<T>(
+    url: string,
+    params: HttpParams
+  ): Observable<T> {
+    const key = this.cacheKey(url, params);
+    const now = Date.now();
+    const hit = this.requestCache.get(key);
+    if (hit && now - hit.t < this.REQ_TTL_MS) {
+      return hit.obs as Observable<T>;
+    }
+    const obs = this.http.get<T>(url, { params }).pipe(shareReplay(1));
+    this.requestCache.set(key, { t: now, obs });
+    return obs;
+  }
+
+  private isAllCacheFresh(): boolean {
+    return (
+      !!this._allIngredientsCache &&
+      Date.now() - this._allIngredientsCacheAt < this.ALL_TTL_MS
+    );
+  }
+
+  // ---------- API ----------
+
   /**
    * Recupera gli ingredienti con paginazione e filtri.
-   * Include una logica di caching per la lista completa di ingredienti (pageSize 1000).
-   * @param useCache Se true, cerca di usare la cache per una richiesta di tutti gli ingredienti.
-   * @param forceReload Se true, forza il ricaricamento dei dati, ignorando la cache. Utile per refresh manuali.
-   * @param ingredientType Filtra per tipo di ingrediente (es. 'Spirit', 'Liqueur', 'Mixer').
+   * Mantiene le immagini (con formats), ma evita colli di bottiglia:
+   * - cache "ALL" con TTL
+   * - micro-cache per URL+params con shareReplay
+   * - niente Subject.error()
    */
   getIngredients(
     page: number = 1,
     pageSize: number = 10,
     searchTerm?: string,
     isAlcoholic?: boolean,
-    ingredientType?: string, // Nuovo parametro per il filtro ingredient_type
+    ingredientType?: string,
     useCache: boolean = false,
     forceReload: boolean = false
   ): Observable<StrapiResponse<Ingredient>> {
@@ -166,191 +193,148 @@ export class IngredientService {
       isAlcoholic === undefined &&
       ingredientType === undefined;
 
-    if (isAllIngredientsRequest && !forceReload) {
-      if (this._allIngredientsCache) {
-        console.log('Serving all ingredients from _allIngredientsCache.');
-        return of({
-          data: this._allIngredientsCache,
+    // Serve dalla cache "ALL" se fresca e non forzata
+    if (isAllIngredientsRequest && !forceReload && this.isAllCacheFresh()) {
+      return of({
+        data: this._allIngredientsCache!,
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: this._allIngredientsCache!.length,
+            pageCount: 1,
+            total: this._allIngredientsCache!.length,
+          },
+        },
+      });
+    }
+
+    // Se sta già caricando "ALL", esponi lo stream
+    if (
+      isAllIngredientsRequest &&
+      this._allIngredientsLoadingSubject.getValue()
+    ) {
+      return this._allIngredientsDataSubject.pipe(
+        filter((data) => data !== null),
+        map((data) => ({
+          data: data!,
           meta: {
             pagination: {
               page: 1,
-              pageSize: this._allIngredientsCache.length,
+              pageSize: data!.length,
               pageCount: 1,
-              total: this._allIngredientsCache.length,
+              total: data!.length,
             },
           },
-        });
-      }
-
-      if (this._allIngredientsLoadingSubject.getValue()) {
-        console.log(
-          'All ingredients request already in progress, waiting for data via _allIngredientsDataSubject.'
-        );
-        return this._allIngredientsDataSubject.pipe(
-          filter((data) => data !== null),
-          map((data) => ({
-            data: data!,
-            meta: {
-              pagination: {
-                page: 1,
-                pageSize: data!.length,
-                pageCount: 1,
-                total: data!.length,
-              },
-            },
-          }))
-        );
-      }
+        }))
+      );
     }
 
+    // Build params (manteniamo populate=image completo)
     let params = new HttpParams()
-      .set('pagination[page]', page.toString())
-      .set('pagination[pageSize]', pageSize.toString())
+      .set('pagination[page]', String(page))
+      .set('pagination[pageSize]', String(pageSize))
       .set('populate', 'image');
 
-    if (searchTerm) {
+    if (searchTerm)
       params = params.set('filters[name][$startsWithi]', searchTerm);
-    }
-    if (isAlcoholic !== undefined) {
-      params = params.set('filters[isAlcoholic][$eq]', isAlcoholic.toString());
-    }
-    // Aggiungi il filtro ingredient_type solo se ha un valore valido
-    if (ingredientType && ingredientType !== '') {
+    if (isAlcoholic !== undefined)
+      params = params.set('filters[isAlcoholic][$eq]', String(isAlcoholic));
+    if (ingredientType)
       params = params.set('filters[ingredient_type][$eq]', ingredientType);
-    }
 
-    if (
-      isAllIngredientsRequest &&
-      !this._allIngredientsLoadingSubject.getValue()
-    ) {
-      this._allIngredientsLoadingSubject.next(true);
-    }
+    if (isAllIngredientsRequest) this._allIngredientsLoadingSubject.next(true);
 
-    console.log('Making NEW HTTP request for ingredients.');
-    console.log(
-      'IngredientService: Request URL with params:',
-      `${this.baseUrl}?${params.toString()}`
-    ); // DEBUG: Logga l'URL completo
-    return this.http
-      .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
-      .pipe(
-        map((response) => {
-          response.data.forEach((ingredient) => {
-            ingredient.image = this.processIngredientImage(ingredient.image);
-          });
+    // Usa la micro-cache per coalescere richieste identiche
+    return this.getWithRequestCache<StrapiResponse<Ingredient>>(
+      this.baseUrl,
+      params
+    ).pipe(
+      map((response) => {
+        // Normalizza URL immagini
+        response.data.forEach((ingredient) => {
+          ingredient.image = this.processIngredientImage(ingredient.image);
+        });
 
-          if (isAllIngredientsRequest) {
-            this._allIngredientsCache = response.data.sort((a, b) =>
-              a.name.localeCompare(b.name)
-            );
-            this._allIngredientsDataSubject.next(this._allIngredientsCache);
-            this._allIngredientsLoadingSubject.next(false);
-          }
-          return response;
-        }),
-        catchError((err) => {
-          console.error('Error loading ingredients:', err);
-          if (isAllIngredientsRequest) {
-            this._allIngredientsLoadingSubject.next(false);
-            this._allIngredientsDataSubject.error(err);
-          }
-          return throwError(
-            () =>
-              new Error(
-                'Could not load ingredients. Check Strapi permissions and filter configuration.'
-              )
-          );
-        })
-      );
+        if (isAllIngredientsRequest) {
+          // ordina e memorizza in cache con timestamp
+          const sorted = response.data
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name));
+          this._allIngredientsCache = sorted;
+          this._allIngredientsCacheAt = Date.now();
+          this._allIngredientsDataSubject.next(sorted);
+        }
+
+        return response;
+      }),
+      catchError((err) => {
+        // Non "rompere" il subject condiviso
+        if (isAllIngredientsRequest) {
+          this._allIngredientsDataSubject.next(null);
+        }
+        return throwError(
+          () =>
+            new Error(
+              'Could not load ingredients. Check Strapi permissions and filter configuration.'
+            )
+        );
+      }),
+      finalize(() => {
+        if (isAllIngredientsRequest)
+          this._allIngredientsLoadingSubject.next(false);
+      })
+    );
   }
 
   /**
    * Recupera un singolo ingrediente tramite il suo ID esterno.
-   * Controlla prima la cache globale `_allIngredientsCache`.
+   * Riusa la cache "ALL" se disponibile; altrimenti chiama l'API.
+   * Mantiene immagini e popola anche l'articolo (campi interi, come da tuo schema).
    */
   getIngredientByExternalId(externalId: string): Observable<Ingredient | null> {
-    // 1. Controlla la cache globale _allIngredientsCache
-    if (this._allIngredientsCache) {
-      const cachedIngredient = this._allIngredientsCache.find(
+    // 1) Cache "ALL"
+    if (this.isAllCacheFresh()) {
+      const cached = this._allIngredientsCache!.find(
         (i) => i.external_id === externalId
       );
-      if (cachedIngredient) {
-        console.log(
-          `Ingredient with external ID '${externalId}' found in _allIngredientsCache.`
-        );
-        return of(cachedIngredient);
-      }
+      if (cached) return of(cached);
     }
 
-    // 2. Se la richiesta per tutti gli ingredienti è in corso, attendi che finisca
+    // 2) Se l'ALL è in corso, attendi
     if (this._allIngredientsLoadingSubject.getValue()) {
-      console.log(
-        `_allIngredientsCache is loading, waiting for ingredient with external ID '${externalId}'.`
-      );
       return this._allIngredientsDataSubject.pipe(
         filter((data) => data !== null),
-        map((data) => {
-          const found = data!.find((i) => i.external_id === externalId);
-          if (found) {
-            console.log(
-              `Ingredient with external ID '${externalId}' found after _allIngredientsCache loaded.`
-            );
-          } else {
-            console.warn(
-              `Ingredient with external ID '${externalId}' not found in _allIngredientsCache after load.`
-            );
-          }
-          return found || null;
-        }),
-        catchError((err) => {
-          console.error(
-            `Error after _allIngredientsCache loaded for external ID '${externalId}':`,
-            err
-          );
-          return of(null);
-        })
+        map((data) => data!.find((i) => i.external_id === externalId) || null),
+        catchError(() => of(null))
       );
     }
 
-    // 3. Se non è in cache e non è in caricamento, fai una chiamata API specifica
-    console.log(
-      `Ingredient with external ID '${externalId}' not in cache, fetching from API.`
-    );
+    // 3) API specifica
     let params = new HttpParams()
       .set('filters[external_id][$eq]', externalId)
       .set('populate[image]', 'true')
       .set('populate[article]', 'true');
 
-    console.log(
-      'IngredientService: Detail Request URL with params:',
-      `${this.baseUrl}?${params.toString()}`
-    ); // DEBUG: Logga l'URL completo del dettaglio
-
-    return this.http
-      .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
-      .pipe(
-        map((response) => {
-          if (response.data && response.data.length > 0) {
-            const fetchedIngredient = response.data[0];
-            fetchedIngredient.image = this.processIngredientImage(
-              fetchedIngredient.image
-            );
-            return fetchedIngredient;
-          }
-          return null;
-        }),
-        catchError((err) => {
-          console.error(
-            'Error getting ingredient by external ID from API:',
-            err
-          );
-          return throwError(
-            () =>
-              new Error(
-                'Could not get ingredient details from API. Check Strapi permissions for article population.'
-              )
-          );
-        })
-      );
+    return this.getWithRequestCache<StrapiResponse<Ingredient>>(
+      this.baseUrl,
+      params
+    ).pipe(
+      map((response) => {
+        if (response.data && response.data.length > 0) {
+          const ing = response.data[0];
+          ing.image = this.processIngredientImage(ing.image);
+          return ing;
+        }
+        return null;
+      }),
+      catchError(() =>
+        throwError(
+          () =>
+            new Error(
+              'Could not get ingredient details from API. Check Strapi permissions for article population.'
+            )
+        )
+      )
+    );
   }
 }
