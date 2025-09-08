@@ -47,7 +47,7 @@
         </div>
       </div>
 
-      <!-- Description + Instructions + AD #1 -->
+      <!-- Description + Instructions -->
       <div class="cocktail-description-instructions-column">
         <section class="description-section">
           <p>{{ cocktail.ai_description || cocktail.instructions }}</p>
@@ -98,6 +98,7 @@
                   }}</span>
                 </div>
               </ng-container>
+
               <ng-template #unknownIngredient>
                 <div class="ing-cocktail">
                   <span>{{ item.ingredient.name }}</span>
@@ -110,7 +111,9 @@
     </div>
   </div>
 
-  <ng-container>
+  <!-- ===================== AD BLOCK #1 (post hero) ===================== -->
+  <ng-container *ngIf="contentReady">
+    @defer (on viewport) {
     <div
       *ngIf="isMobile"
       class="mobile-ad-container"
@@ -120,16 +123,19 @@
       <span class="ad-badge">Ad</span>
       <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
     </div>
-
     <div
-      class="ad-desktop-card"
       *ngIf="!isMobile"
+      class="ad-desktop-card"
       role="complementary"
       aria-label="Sponsored content"
     >
       <span class="ad-badge">Ad</span>
       <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
     </div>
+    } @placeholder {
+    <!-- Placeholder a dimensioni fisse per zero-CLS -->
+    <div class="ad-placeholder" style="width: 100%; height: 90px"></div>
+    }
   </ng-container>
 
   <!-- Deep Dive -->
@@ -195,7 +201,8 @@
           <ng-container
             *ngIf="+('' + cocktail?.ai_alcohol_content).replace('%', '') !== 0"
             >~</ng-container
-          >{{ cocktail.ai_alcohol_content }}
+          >
+          {{ cocktail.ai_alcohol_content }}
         </p>
 
         <p class="abv-warning" style="margin-top: 8px">
@@ -213,9 +220,9 @@
     </div>
   </section>
 
-  <!-- AD #2 — subito DOPO il Deep Dive -->
-
-  <ng-container>
+  <!-- ===================== AD BLOCK #2 (dopo Deep Dive) ===================== -->
+  <ng-container *ngIf="contentReady">
+    @defer (on viewport) {
     <div
       *ngIf="isMobile"
       class="mobile-ad-container"
@@ -225,55 +232,20 @@
       <span class="ad-badge">Ad</span>
       <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
     </div>
-
     <div
-      class="ad-desktop-card"
       *ngIf="!isMobile"
+      class="ad-desktop-card"
       role="complementary"
       aria-label="Sponsored content"
     >
       <span class="ad-badge">Ad</span>
       <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
     </div>
+    } @placeholder {
+    <div class="ad-placeholder" style="width: 100%; height: 90px"></div>
+    }
   </ng-container>
 
-  <!-- 
-  <section class="glass-card amazon-section">
-    <h2 class="section-title">
-      🛒 Craft {{ cocktail?.name }} with the Right Tools
-    </h2>
-    @defer (on viewport) {
-    <div class="affiliate-card-list" #affiliateCardList>
-      <div class="scrollerdiv">
-        <ng-container *ngFor="let product of productList; let i = index">
-          <div class="aff-item">
-            <app-affiliate-product
-              [title]="product.title"
-              [imageUrl]="product.imageUrl"
-              [price]="product.price"
-              [link]="product.link"
-              [showPlaceholder]="product.showPlaceholder"
-            >
-            </app-affiliate-product>
-          </div>
-        </ng-container>
-      </div>
-    </div>
-    } @placeholder {
-    <div class="affiliate-card-list placeholder" aria-hidden="true">
-      <div class="scrollerdiv">
-        <div class="aff-item skeleton"></div>
-        <div class="aff-item skeleton"></div>
-        <div class="aff-item skeleton"></div>
-      </div>
-    </div>
-    }
-    <p class="affiliate-bottom">
-      We may receive a small commission if you purchase through these links — it
-      helps keep the shaker shaking! 🙌🍸
-    </p>
-  </section>
--->
   <!-- Related: 1 ad ogni 6 card -->
   <section
     class="related-cocktails-section"
@@ -282,6 +254,7 @@
     <h2 class="section-title">
       🍹 If you liked the {{ cocktail?.name }}, try these too!
     </h2>
+
     <div class="related-cocktail-cards-grid">
       <ng-container *ngFor="let item of getCocktailsAndAds(); let i = index">
         <ng-container *ngIf="isCocktail(item); else adBlock">
@@ -292,25 +265,33 @@
         </ng-container>
 
         <ng-template #adBlock>
-          <div
-            *ngIf="isMobile"
-            class="mobile-ad-container"
-            role="complementary"
-            aria-label="Sponsored content"
-          >
-            <span class="ad-badge">Ad</span>
-            <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
-          </div>
-
-          <div
-            class="ad-desktop-card"
-            *ngIf="!isMobile"
-            role="complementary"
-            aria-label="Sponsored content"
-          >
-            <span class="ad-badge">Ad</span>
-            <app-dev-ads [type]="'square'"></app-dev-ads>
-          </div>
+          <ng-container *ngIf="contentReady">
+            @defer (on viewport) {
+            <div
+              *ngIf="isMobile"
+              class="mobile-ad-container"
+              role="complementary"
+              aria-label="Sponsored content"
+            >
+              <span class="ad-badge">Ad</span>
+              <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+            </div>
+            <div
+              *ngIf="!isMobile"
+              class="ad-desktop-card"
+              role="complementary"
+              aria-label="Sponsored content"
+            >
+              <span class="ad-badge">Ad</span>
+              <app-dev-ads [type]="'square'"></app-dev-ads>
+            </div>
+            } @placeholder {
+            <div
+              class="ad-placeholder"
+              style="width: 100%; height: 250px"
+            ></div>
+            }
+          </ng-container>
         </ng-template>
       </ng-container>
     </div>
@@ -318,7 +299,6 @@
 
   <section class="related-articles-section" *ngIf="relatedArticles.length > 0">
     <h2 class="section-title">📰 Related Articles</h2>
-
     <div class="related-articles-grid">
       <ng-container *ngFor="let a of relatedArticles; let i = index">
         <app-article-card [article]="a"></app-article-card>
@@ -326,8 +306,9 @@
     </div>
   </section>
 
-  <!-- Bottom banner (half-page su desktop) -->
-  <ng-container>
+  <!-- ===================== AD BLOCK #3 (bottom banner) ===================== -->
+  <ng-container *ngIf="contentReady">
+    @defer (on viewport) {
     <div
       *ngIf="isMobile"
       class="mobile-ad-container"
@@ -337,16 +318,18 @@
       <span class="ad-badge">Ad</span>
       <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
     </div>
-
     <div
-      class="ad-desktop-card"
       *ngIf="!isMobile"
+      class="ad-desktop-card"
       role="complementary"
       aria-label="Sponsored content"
     >
       <span class="ad-badge">Ad</span>
       <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
     </div>
+    } @placeholder {
+    <div class="ad-placeholder" style="width: 100%; height: 90px"></div>
+    }
   </ng-container>
 
   <!-- Navigation -->
@@ -367,7 +350,6 @@
         "
       >
         <mat-icon svgIcon="chevron_left" aria-hidden="true"></mat-icon>
-
         <div class="cocktail-image-wrapper" aria-hidden="true">
           <img
             [src]="previousCocktail.imageUrl"
@@ -381,7 +363,6 @@
             role="presentation"
           />
         </div>
-
         {{ previousCocktail.name }}
       </a>
       <span *ngIf="!previousCocktail" class="nav-placeholder"></span>
@@ -394,7 +375,6 @@
         [attr.aria-label]="'Next cocktail: ' + (nextCocktail?.name || '')"
       >
         {{ nextCocktail.name }}
-
         <div class="cocktail-image-wrapper" aria-hidden="true">
           <img
             [src]="nextCocktail.imageUrl"
@@ -408,7 +388,6 @@
             role="presentation"
           />
         </div>
-
         <mat-icon svgIcon="chevron_right" aria-hidden="true"></mat-icon>
       </a>
       <span *ngIf="!nextCocktail" class="nav-placeholder"></span>
