@@ -240,7 +240,7 @@ section {
 /* Tablet */
 @media (max-width: 1024px) {
   .dashboard-content {
-    grid-template-columns: minmax(0, 1fr); /* stack hero + random */
+    //grid-template-columns: minmax(0, 1fr); /* stack hero + random */
   }
   .quick-links-section .links-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -262,6 +262,9 @@ section {
 @media (max-width: 768px) {
   .dashboard-container {
     padding: 0 var(--pad-sm);
+  }
+  .dashboard-content {
+    grid-template-columns: minmax(0, 1fr); /* stack hero + random */
   }
   .cards-grid.limit-4 {
     grid-template-columns: minmax(0, 1fr);

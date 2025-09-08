@@ -44,6 +44,13 @@ interface ProductItem {
   showPlaceholder: boolean;
 }
 
+/** Slot pubblicitario per il loop "Related" */
+interface AdSlot {
+  isAd: true;
+  id: string;
+  kind: 'square' | 'banner';
+}
+
 @Component({
   selector: 'app-cocktail-detail',
   standalone: true,
@@ -91,6 +98,10 @@ export class CocktailDetailComponent
 
   similarCocktails: CocktailWithLayoutAndMatch[] = [];
   relatedArticles: Article[] = [];
+
+  /** Array pronto per il template, con Ad intercalati */
+  relatedWithAds: Array<CocktailWithLayoutAndMatch | AdSlot> = [];
+  private readonly AD_EVERY = 6;
 
   isMobile = false;
 
@@ -211,6 +222,7 @@ export class CocktailDetailComponent
     this.loading = true;
     this.error = null;
     this.similarCocktails = [];
+    this.relatedWithAds = [];
     this.contentReady = false; // blocca ads tra una navigazione e l’altra
     this.cleanupSeo();
 
@@ -265,16 +277,40 @@ export class CocktailDetailComponent
   loadSimilarCocktails(): void {
     if (!this.cocktail) {
       this.similarCocktails = [];
+      this.relatedWithAds = [];
       return;
     }
     this.similarCocktailsSubscription = this.cocktailService
       .getSimilarCocktails(this.cocktail)
       .subscribe({
-        next: (res: Cocktail[]) =>
-          (this.similarCocktails = res as CocktailWithLayoutAndMatch[]),
-        error: () => (this.similarCocktails = []),
+        next: (res: Cocktail[]) => {
+          this.similarCocktails = res as CocktailWithLayoutAndMatch[];
+          this.buildRelatedWithAds();
+        },
+        error: () => {
+          this.similarCocktails = [];
+          this.relatedWithAds = [];
+        },
       });
   }
+
+  /** Intercala un ad ogni N card, evitando ad in coda, con id stabili */
+  private buildRelatedWithAds(): void {
+    const list = this.similarCocktails ?? [];
+    const out: Array<CocktailWithLayoutAndMatch | AdSlot> = [];
+    list.forEach((c, i) => {
+      out.push(c);
+      const isLast = i === list.length - 1;
+      if ((i + 1) % this.AD_EVERY === 0 && !isLast) {
+        out.push({ isAd: true, id: `ad-rel-${i}`, kind: 'square' });
+      }
+    });
+    this.relatedWithAds = out;
+  }
+
+  /** trackBy per misto card/ad (id stabili) */
+  trackByRelated = (_: number, item: any) =>
+    item?.isAd ? item.id : item?.slug ?? item?.id ?? _;
 
   setNavigationCocktails(currentExternalId: string): void {
     if (!this.allCocktails?.length) return;
@@ -348,23 +384,6 @@ export class CocktailDetailComponent
 
   checkScreenWidth(): void {
     this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
-  }
-
-  /** 1 ad ogni 6 card */
-  getCocktailsAndAds(): any[] {
-    const items: any[] = [];
-    const len = this.similarCocktails.length;
-    this.similarCocktails.forEach((cocktail, index) => {
-      items.push(cocktail);
-      if ((index + 1) % 6 === 0 && index < len - 1) {
-        items.push({ isAd: true });
-      }
-    });
-    return items;
-  }
-
-  isCocktail(item: any): boolean {
-    return item && !item.isAd;
   }
 
   private getFullSiteUrl(path: string): string {
