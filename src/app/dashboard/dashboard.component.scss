@@ -329,22 +329,39 @@ h4 {
 }
 
 .cocktail-display {
+  position: relative;
   img {
-    max-width: 260px;
+    max-width: 210px;
+    opacity: 0.7;
   }
-  h4 {
-    margin: 16px 0 0 0;
-    -webkit-text-fill-color: initial;
-    color: #fff;
+  h3 {
+    text-align: center;
   }
-  p {
-    margin-bottom: 16px;
-    opacity: 0.55;
-  }
-  button {
-    margin-bottom: 8px;
-    flex-direction: row;
-    padding: 8px 16px;
+  .content-random {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+
+    h4 {
+      font-size: 24px;
+      margin-bottom: 32px;
+      color: white;
+      -webkit-text-fill-color: white;
+      text-shadow: none;
+      background-image: none;
+    }
+
+    p {
+      margin-bottom: 16px;
+      opacity: 0.55;
+    }
+    button {
+      margin-bottom: 8px;
+      flex-direction: row;
+      padding: 8px 16px;
+    }
   }
 }
 .hero {
@@ -617,7 +634,6 @@ h4 {
   text-align: center;
 
   gap: 0px;
-  margin-bottom: 16px;
   h2 {
     text-align: center;
     font-size: 26px !important;
@@ -690,4 +706,48 @@ h4 {
 .hero-line2 {
   font-weight: 600;
   margin-bottom: 16px !important;
+}
+
+.quick-link-home {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+  width: 100%;
+}
+hr {
+  height: 1px;
+  background: #dddddd2b;
+  margin-block: 1.5rem;
+  width: 100%;
+  margin: 0;
+  border: none;
+}
+
+.hero-button {
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+}
+
+.carousel {
+  position: relative;
+}
+
+.carousel-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0; /* o top: 0 se la preferisci in alto */
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2); /* track */
+  overflow: hidden;
+  border-radius: 999px;
+
+  .bar {
+    height: 100%;
+    width: 0%;
+    background: rgba(255, 255, 255, 0.85); /* progress */
+    transition: width 80ms linear; /* fluida ma leggera */
+  }
 }

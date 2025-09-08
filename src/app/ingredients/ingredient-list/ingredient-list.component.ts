@@ -223,7 +223,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Titolo provvisorio
     this.titleService.setTitle(
-      'Ingredient Explorer: Spirits, Mixers & More | Fizzando'
+      'Ingredients Explorer: Spirits, Mixers & More | Fizzando'
     );
 
     // Sub ai parametri di query (come CocktailList)
@@ -520,8 +520,8 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     if (this._selectedAlcoholic() === 'false') parts.push('Non-Alcoholic');
 
     const base = parts.length
-      ? `Ingredient Explorer • ${parts.join(' • ')}`
-      : 'Ingredient Explorer';
+      ? `Ingredients Explorer • ${parts.join(' • ')}`
+      : 'Ingredients Explorer';
 
     const pageSuffix =
       this.totalPages > 1
@@ -618,7 +618,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       '@id': itemListId,
-      name: 'Ingredient Explorer',
+      name: 'Ingredients Explorer',
       inLanguage: 'en',
       itemListOrder: 'https://schema.org/ItemListOrderAscending',
       numberOfItems: this.totalItems,

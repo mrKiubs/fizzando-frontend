@@ -452,47 +452,30 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.getAbsoluteImageUrl(image);
   }
 
-  getImageSrcSet(image: StrapiImage | null | undefined): string | null {
+  getImageSrcSet(image: StrapiImage | null | undefined): string {
     const formats = (image as any)?.formats || null;
-    if (!formats) return null;
+    if (!formats) return ''; // <- mai null
+
+    const toAbs = (url: string) =>
+      url?.startsWith('http') ? url : env.apiUrl + url;
+
     const parts: string[] = [];
+
     if (formats.thumbnail?.url && formats.thumbnail?.width) {
-      parts.push(
-        `${
-          formats.thumbnail.url.startsWith('http')
-            ? formats.thumbnail.url
-            : env.apiUrl + formats.thumbnail.url
-        } ${formats.thumbnail.width}w`
-      );
+      parts.push(`${toAbs(formats.thumbnail.url)} ${formats.thumbnail.width}w`);
     }
     if (formats.small?.url && formats.small?.width) {
-      parts.push(
-        `${
-          formats.small.url.startsWith('http')
-            ? formats.small.url
-            : env.apiUrl + formats.small.url
-        } ${formats.small.width}w`
-      );
+      parts.push(`${toAbs(formats.small.url)} ${formats.small.width}w`);
     }
     if (formats.medium?.url && formats.medium?.width) {
-      parts.push(
-        `${
-          formats.medium.url.startsWith('http')
-            ? formats.medium.url
-            : env.apiUrl + formats.medium.url
-        } ${formats.medium.width}w`
-      );
+      parts.push(`${toAbs(formats.medium.url)} ${formats.medium.width}w`);
     }
     if (formats.large?.url && formats.large?.width) {
-      parts.push(
-        `${
-          formats.large.url.startsWith('http')
-            ? formats.large.url
-            : env.apiUrl + formats.large.url
-        } ${formats.large.width}w`
-      );
+      parts.push(`${toAbs(formats.large.url)} ${formats.large.width}w`);
     }
-    return parts.length ? parts.join(', ') : null;
+
+    // Angular richiede una lista "comma-separated" con descrittori "w" o "x"
+    return parts.join(', ');
   }
 
   // ======== trackBy ========
@@ -618,9 +601,47 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   private touchStartX = 0;
   private carouselObserver?: IntersectionObserver;
 
+  // === Progress bar (sync con autoplay) ===
+  progressPct = 0;
+  private progressId: number | null = null;
+  private slideStartTs = 0;
+
+  private startProgress() {
+    if (this.progressId != null) return;
+    this.slideStartTs = Date.now();
+
+    this.zone.runOutsideAngular(() => {
+      this.progressId = window.setInterval(() => {
+        const elapsed = Date.now() - this.slideStartTs;
+        const pct = Math.min(100, (elapsed / this.autoplayMs) * 100);
+        this.zone.run(() => {
+          this.progressPct = pct;
+          this.cdr.markForCheck();
+        });
+      }, 80);
+    });
+  }
+
+  private stopProgress() {
+    if (this.progressId != null) {
+      clearInterval(this.progressId);
+      this.progressId = null;
+    }
+  }
+
+  private resetProgress() {
+    this.progressPct = 0;
+    this.slideStartTs = Date.now();
+  }
+
   private startAutoplay() {
     if (!this.isBrowser || this.autoplayId != null || this.autoplayMs <= 0)
       return;
+
+    // progress bar
+    this.resetProgress();
+    this.startProgress();
+
     this.zone.runOutsideAngular(() => {
       this.autoplayId = window.setInterval(() => {
         this.zone.run(() => this.nextSlide(true));
@@ -633,6 +654,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
       clearInterval(this.autoplayId);
       this.autoplayId = null;
     }
+    this.stopProgress();
   }
 
   private restartAutoplay() {
@@ -666,6 +688,10 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   nextSlide(fromAuto = false) {
     this.isAnimating = true;
     this.currentSlide = (this.currentSlide + 1) % this.slidesCount;
+
+    // reset progress su ogni cambio
+    this.resetProgress();
+
     if (!fromAuto) this.restartAutoplay();
     setTimeout(() => (this.isAnimating = false), 520);
     this.cdr.markForCheck();
@@ -675,6 +701,10 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isAnimating = true;
     this.currentSlide =
       (this.currentSlide - 1 + this.slidesCount) % this.slidesCount;
+
+    // reset progress
+    this.resetProgress();
+
     this.restartAutoplay();
     setTimeout(() => (this.isAnimating = false), 520);
     this.cdr.markForCheck();
@@ -684,6 +714,10 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     if (i < 0 || i >= this.slidesCount || i === this.currentSlide) return;
     this.isAnimating = true;
     this.currentSlide = i;
+
+    // reset progress
+    this.resetProgress();
+
     this.restartAutoplay();
     setTimeout(() => (this.isAnimating = false), 400);
     this.cdr.markForCheck();
