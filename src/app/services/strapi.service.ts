@@ -1,10 +1,9 @@
 // src/app/services/strapi.service.ts
 
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http'; // in cima al file
-import { Observable, of, throwError, BehaviorSubject, forkJoin } from 'rxjs';
-import { map, catchError, filter, take, tap, switchMap } from 'rxjs/operators';
-
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of, throwError, BehaviorSubject } from 'rxjs';
+import { map, catchError, filter, take, tap } from 'rxjs/operators';
 import { env } from '../config/env';
 // --- Interfacce (Necessarie per la tipizzazione dei dati) ---
 
@@ -337,7 +336,7 @@ export class CocktailService {
     forceReload: boolean = false // Nuovo parametro per forzare il ricaricamento
   ): Observable<StrapiResponse<Cocktail>> {
     const isAllCocktailsRequest =
-      pageSize === 1000 && !searchTerm && !category && !alcoholic;
+      pageSize === 48 && !searchTerm && !category && !alcoholic;
 
     if (isAllCocktailsRequest && !forceReload) {
       if (this._allCocktailsCache) {
@@ -551,7 +550,7 @@ export class CocktailService {
   likeCocktail(cocktailId: number): Observable<any> {
     const url = `${this.cocktailsBaseUrl}/${cocktailId}`;
     return this.http
-      .put(url, { data: { likes: (Math.random() * 1000).toFixed(0) } })
+      .put(url, { data: { likes: (Math.random() * 48).toFixed(0) } })
       .pipe(
         tap(() =>
           console.log(
@@ -679,7 +678,7 @@ export class CocktailService {
         'populate[ingredients_list][populate][ingredient][populate][image]',
         'true'
       ) // Popola l'immagine dell'ingrediente nidificato
-      .set('pagination[pageSize]', '1000');
+      .set('pagination[pageSize]', '48');
 
     if (exactMatch) {
       ingredientExternalIds.forEach((id, index) => {
@@ -733,163 +732,114 @@ export class CocktailService {
 
   /**
    * Recupera cocktail simili basandosi su un cocktail corrente.
-   * Ottimizzato: NIENTE fetch da 1000. Al massimo 2–3 chiamate leggere:
-   *  - per ingrediente primario/secondario (in parallelo)
-   *  - fallback per category/alcoholic/glass (solo se servono)
-   * Mantiene tutte le immagini (cocktail + ingredienti) come prima.
+   * Utilizza la cache del servizio per i dati completi di tutti i cocktail.
    */
   getSimilarCocktails(currentCocktail: Cocktail): Observable<Cocktail[]> {
-    if (!currentCocktail?.ingredients_list?.length) {
+    if (
+      !currentCocktail ||
+      !currentCocktail.ingredients_list ||
+      currentCocktail.ingredients_list.length === 0
+    ) {
       console.warn(
         'Cannot find similar cocktails: current cocktail or its ingredients are missing.'
       );
       return of([]);
     }
 
-    const primaryIngredientId =
-      currentCocktail.ingredients_list[0]?.ingredient?.external_id || null;
-    const secondaryIngredientId =
-      currentCocktail.ingredients_list[1]?.ingredient?.external_id || null;
+    // Questo forza il caricamento di tutti i cocktail in cache se non lo sono già,
+    // e poi li usa per la logica di similarità.
+    return this.getCocktails(
+      1,
+      48,
+      undefined,
+      undefined,
+      undefined,
+      true, // useCache è true per l'intera lista
+      false // non forzare il reload, usa la cache se disponibile
+    ).pipe(
+      map((response) => {
+        const allCocktails = response.data; // Questi saranno i dati dalla cache o dalla nuova fetch
 
-    // Costruisce i params base SLIM ma con tutte le immagini necessarie
-    const buildBaseParams = (pageSize: number = 48): HttpParams => {
-      let p = new HttpParams()
-        .set('pagination[page]', '1')
-        .set('pagination[pageSize]', String(pageSize))
-        // escludi il cocktail corrente
-        .set('filters[id][$ne]', String(currentCocktail.id))
-        // immagini del cocktail
-        .set('populate[image]', 'true')
-        // campi minimi + immagini ingredienti (serve nelle card)
-        .set(
-          'populate[ingredients_list][populate][ingredient][fields][0]',
-          'name'
-        )
-        .set(
-          'populate[ingredients_list][populate][ingredient][fields][1]',
-          'external_id'
-        )
-        .set(
-          'populate[ingredients_list][populate][ingredient][fields][2]',
-          'ingredient_type'
-        )
-        .set(
-          'populate[ingredients_list][populate][ingredient][populate][image]',
-          'true'
-        );
+        const primaryIngredientId =
+          currentCocktail.ingredients_list[0]?.ingredient?.external_id;
+        const secondaryIngredientId =
+          currentCocktail.ingredients_list[1]?.ingredient?.external_id;
 
-      // opzionale (aiuta a snellire un filo i payload)
-      p = p
-        .set('fields[0]', 'name')
-        .set('fields[1]', 'slug')
-        .set('fields[2]', 'external_id')
-        .set('fields[3]', 'category')
-        .set('fields[4]', 'alcoholic')
-        .set('fields[5]', 'glass');
+        let similarCocktailsCandidates: Cocktail[] = [];
 
-      return p;
-    };
-
-    const fetchByIngredient = (
-      extId: string,
-      pageSize = 48
-    ): Observable<Cocktail[]> => {
-      const params = buildBaseParams(pageSize).set(
-        'filters[ingredients_list][ingredient][external_id][$eq]',
-        extId
-      );
-
-      return this.http
-        .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
-        .pipe(
-          map((resp) => (resp.data || []).map((d) => this.cleanCocktailData(d)))
-        );
-    };
-
-    const fetchByMetaFallback = (pageSize = 48): Observable<Cocktail[]> => {
-      let p = buildBaseParams(pageSize);
-      let orIndex = 0;
-
-      if (currentCocktail.category) {
-        p = p.set(
-          `filters[$or][${orIndex++}][category][$eq]`,
-          currentCocktail.category
-        );
-      }
-      if (currentCocktail.alcoholic) {
-        p = p.set(
-          `filters[$or][${orIndex++}][alcoholic][$eq]`,
-          currentCocktail.alcoholic
-        );
-      }
-      if (currentCocktail.glass) {
-        p = p.set(
-          `filters[$or][${orIndex++}][glass][$eq]`,
-          currentCocktail.glass
-        );
-      }
-
-      if (orIndex === 0) return of<Cocktail[]>([]);
-      return this.http
-        .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params: p })
-        .pipe(
-          map((resp) => (resp.data || []).map((d) => this.cleanCocktailData(d)))
-        );
-    };
-
-    // dedup per id
-    const dedupe = (list: Cocktail[]): Cocktail[] => {
-      const seen = new Set<number>();
-      const out: Cocktail[] = [];
-      for (const c of list) {
-        if (!seen.has(c.id)) {
-          seen.add(c.id);
-          out.push(c);
+        if (primaryIngredientId) {
+          const matches = allCocktails.filter((cocktail) => {
+            if (cocktail.external_id === currentCocktail.external_id) {
+              return false;
+            }
+            return cocktail.ingredients_list.some(
+              (item) => item.ingredient.external_id === primaryIngredientId
+            );
+          });
+          similarCocktailsCandidates = [...matches];
         }
-      }
-      return out;
-    };
 
-    // Fisher–Yates
-    const shuffle = <T>(arr: T[]): T[] => {
-      const a = arr.slice();
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = (Math.random() * (i + 1)) | 0;
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    };
-
-    // 1) Ingredienti (1 o 2 query in parallelo)
-    const queries: Observable<Cocktail[]>[] = [];
-    if (primaryIngredientId)
-      queries.push(fetchByIngredient(primaryIngredientId, 48));
-    if (
-      secondaryIngredientId &&
-      secondaryIngredientId !== primaryIngredientId
-    ) {
-      queries.push(fetchByIngredient(secondaryIngredientId, 48));
-    }
-    const ingredientsPhase$ = queries.length
-      ? forkJoin(queries).pipe(map((arr) => dedupe(arr.flat())))
-      : of<Cocktail[]>([]);
-
-    // 2) Se servono altri risultati, fallback su category/alcoholic/glass
-    return ingredientsPhase$.pipe(
-      switchMap((firstBatch) => {
-        if (firstBatch.length >= 16) {
-          return of(shuffle(firstBatch).slice(0, 16));
+        if (
+          similarCocktailsCandidates.length < 16 &&
+          secondaryIngredientId &&
+          primaryIngredientId !== secondaryIngredientId
+        ) {
+          const newMatches = allCocktails.filter((cocktail) => {
+            if (
+              cocktail.external_id === currentCocktail.external_id ||
+              similarCocktailsCandidates.some(
+                (s) => s.external_id === cocktail.external_id
+              )
+            ) {
+              return false;
+            }
+            return cocktail.ingredients_list.some(
+              (item) => item.ingredient.external_id === secondaryIngredientId
+            );
+          });
+          similarCocktailsCandidates = [
+            ...similarCocktailsCandidates,
+            ...newMatches,
+          ];
         }
-        return fetchByMetaFallback(48).pipe(
-          map((fallback) => {
-            const merged = dedupe(firstBatch.concat(fallback));
-            return shuffle(merged).slice(0, 16);
-          })
+
+        if (similarCocktailsCandidates.length < 16) {
+          const fallbackMatches = allCocktails.filter((cocktail) => {
+            if (
+              cocktail.external_id === currentCocktail.external_id ||
+              similarCocktailsCandidates.some(
+                (s) => s.external_id === cocktail.external_id
+              )
+            ) {
+              return false;
+            }
+
+            const matchCategory =
+              currentCocktail.category &&
+              cocktail.category === currentCocktail.category;
+            const matchAlcoholic =
+              currentCocktail.alcoholic &&
+              cocktail.alcoholic === currentCocktail.alcoholic;
+            const matchGlass =
+              currentCocktail.glass && cocktail.glass === currentCocktail.glass;
+
+            return matchCategory || matchAlcoholic || matchGlass;
+          });
+          similarCocktailsCandidates = [
+            ...similarCocktailsCandidates,
+            ...fallbackMatches,
+          ];
+        }
+
+        const shuffled = similarCocktailsCandidates.sort(
+          () => 0.5 - Math.random()
         );
+        return shuffled.slice(0, 16);
       }),
-      catchError(() =>
-        throwError(() => new Error('Could not load similar cocktails.'))
-      )
+      catchError((err) => {
+        console.error('Error loading similar cocktails:', err);
+        return throwError(() => new Error('Could not load similar cocktails.'));
+      })
     );
   }
 }
