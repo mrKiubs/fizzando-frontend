@@ -13,13 +13,39 @@
     --tag-fs: 12px;
   }
   &.size-lg {
-    --logo-fs: 40px;
-    --tag-fs: 13px;
+    .logo-text {
+      font-size: 100px;
+      height: 85px;
+      line-height: 100px;
+      margin: 0;
+      padding: 0;
+      display: inline-block;
+      animation: floatTextVertical 4.3s ease-in-out infinite;
+      transform-origin: center;
+    }
+    .logo-tagline {
+      font-size: 38px;
+      line-height: 38px;
+      animation: floatTextVertical2 5.8s ease-in-out infinite;
+    }
+
+    @media (max-width: 600px) {
+      .logo-text {
+        font-size: 70px;
+        height: 60px;
+        line-height: 70px;
+      }
+      .logo-tagline {
+        font-size: 27px;
+        height: 27px;
+        line-height: 27px;
+      }
+    }
   }
 
   display: inline-flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 2px;
   color: inherit; /* per la tagline */
 }
 a {
@@ -89,4 +115,52 @@ a {
   color: floralwhite;
   font-family: "Bebas Neue", sans-serif;
   text-shadow: 0.5px 0.5px 0px black;
+}
+
+@keyframes floatTextVertical {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-6px) rotate(-0.5deg) scale(1.01);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0.5deg) scale(1);
+  }
+  75% {
+    transform: translateY(-6px) rotate(-0.3deg) scale(0.99);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+@keyframes floatTextVertical {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes floatTextVertical2 {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(0.5deg);
+  }
 }

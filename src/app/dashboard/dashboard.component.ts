@@ -8,6 +8,11 @@ import {
   PLATFORM_ID,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  ApplicationRef,
+  NgZone,
+  AfterViewInit,
+  ElementRef,
+  ViewChild,
 } from '@angular/core';
 import {
   CommonModule,
@@ -19,7 +24,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { forkJoin, Subscription, of } from 'rxjs';
 import { DatePipe } from '@angular/common';
-import { catchError, finalize, tap, map } from 'rxjs/operators';
+import { catchError, finalize, tap, filter, take } from 'rxjs/operators';
 import { env } from '../config/env';
 import { Meta, Title } from '@angular/platform-browser';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -41,6 +46,7 @@ import { CocktailCardComponent } from '../cocktails/cocktail-card/cocktail-card.
 import { IngredientCardComponent } from '../ingredients/ingredient-card/ingredient-card.component';
 import { ArticleCardComponent } from '../articles/article-card/article-card.component';
 import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.component';
+import { LogoComponent } from '../assets/design-system/logo/logo.component';
 
 interface StrapiGlossaryResponse {
   data: Array<{
@@ -76,12 +82,13 @@ interface StrapiGlossaryResponse {
     DatePipe,
     DevAdsComponent,
     NgOptimizedImage,
+    LogoComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   allCocktails: Cocktail[] = [];
   featuredCocktails: CocktailWithLayoutAndMatch[] = [];
   latestCocktails: CocktailWithLayoutAndMatch[] = [];
@@ -97,7 +104,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   categoriesCount: Record<string, number> = {};
   topCocktailCategories: string[] = [];
 
-  // 👇 NUOVO
+  // 👇 Random glossary per sezione “Discover Glossary Terms”
   randomGlossaryTerms: GlossaryTerm[] = [];
 
   totalCocktails = 0;
@@ -112,7 +119,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private webpageScript?: HTMLScriptElement;
   private breadcrumbsScript?: HTMLScriptElement;
 
-  // Preload handle per l’immagine random LCP
+  // Preload handle per l’immagine random LCP (rimane, non dà fastidio)
   private preloadRandomLink?: HTMLLinkElement;
 
   // DI
@@ -127,6 +134,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private platformId: Object = inject(PLATFORM_ID);
   private readonly isBrowser: boolean = isPlatformBrowser(this.platformId);
   private cdr = inject(ChangeDetectorRef);
+
+  // ===== Carousel DI / refs
+  private appRef = inject(ApplicationRef);
+  private zone = inject(NgZone);
+  @ViewChild('carouselRoot', { static: false })
+  carouselRoot?: ElementRef<HTMLElement>;
 
   constructor() {
     if (this.isBrowser) this.checkScreenWidth();
@@ -148,9 +161,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadDashboardData();
     this.applySeo();
+    // ⚠️ niente autoplay qui – parte in ngAfterViewInit dopo isStable
+  }
+
+  ngAfterViewInit(): void {
+    // Avvia autoplay solo quando l'app è stabile (fix NG0506)
+    this.appRef.isStable.pipe(filter(Boolean), take(1)).subscribe(() => {
+      if (!this.isBrowser) return;
+      this.setupCarouselVisibilityObserver();
+      this.startAutoplay(); // parte fuori da Angular (vedi startAutoplay)
+    });
   }
 
   ngOnDestroy(): void {
+    this.stopAutoplay();
+    this.carouselObserver?.disconnect();
     this.dataSubscription?.unsubscribe();
     this.cleanupSeo();
     this.removeRandomImagePreload();
@@ -202,7 +227,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ),
       ingredientsResponse: this.ingredientService.getIngredients(
         1,
-        ING_POOL, // pool più ampia
+        ING_POOL,
         undefined,
         undefined,
         undefined,
@@ -256,7 +281,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
               cocktailsResponse.meta?.pagination?.total ??
               this.allCocktails.length;
 
-            // Random cocktail (hero)
+            // Random cocktail (opzionale)
             if (this.allCocktails.length > 0) {
               const [picked] = this.sampleArray(this.allCocktails, 1);
               if (picked) {
@@ -265,8 +290,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
                   isTall: false,
                   isWide: false,
                 };
-
-                // Preload LCP image
+                // Preload (safe)
                 const preloadUrl = this.getBestImageUrl(
                   this.randomCocktail.image,
                   360
@@ -275,12 +299,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
               }
             }
 
-            // Featured (random 8 da tutta la pool)
+            // Featured (random 8)
             this.featuredCocktails = this.sampleArray(this.allCocktails, 8).map(
               (c) => ({ ...c, isTall: false, isWide: false })
             );
 
-            // (Mantengo latestCocktails se ti serve altrove)
+            // Latest
             this.latestCocktails = [...this.allCocktails]
               .sort(
                 (a, b) =>
@@ -302,20 +326,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
               .slice(0, 6)
               .map(([name]) => name);
 
-            // === INGREDIENTS (random 8 dalla pool) ===
+            // INGREDIENTS (random 8 dalla pool)
             const ingPool = ingredientsResponse.data ?? [];
             this.latestIngredients = this.sampleArray(ingPool, 8);
 
-            // === ARTICLES (random 8 dalla pool) ===
+            // ARTICLES (random 8 dalla pool)
             const artPool = articlesResponse ?? [];
             this.latestArticles = this.sampleArray(artPool, 8);
 
-            // === ARTICLES per sezioni ===
+            // ARTICLES per sezioni
             this.historyArticles = historyArticles?.data ?? [];
             this.techniquesArticles = techniquesArticles?.data ?? [];
             this.ingredientsArticles = ingredientsArticles?.data ?? [];
 
-            // === GLOSSARY (random 4) ===
+            // GLOSSARY (random 4)
             const mappedGlossary: GlossaryTerm[] = (
               glossaryResponse?.data ?? []
             ).map((item) => ({
@@ -568,5 +592,113 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const el = head.querySelector(`#${id}`);
       if (el) this.renderer.removeChild(head, el);
     });
+  }
+
+  // =======================
+  // ===== CAROUSEL 👇 =====
+  // =======================
+  currentSlide = 0;
+  readonly slidesCount = 4;
+  readonly autoplayMs = 6000;
+  private autoplayId: number | null = null;
+  isAnimating = true;
+  private touchStartX = 0;
+  private carouselObserver?: IntersectionObserver;
+
+  private startAutoplay() {
+    if (!this.isBrowser || this.autoplayId != null || this.autoplayMs <= 0)
+      return;
+    // crea l’interval FUORI da Angular
+    this.zone.runOutsideAngular(() => {
+      this.autoplayId = window.setInterval(() => {
+        // rientra in Angular solo per cambiare lo stato
+        this.zone.run(() => this.nextSlide(true));
+      }, this.autoplayMs);
+    });
+  }
+
+  private stopAutoplay() {
+    if (this.autoplayId != null) {
+      clearInterval(this.autoplayId);
+      this.autoplayId = null;
+    }
+  }
+
+  private restartAutoplay() {
+    this.stopAutoplay();
+    this.startAutoplay();
+  }
+
+  private setupCarouselVisibilityObserver() {
+    if (!this.isBrowser || !this.carouselRoot?.nativeElement) return;
+    this.carouselObserver?.disconnect();
+    this.carouselObserver = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.some(
+          (e) => e.isIntersecting && e.intersectionRatio > 0
+        );
+        if (visible) this.startAutoplay();
+        else this.stopAutoplay();
+      },
+      { threshold: [0, 0.1] }
+    );
+    this.carouselObserver.observe(this.carouselRoot.nativeElement);
+  }
+
+  pauseCarousel() {
+    this.stopAutoplay();
+  }
+  resumeCarousel() {
+    this.startAutoplay();
+  }
+
+  nextSlide(fromAuto = false) {
+    this.isAnimating = true;
+    this.currentSlide = (this.currentSlide + 1) % this.slidesCount;
+    if (!fromAuto) this.restartAutoplay();
+    // fine animazione (coerente con CSS 500ms)
+    setTimeout(() => (this.isAnimating = false), 520);
+    this.cdr.markForCheck();
+  }
+
+  prevSlide() {
+    this.isAnimating = true;
+    this.currentSlide =
+      (this.currentSlide - 1 + this.slidesCount) % this.slidesCount;
+    this.restartAutoplay();
+    setTimeout(() => (this.isAnimating = false), 520);
+    this.cdr.markForCheck();
+  }
+
+  goToSlide(i: number) {
+    if (i < 0 || i >= this.slidesCount || i === this.currentSlide) return;
+    this.isAnimating = true;
+    this.currentSlide = i;
+    this.restartAutoplay();
+    setTimeout(() => (this.isAnimating = false), 400);
+    this.cdr.markForCheck();
+  }
+
+  onCarouselKeydown(ev: KeyboardEvent) {
+    if (ev.key === 'ArrowRight') {
+      this.nextSlide();
+      ev.preventDefault();
+    } else if (ev.key === 'ArrowLeft') {
+      this.prevSlide();
+      ev.preventDefault();
+    } else if (ev.key === ' ') {
+      if (this.autoplayId != null) this.pauseCarousel();
+      else this.resumeCarousel();
+      ev.preventDefault();
+    }
+  }
+
+  onTouchStart(e: TouchEvent) {
+    this.touchStartX = e.changedTouches[0]?.clientX ?? 0;
+  }
+
+  onTouchEnd(e: TouchEvent) {
+    const dx = (e.changedTouches[0]?.clientX ?? 0) - this.touchStartX;
+    if (Math.abs(dx) > 40) dx > 0 ? this.prevSlide() : this.nextSlide();
   }
 }

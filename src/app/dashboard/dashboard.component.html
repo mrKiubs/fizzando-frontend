@@ -11,47 +11,165 @@
 
   <div *ngIf="!loading && !error" class="dashboard-content">
     <!-- HERO -->
-    <section class="hero-section glass-card hero">
-      <div class="hero-text">
-        <h2 class="hero-title">Make Better Cocktails.</h2>
 
-        <p class="hero-subtitle">
-          Fizzando is the easy way to learn recipes, master techniques, and
-          build a smarter home bar.
-        </p>
+    <!-- CAROUSEL -->
+    <section
+      #carouselRoot
+      class="carousel glass-card hero"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Featured content"
+      tabindex="0"
+      [style.--slides]="slidesCount"
+      (mouseenter)="pauseCarousel()"
+      (mouseleave)="resumeCarousel()"
+      (focusin)="pauseCarousel()"
+      (focusout)="resumeCarousel()"
+      (keydown)="onCarouselKeydown($event)"
+      (touchstart)="onTouchStart($event)"
+      (touchend)="onTouchEnd($event)"
+    >
+      <div class="carousel-viewport">
+        <div
+          class="carousel-track"
+          [style.width.%]="slidesCount * 100"
+          [style.transform]="
+            'translateX(-' + (100 / slidesCount) * currentSlide + '%)'
+          "
+          [style.transition]="isAnimating ? 'transform 500ms ease' : 'none'"
+        >
+          <!-- Slide 1 -->
+          <article class="slide">
+            <div class="slide-content slide1">
+              <app-logo [size]="'lg'"></app-logo>
+              <!-- SOTTO-TITOLO SEO -->
+              <h2 class="hero-subtitle first">
+                Discover cocktail recipes<br />mixology tips<br />ingredient
+                guides
+              </h2>
 
-        <p class="hero-blurb">
-          Explore tested cocktail recipes, deep ingredient profiles, and
-          step-by-step guides. Filter by spirit, style, or occasion and start
-          mixing with confidence.
-        </p>
+              <!-- FRASI BREVI -->
+              <p class="hero-line">
+                Shake it, stir it, make it yours — cocktails made simple.
+                <br />
+                Explore recipes, learn ingredients, and level up your home bar
+                with Fizzando.
+              </p>
+            </div>
+          </article>
 
-        <nav class="hero-cta" aria-label="Key destinations">
-          <a class="cta-chip" [routerLink]="['/cocktails']">
-            <mat-icon aria-hidden="true">local_bar</mat-icon>
-            <span>
-              <strong>Cocktail Recipes</strong>
-              <small>Classic to modern</small>
-            </span>
-          </a>
+          <!-- Slide 2 -->
+          <article class="slide">
+            <div class="slide-content">
+              <h2 class="hero-subtitle">
+                Discover Hundreds of Cocktail Recipes
+              </h2>
 
-          <a class="cta-chip" [routerLink]="['/ingredients']">
-            <mat-icon aria-hidden="true">science</mat-icon>
-            <span>
-              <strong>Ingredient Explorer</strong>
-              <small>Spirits & mixers</small>
-            </span>
-          </a>
+              <div class="emoticon">🍹</div>
+              <p class="hero-line2">
+                EXPLORE COCKTAIL RECIPES FROM CLASSIC TO MODERN CREATIONS
+              </p>
+              <p class="hero-line">
+                Find drinks by spirit, style, or occasion — with clear
+                instructions and pro techniques.
+              </p>
+              <button
+                class="glass-button secondary"
+                [routerLink]="['/cocktails']"
+              >
+                Cocktails Explorer <mat-icon>visibility</mat-icon>
+              </button>
+            </div>
+          </article>
 
-          <a class="cta-chip" [routerLink]="['/find-cocktail']">
-            <mat-icon aria-hidden="true">search</mat-icon>
-            <span>
-              <strong>Find by Ingredients</strong>
-              <small>What can I make?</small>
-            </span>
-          </a>
-        </nav>
+          <!-- Slide 3 -->
+          <article class="slide">
+            <div class="slide-content">
+              <h2 class="hero-subtitle">
+                Learn the Ingredients Behind Great Cocktails
+              </h2>
+              <div class="emoticon em-slide3">
+                <span>🍋</span> 🍾 <span>🍍</span>
+              </div>
+              <p class="hero-line2">
+                DISCOVER SPIRITS, LIQUEURS AND MIXERS BEHIND EVERY GREAT
+                COCKTAIL
+              </p>
+              <p class="hero-line">
+                Learn origins, flavor profiles, and smart substitutions for your
+                home bar
+              </p>
+              <button
+                class="glass-button secondary"
+                [routerLink]="['/ingredients']"
+              >
+                Ingredients Explorer <mat-icon>visibility</mat-icon>
+              </button>
+            </div>
+          </article>
+
+          <!-- Slide 4 -->
+          <article class="slide">
+            <div class="slide-content">
+              <h2 class="hero-subtitle">Make Cocktails With What You Have</h2>
+              <div class="emoticon em-slide4">
+                🍓 <span>+</span> 🌿 <span>+</span> 🍾 <span>=</span>
+                <span class="result">🍹</span>
+              </div>
+              <p class="hero-line2">
+                TURN YOUR HOME INGREDIENTS INTO GREAT COCKTAILS
+              </p>
+              <p class="hero-line">
+                Choose your available ingredients and discover drinks ready to
+                make at home
+              </p>
+              <button
+                class="glass-button secondary"
+                [routerLink]="['/find-cocktail']"
+              >
+                Find Your Cocktail <mat-icon>visibility</mat-icon>
+              </button>
+            </div>
+          </article>
+        </div>
       </div>
+
+      <!-- Controls -->
+      <button
+        class="carousel-btn prev"
+        type="button"
+        (click)="prevSlide()"
+        aria-label="Previous slide"
+      >
+        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+      </button>
+      <button
+        class="carousel-btn next"
+        type="button"
+        (click)="nextSlide()"
+        aria-label="Next slide"
+      >
+        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      </button>
+
+      <!-- Dots -->
+      <div class="carousel-dots" role="tablist" aria-label="Slide buttons">
+        <button
+          *ngFor="let i of [0, 1, 2, 3]"
+          class="dot"
+          role="tab"
+          type="button"
+          [class.active]="currentSlide === i"
+          [attr.aria-selected]="currentSlide === i"
+          [attr.aria-label]="'Go to slide ' + (i + 1)"
+          (click)="goToSlide(i)"
+        ></button>
+      </div>
+      <!--
+      <p class="sr-only" aria-live="polite">
+        Slide {{ currentSlide + 1 }} of 4
+      </p>
+      -->
     </section>
 
     <!-- RANDOM (1/3) – LCP: eager + fetchpriority=high -->
