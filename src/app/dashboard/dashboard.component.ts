@@ -28,6 +28,8 @@ import { catchError, finalize, tap, filter, take } from 'rxjs/operators';
 import { env } from '../config/env';
 import { Meta, Title } from '@angular/platform-browser';
 import { HttpClient, HttpParams } from '@angular/common/http';
+// ✅ TransferState/makeStateKey stanno in @angular/core su Angular 18/19
+import { makeStateKey, TransferState } from '@angular/core';
 
 // Services & types
 import {
@@ -67,6 +69,17 @@ interface StrapiGlossaryResponse {
     };
   };
 }
+
+// ===== Tipi per TransferState =====
+type DashboardPayload = {
+  cocktailsResponse: any;
+  ingredientsResponse: any;
+  articlesResponse: any;
+  historyArticles: any;
+  techniquesArticles: any;
+  ingredientsArticles: any;
+  glossaryResponse: StrapiGlossaryResponse;
+};
 
 @Component({
   selector: 'app-dashboard',
@@ -128,6 +141,11 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   private meta = inject(Meta);
   private title = inject(Title);
 
+  // ===== TransferState (anti-flicker SSR → client) =====
+  private state = inject(TransferState);
+  private readonly DASHBOARD_DATA =
+    makeStateKey<DashboardPayload>('dashboard-data-v1');
+
   // ===== VIEW / RESPONSIVE =====
   isMobile = false;
   @ViewChild('carouselRoot', { static: false })
@@ -187,7 +205,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.removeRandomImagePreload();
   }
 
-  // ======== Load + Random helpers ========
+  // ======== helpers ========
   private sampleArray<T>(arr: T[], count: number): T[] {
     if (!Array.isArray(arr) || arr.length === 0) return [];
     if (count >= arr.length) return [...arr];
@@ -199,10 +217,36 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     return a.slice(0, count);
   }
 
+  // ✅ random deterministico → stessa scelta su SSR e client
+  private hash(str: string): number {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+  private pickDeterministic<T>(arr: T[], seed: string): T | undefined {
+    if (!arr?.length) return undefined;
+    return arr[this.hash(seed) % arr.length];
+  }
+
+  // ======== Load ========
   loadDashboardData(): void {
     this.loading = true;
     this.error = null;
 
+    // 1) lato client: se SSR ha già popolato TransferState → niente refetch, niente rimbalzo
+    const cached = this.state.hasKey(this.DASHBOARD_DATA)
+      ? this.state.get(this.DASHBOARD_DATA, {} as DashboardPayload)
+      : null;
+
+    if (cached) {
+      this.hydrateFromData(cached);
+      return this.finishLoad();
+    }
+
+    // 2) nessuna cache → fetch come prima
     const ING_POOL = 32;
     const ART_POOL = 24;
     const GLO_POOL = 40;
@@ -268,110 +312,114 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
         ),
     })
       .pipe(
-        tap(
-          ({
-            cocktailsResponse,
-            ingredientsResponse,
-            articlesResponse,
-            historyArticles,
-            techniquesArticles,
-            ingredientsArticles,
-            glossaryResponse,
-          }) => {
-            // === COCKTAILS ===
-            this.allCocktails = cocktailsResponse.data;
-            this.totalCocktails =
-              cocktailsResponse.meta?.pagination?.total ??
-              this.allCocktails.length;
-
-            // Random cocktail (opzionale)
-            if (this.allCocktails.length > 0) {
-              const [picked] = this.sampleArray(this.allCocktails, 1);
-              if (picked) {
-                this.randomCocktail = {
-                  ...picked,
-                  isTall: false,
-                  isWide: false,
-                };
-                // Preload (safe)
-                const preloadUrl = this.getBestImageUrl(
-                  this.randomCocktail.image,
-                  360
-                );
-                this.addRandomImagePreload(preloadUrl);
-              }
-            }
-
-            // Featured (random 8)
-            this.featuredCocktails = this.sampleArray(this.allCocktails, 8).map(
-              (c) => ({ ...c, isTall: false, isWide: false })
-            );
-
-            // Latest
-            this.latestCocktails = [...this.allCocktails]
-              .sort(
-                (a, b) =>
-                  new Date(b.createdAt).getTime() -
-                  new Date(a.createdAt).getTime()
-              )
-              .slice(0, 10)
-              .map((c) => ({ ...c, isTall: false, isWide: false }));
-
-            // Categories → top chip
-            this.categoriesCount = this.allCocktails.reduce((acc, cocktail) => {
-              const cat = (cocktail.category || 'Unknown').trim();
-              acc[cat] = (acc[cat] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>);
-
-            this.topCocktailCategories = Object.entries(this.categoriesCount)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 6)
-              .map(([name]) => name);
-
-            // INGREDIENTS (random 8)
-            const ingPool = ingredientsResponse.data ?? [];
-            this.latestIngredients = this.sampleArray(ingPool, 8);
-
-            // ARTICLES (random 8)
-            const artPool = articlesResponse ?? [];
-            this.latestArticles = this.sampleArray(artPool, 8);
-
-            // GLOSSARY (random 4)
-            const mappedGlossary: GlossaryTerm[] = (
-              glossaryResponse?.data ?? []
-            ).map((item) => ({
-              id: item.id,
-              term:
-                item.attributes?.term ??
-                (item as any).term ??
-                'No Term Provided',
-              slug: item.attributes?.slug ?? (item as any).slug ?? '',
-              category:
-                item.attributes?.category ??
-                (item as any).category ??
-                'Uncategorized',
-              description:
-                item.attributes?.description ??
-                (item as any).description ??
-                'No description provided.',
-            }));
-            this.randomGlossaryTerms = this.sampleArray(mappedGlossary, 4);
+        tap((payload) => {
+          // ✅ salviamo in TransferState **solo lato server** (così il client lo riusa in hydration)
+          if (!this.isBrowser) {
+            this.state.set(this.DASHBOARD_DATA, payload as DashboardPayload);
           }
-        ),
+          this.hydrateFromData(payload as DashboardPayload);
+        }),
         catchError((err) => {
           console.error('Dashboard load error:', err);
           this.error = 'Unable to load dashboard data. Please try again later.';
           return of(null);
         }),
         finalize(() => {
-          this.loading = false;
-          this.applySeo(true);
-          this.unlockAdsWhenStable(); // ✅ sblocca ads solo ora
-          this.cdr.markForCheck();
+          this.finishLoad();
         })
       )
       .subscribe();
+  }
+
+  private hydrateFromData({
+    cocktailsResponse,
+    ingredientsResponse,
+    articlesResponse,
+    historyArticles,
+    techniquesArticles,
+    ingredientsArticles,
+    glossaryResponse,
+  }: DashboardPayload): void {
+    // === COCKTAILS ===
+    this.allCocktails = cocktailsResponse?.data ?? [];
+    this.totalCocktails =
+      cocktailsResponse?.meta?.pagination?.total ?? this.allCocktails.length;
+
+    // ✅ Random cocktail deterministico giornaliero (niente rimbalzo)
+    if (this.allCocktails.length > 0) {
+      const seed = 'home-' + new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
+      const picked = this.pickDeterministic(this.allCocktails, seed);
+      if (picked) {
+        this.randomCocktail = {
+          ...picked,
+          isTall: false,
+          isWide: false,
+        };
+        // Preload (browser-side, ok così)
+        const preloadUrl = this.getBestImageUrl(this.randomCocktail.image, 360);
+        this.addRandomImagePreload(preloadUrl);
+      }
+    }
+
+    // Featured (random 8)
+    this.featuredCocktails = this.sampleArray(this.allCocktails, 8).map(
+      (c) => ({
+        ...c,
+        isTall: false,
+        isWide: false,
+      })
+    );
+
+    // Latest
+    this.latestCocktails = [...this.allCocktails]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      .slice(0, 10)
+      .map((c) => ({ ...c, isTall: false, isWide: false }));
+
+    // Categories → top chip
+    this.categoriesCount = this.allCocktails.reduce((acc, cocktail) => {
+      const cat = (cocktail.category || 'Unknown').trim();
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    this.topCocktailCategories = Object.entries(this.categoriesCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name]) => name);
+
+    // INGREDIENTS (random 8)
+    const ingPool = ingredientsResponse?.data ?? [];
+    this.latestIngredients = this.sampleArray(ingPool, 8);
+
+    // ARTICLES (random 8)
+    const artPool = articlesResponse ?? [];
+    this.latestArticles = this.sampleArray(artPool, 8);
+
+    // GLOSSARY (random 4)
+    const mappedGlossary: GlossaryTerm[] = (glossaryResponse?.data ?? []).map(
+      (item: any) => ({
+        id: item.id,
+        term: item.attributes?.term ?? item.term ?? 'No Term Provided',
+        slug: item.attributes?.slug ?? item.slug ?? '',
+        category: item.attributes?.category ?? item.category ?? 'Uncategorized',
+        description:
+          item.attributes?.description ??
+          item.description ??
+          'No description provided.',
+      })
+    );
+    this.randomGlossaryTerms = this.sampleArray(mappedGlossary, 4);
+  }
+
+  private finishLoad(): void {
+    this.loading = false;
+    this.applySeo(true);
+    this.unlockAdsWhenStable(); // ✅ sblocca ads solo ora
+    this.cdr.markForCheck();
   }
 
   // ======== Ads unlock (SSR-safe) ========
@@ -499,6 +547,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const parts: string[] = [
       'Explore cocktail recipes, ingredient profiles and practical guides',
+      'Check out Fizzando’s Cocktail of the Day',
     ];
     if (updateDescWithCounts && this.totalCocktails > 0)
       parts.unshift(`Browse ${this.totalCocktails}+ cocktails`);
@@ -540,10 +589,14 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.injectJsonLd('webpage-jsonld', {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: 'Fizzando — Cocktails, Ingredients & Articles',
+      name: 'Fizzando — Make Better Cocktails',
       description,
       url: canonical,
       inLanguage: 'en',
+      hasPart: {
+        '@type': 'CreativeWork',
+        name: 'Fizzando’s Cocktail of the Day',
+      },
     });
     this.injectJsonLd('breadcrumbs-jsonld', {
       '@context': 'https://schema.org',

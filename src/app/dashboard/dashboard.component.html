@@ -165,17 +165,22 @@
     </section>
 
     <!-- RANDOM (1/3) – LCP -->
-    <section class="random-cocktail-section glass-card" *ngIf="randomCocktail">
+    <section
+      class="random-cocktail-section glass-card"
+      *ngIf="randomCocktail"
+      role="region"
+      aria-label="Fizzando’s Cocktail of the Day"
+    >
       <div class="cocktail-display">
-        <h3>Your Random Cocktail</h3>
+        <h3>Fizzando’s Cocktail of the Day</h3>
 
         <img
-          [src]="getBestImageUrl(randomCocktail.image, 420)"
+          [src]="getBestImageUrl(randomCocktail.image, 210)"
           [attr.srcset]="getImageSrcSet(randomCocktail.image)"
-          sizes="(max-width: 768px) 90vw, 420px"
+          sizes="(max-width: 768px) 90vw, 210px"
           [alt]="randomCocktail.name || 'Random cocktail'"
-          width="420"
-          height="420"
+          width="210"
+          height="210"
           loading="eager"
           fetchpriority="high"
           decoding="async"
