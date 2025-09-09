@@ -83,6 +83,8 @@ export class CocktailDetailComponent
   allCocktails: Cocktail[] = [];
   currentCocktailIndex = -1;
   detailSizes = '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw';
+  heroSrc = '';
+  heroSrcset = '';
   previousCocktail: {
     externalId: string;
     name: string;
@@ -150,6 +152,8 @@ export class CocktailDetailComponent
       this.cocktail = resolved;
       this.loading = false;
       this.setNavigationCocktails(this.cocktail.external_id);
+      this.heroSrc = this.getCocktailImageUrl(this.cocktail);
+      this.heroSrcset = this.getCocktailImageSrcset(this.cocktail);
       this.setSeoTagsAndSchema();
       this.loadSimilarCocktails();
       this.fetchRelatedArticles();
@@ -250,6 +254,8 @@ export class CocktailDetailComponent
           }
           this.cocktail = res;
           this.loading = false;
+          this.heroSrc = this.getCocktailImageUrl(this.cocktail);
+          this.heroSrcset = this.getCocktailImageSrcset(this.cocktail);
           this.setNavigationCocktails(this.cocktail.external_id);
           this.loadSimilarCocktails();
           this.fetchRelatedArticles();
@@ -468,16 +474,15 @@ export class CocktailDetailComponent
     const existing = this.document.querySelector<HTMLLinkElement>(
       'link[rel="preload"][as="image"][data-preload-hero="1"]'
     );
-    if (!existing && cocktailImageUrl) {
+    if (!existing && this.heroSrc) {
       const preload = this.renderer.createElement('link') as HTMLLinkElement;
       this.renderer.setAttribute(preload, 'rel', 'preload');
       this.renderer.setAttribute(preload, 'as', 'image');
-      this.renderer.setAttribute(preload, 'href', cocktailImageUrl);
-      this.renderer.setAttribute(
-        preload,
-        'imagesizes',
-        '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw'
-      );
+      this.renderer.setAttribute(preload, 'href', this.heroSrc);
+      if (this.heroSrcset) {
+        this.renderer.setAttribute(preload, 'imagesrcset', this.heroSrcset);
+      }
+      this.renderer.setAttribute(preload, 'imagesizes', this.detailSizes);
       this.renderer.setAttribute(preload, 'data-preload-hero', '1');
       this.renderer.appendChild(this.document.head, preload);
     }
