@@ -82,7 +82,7 @@ export class CocktailDetailComponent
 
   allCocktails: Cocktail[] = [];
   currentCocktailIndex = -1;
-  detailSizes = '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw';
+  detailSizes = '(max-width: 500px) 100vw, (max-width: 1000px) 50vw, 500px';
   heroSrc = '';
   heroSrcset = '';
   previousCocktail: {
