@@ -82,7 +82,7 @@ export class CocktailDetailComponent
 
   allCocktails: Cocktail[] = [];
   currentCocktailIndex = -1;
-
+  detailSizes = '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw';
   previousCocktail: {
     externalId: string;
     name: string;
@@ -614,5 +614,27 @@ export class CocktailDetailComponent
       ].filter(Boolean),
       mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
     };
+  }
+
+  getCocktailImageSrcset(cocktail: Cocktail | undefined): string {
+    const img = cocktail?.image as any;
+    if (!img) return '';
+
+    const toAbs = (u?: string | null) =>
+      u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
+
+    const parts: string[] = [];
+    // Aggiungi solo i formati esistenti; i “w” sono indicativi e vanno bene per Strapi default
+    if (img?.formats?.thumbnail?.url)
+      parts.push(`${toAbs(img.formats.thumbnail.url)} 150w`);
+    if (img?.formats?.small?.url)
+      parts.push(`${toAbs(img.formats.small.url)} 320w`);
+    if (img?.formats?.medium?.url)
+      parts.push(`${toAbs(img.formats.medium.url)} 640w`);
+    if (img?.formats?.large?.url)
+      parts.push(`${toAbs(img.formats.large.url)} 1024w`);
+    if (img?.url) parts.push(`${toAbs(img.url)} 1600w`);
+
+    return parts.join(', ');
   }
 }
