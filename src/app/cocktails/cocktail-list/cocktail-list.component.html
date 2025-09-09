@@ -259,13 +259,14 @@
       </a>
     </ng-container>
     <ng-template #prevDisabled>
-      <span
-        class="page-number nav-arrow disabled"
-        aria-disabled="true"
-        aria-label="Previous page (disabled)"
+      <button
+        type="button"
+        class="page-number nav-arrow"
+        aria-label="Previous page"
+        disabled
       >
         <mat-icon aria-hidden="true">chevron_left</mat-icon>
-      </span>
+      </button>
     </ng-template>
 
     <!-- Pagine -->
@@ -339,13 +340,14 @@
       </a>
     </ng-container>
     <ng-template #nextDisabled>
-      <span
-        class="page-number nav-arrow disabled"
-        aria-disabled="true"
-        aria-label="Next page (disabled)"
+      <button
+        type="button"
+        class="page-number nav-arrow"
+        aria-label="Next page"
+        disabled
       >
         <mat-icon aria-hidden="true">chevron_right</mat-icon>
-      </span>
+      </button>
     </ng-template>
   </div>
 </div>
