@@ -35,15 +35,15 @@
           <!-- ✅ LCP optimized hero -->
           <img
             class="detail-image"
-            [src]="getCocktailImageUrl(cocktail)"
-            [attr.srcset]="getCocktailImageSrcset(cocktail)"
+            [src]="getCocktailHeroUrl(cocktail)"
+            [srcset]="getCocktailImageSrcset(cocktail)"
             sizes="(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 500px"
-            alt="{{ cocktail.name || 'Cocktail photo' }}"
             width="500"
             height="500"
-            loading="eager"
             fetchpriority="high"
+            loading="eager"
             decoding="async"
+            alt="{{ cocktail.name || 'Cocktail photo' }}"
           />
         </div>
       </div>
