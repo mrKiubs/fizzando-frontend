@@ -191,10 +191,13 @@ h1 {
   white-space: nowrap;
 }
 
+.cocktail-image-column .image-wrapper {
+  max-width: 500px; /* la tua colonna non deve superare 500px */
+}
 .detail-image {
   display: block;
   width: 100%;
-  max-width: 500px; // ✅ il tuo limite reale
+  max-width: 500px;
   height: auto;
-  aspect-ratio: 1 / 1; // opzionale, ulteriore stabilità
+  aspect-ratio: 1 / 1; /* stabilizza, zero-CLS */
 }

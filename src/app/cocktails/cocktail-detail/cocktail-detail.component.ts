@@ -17,7 +17,6 @@ import {
   DOCUMENT,
   isPlatformBrowser,
   Location,
-  NgOptimizedImage,
 } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import {
@@ -60,7 +59,6 @@ interface AdSlot {
     RouterLink,
     DevAdsComponent,
     AffiliateProductComponent,
-    NgOptimizedImage,
     ArticleCardComponent,
     CocktailCardComponent,
   ],
