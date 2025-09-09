@@ -35,7 +35,7 @@
           <!-- ✅ LCP optimized hero -->
           <img
             class="detail-image"
-            [src]="getCocktailImageUrl(cocktail)"
+            [ngSrc]="getCocktailImageUrl(cocktail)"
             [srcset]="getCocktailImageSrcset(cocktail)"
             [sizes]="detailSizes"
             alt="{{ cocktail.name || 'Cocktail photo' }}"
