@@ -104,3 +104,16 @@ mat-icon,
   -webkit-font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
 }
+/* Spazio riservato e metrica stabile per tutte le icone material */
+.mat-icon,
+.material-icons {
+  display: inline-block;
+  width: 24px; /* o 20/24/28px: usa la misura che adopera la tua UI */
+  height: 24px;
+  line-height: 24px;
+  font-size: 24px;
+  vertical-align: middle;
+  /* evita reflow se il font ancora non è pronto */
+  overflow: hidden;
+  white-space: nowrap;
+}
