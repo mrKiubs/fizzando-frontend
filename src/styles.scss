@@ -117,3 +117,76 @@ mat-icon,
   overflow: hidden;
   white-space: nowrap;
 }
+
+/* 1) Lista: card testi stabili (evita shift in .cocktail-list) */
+.cocktail-list .cocktail-card {
+  /* Garantiamo che immagine e testo non facciano saltare la griglia */
+  .cocktail-card-image {
+    display: block;
+    width: 100%;
+    /* se non l’hai già: fissa l’aspect ratio dell’area immagine */
+    aspect-ratio: 4 / 5; /* adatta al tuo design */
+    object-fit: cover;
+  }
+
+  /* Titolo card: 2 righe riservate */
+  .card-title {
+    font-weight: 700; /* o quello che usi */
+    line-height: 1.2; /* fisso */
+    /* Riserva spazio per esattamente 2 righe (adatta font-size se diverso) */
+    /* se il titolo è 18px: 2 * 1.2 * 18 = 43.2 → 44px */
+    min-height: 2.4em; /* 2 righe * line-height (1.2) */
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* clamp a 2 righe */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Sottotitolo/metadata (ABV, bicchiere, ecc.): 1 riga riservata */
+  .card-meta {
+    line-height: 1.2;
+    min-height: 1.2em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* eventuali badge/icone ingredienti: fissa altezza riga */
+  .ingredient-row {
+    line-height: 24px;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ingredient-row img,
+  .ingredient-icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    display: inline-block;
+  }
+}
+
+/* 2) Titolo pagina (H1) – evita micro-shift quando applica il webfont */
+.page-title,
+h1 {
+  line-height: 1.1;
+  min-height: 1.1em; /* riserva l’altezza di una riga */
+  /* opzionale: se hai margini che collassano, fissa padding per stabilità */
+  padding-top: 0.01px; /* hack innocuo che previene piccoli collassi */
+}
+
+/* 3) Mat icon già stabilizzate (lascia se non l’hai messo prima) */
+.mat-icon,
+.material-icons {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 24px;
+  vertical-align: middle;
+  overflow: hidden;
+  white-space: nowrap;
+}
