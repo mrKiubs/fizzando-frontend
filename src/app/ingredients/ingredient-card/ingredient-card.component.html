@@ -8,9 +8,9 @@
       <img
         [src]="getIngredientCardImageUrl(ingredient.image)"
         [alt]="ingredient.name || ''"
+        loading="eager"
+        fetchpriority="high"
         decoding="async"
-        [attr.loading]="priority ? 'eager' : 'lazy'"
-        [attr.fetchpriority]="priority ? 'high' : 'low'"
         width="60"
         height="60"
       />
