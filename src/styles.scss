@@ -190,3 +190,11 @@ h1 {
   overflow: hidden;
   white-space: nowrap;
 }
+
+.detail-image {
+  display: block;
+  width: 100%;
+  max-width: 500px; // ✅ il tuo limite reale
+  height: auto;
+  aspect-ratio: 1 / 1; // opzionale, ulteriore stabilità
+}
