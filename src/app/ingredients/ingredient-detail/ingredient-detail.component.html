@@ -26,8 +26,8 @@
             alt="{{ ingredient.name }}"
             width="100"
             height="100"
-            priority
-            [attr.fetchpriority]="'high'"
+            loading="eager"
+            fetchpriority="high"
             decoding="async"
             sizes="(max-width: 150px) 100vw, (max-width: 150px) 50vw, 33vw"
           />
