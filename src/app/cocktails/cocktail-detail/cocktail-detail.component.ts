@@ -82,7 +82,7 @@ export class CocktailDetailComponent
 
   allCocktails: Cocktail[] = [];
   currentCocktailIndex = -1;
-  detailSizes = '(max-width: 500px) 100vw, (max-width: 1000px) 50vw, 500px';
+  detailSizes = '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 500px';
   heroSrc = '';
   heroSrcset = '';
   previousCocktail: {
@@ -622,24 +622,19 @@ export class CocktailDetailComponent
   }
 
   getCocktailImageSrcset(cocktail: Cocktail | undefined): string {
-    const img = cocktail?.image as any;
+    const img: any = cocktail?.image;
     if (!img) return '';
-
-    const toAbs = (u?: string | null) =>
+    const abs = (u?: string | null) =>
       u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
 
     const parts: string[] = [];
-    // Aggiungi solo i formati esistenti; i “w” sono indicativi e vanno bene per Strapi default
     if (img?.formats?.thumbnail?.url)
-      parts.push(`${toAbs(img.formats.thumbnail.url)} 150w`);
+      parts.push(`${abs(img.formats.thumbnail.url)} 150w`);
     if (img?.formats?.small?.url)
-      parts.push(`${toAbs(img.formats.small.url)} 320w`);
+      parts.push(`${abs(img.formats.small.url)} 320w`);
     if (img?.formats?.medium?.url)
-      parts.push(`${toAbs(img.formats.medium.url)} 640w`);
-    if (img?.formats?.large?.url)
-      parts.push(`${toAbs(img.formats.large.url)} 1024w`);
-    if (img?.url) parts.push(`${toAbs(img.url)} 1600w`);
-
+      parts.push(`${abs(img.formats.medium.url)} 640w`);
+    // niente large/original
     return parts.join(', ');
   }
 }
