@@ -35,12 +35,12 @@
           <!-- ✅ LCP optimized hero -->
           <img
             class="detail-image"
-            [ngSrc]="getCocktailImageUrl(cocktail)"
-            [srcset]="getCocktailImageSrcset(cocktail)"
-            [sizes]="detailSizes"
+            [src]="getCocktailImageUrl(cocktail)"
+            [attr.srcset]="getCocktailImageSrcset(cocktail)"
+            [attr.sizes]="detailSizes"
             alt="{{ cocktail.name || 'Cocktail photo' }}"
-            width="800"
-            height="800"
+            width="500"
+            height="500"
             loading="eager"
             fetchpriority="high"
             decoding="async"
