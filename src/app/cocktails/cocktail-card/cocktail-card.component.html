@@ -10,8 +10,8 @@
           : 'Cocktail photo'
       "
       class="cocktail-card-image"
-      [attr.loading]="isLcp ? null : 'lazy'"
-      [attr.fetchpriority]="isLcp ? 'high' : null"
+      [attr.loading]="isLcp ? 'eager' : 'lazy'"
+      [attr.fetchpriority]="isLcp ? 'high' : 'low'"
       decoding="async"
       [attr.srcset]="getCocktailCardImageSrcset(cocktail.image)"
       [attr.sizes]="'(max-width: 512px) 76px, 238px'"
