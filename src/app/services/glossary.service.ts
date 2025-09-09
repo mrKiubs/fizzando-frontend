@@ -4,12 +4,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, ReplaySubject, of } from 'rxjs';
 import {
   map,
-  tap,
   catchError,
   switchMap,
   distinctUntilChanged,
   debounceTime,
   finalize,
+  shareReplay,
+  tap,
 } from 'rxjs/operators';
 import { env } from '../config/env';
 
@@ -47,11 +48,12 @@ export class GlossaryService {
 
   private pageSize = 15;
 
+  // Stato interno corrente (solo per ripubblicare sui subject già esposti)
   private _currentTerms: GlossaryTerm[] = [];
   private _totalItems = 0;
   private _currentPage = 1;
 
-  // Dati della pagina corrente (emette solo quando arrivano davvero)
+  // Output verso i componenti (immutati)
   public termsSubject = new ReplaySubject<{
     terms: GlossaryTerm[];
     total: number;
@@ -59,7 +61,6 @@ export class GlossaryService {
     resetTerms: boolean;
   }>(1);
 
-  // Loading pilotato dal servizio (on ogni richiesta, off su finalize)
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
 
@@ -74,11 +75,26 @@ export class GlossaryService {
     resetTerms: true,
   });
 
+  // -------- Cache per liste con TTL (params → stream$) --------
+  private listCache = new Map<
+    string,
+    {
+      ts: number;
+      stream$: Observable<{
+        terms: GlossaryTerm[];
+        total: number;
+        requestedPage: number;
+        resetTerms: boolean;
+      }>;
+    }
+  >();
+  private listTTLms = 60_000; // 60s (regolabile senza toccare altri file)
+
   constructor(private http: HttpClient) {
-    // carica le categorie una volta
+    // carica una volta le categorie
     this.fetchAllCategories().subscribe();
 
-    // stream principale
+    // stream principale di query → risultati (con cache+coalescing)
     this.queryParamsTrigger
       .pipe(
         debounceTime(0),
@@ -89,11 +105,19 @@ export class GlossaryService {
             a.page === b.page &&
             a.resetTerms === b.resetTerms
         ),
-        tap((params) =>
-          console.log('SERVICE (1): queryParamsTrigger emitted:', params)
-        ),
-        tap(() => this.loadingSubject.next(true)),
         switchMap((params) => {
+          const key = this.makeKey(params);
+
+          // cache hit (entro TTL) → niente spinner, niente rete
+          const hit = this.listCache.get(key);
+          const now = Date.now();
+          if (hit && now - hit.ts < this.listTTLms) {
+            return hit.stream$; // già shareReplay(1)
+          }
+
+          // cache miss → preparo richiesta HTTP + spinner
+          this.loadingSubject.next(true);
+
           let httpParams = new HttpParams()
             .set('fields[0]', 'term')
             .set('fields[1]', 'slug')
@@ -117,7 +141,7 @@ export class GlossaryService {
             );
           }
 
-          return this.http
+          const stream$ = this.http
             .get<StrapiResponse>(this.apiUrl, { params: httpParams })
             .pipe(
               map((response) => {
@@ -141,17 +165,17 @@ export class GlossaryService {
                   terms,
                   total: response?.meta?.pagination?.total ?? 0,
                   requestedPage: params.page,
-                  resetTerms: true, // server pagination: niente accumulo
+                  resetTerms: true, // server pagination: niente accumulo client
                 };
               }),
               catchError((err) => {
+                // abort/rapid-nav → non bloccare UX, restituisci stato precedente
                 if (
                   err?.name === 'AbortError' ||
                   /aborted/i.test(err?.message ?? '')
                 ) {
-                  // abort "legittimi" (HMR/rapid nav) → non inchiodare il loader
                   return of({
-                    terms: [],
+                    terms: this._currentTerms,
                     total: this._totalItems,
                     requestedPage: this._currentPage,
                     resetTerms: true,
@@ -165,12 +189,17 @@ export class GlossaryService {
                   resetTerms: true,
                 });
               }),
-              finalize(() => this.loadingSubject.next(false))
+              finalize(() => this.loadingSubject.next(false)),
+              shareReplay(1) // coalescing richieste identiche
             );
+
+          // memorizza in cache (subito) per deduplicare richieste concorrenti
+          this.listCache.set(key, { ts: now, stream$ });
+          return stream$;
         })
       )
       .subscribe((data) => {
-        // prendi la pagina così com'è dal server
+        // aggiorna lo stato e pubblica
         this._currentTerms = data.terms;
         this._totalItems = data.total;
         this._currentPage = data.requestedPage;
@@ -186,7 +215,7 @@ export class GlossaryService {
       });
   }
 
-  // ===== API per il componente =====
+  // ===== API per il componente (immutate) =====
   initializeGlossary(initialPage = 1): void {
     this.setFilters('', '', Math.max(1, initialPage));
   }
@@ -220,6 +249,27 @@ export class GlossaryService {
     this.setFilters(c.searchTerm, c.selectedCategory, page);
   }
 
+  // ===== Streams esposti (immutati) =====
+  getCategories(): Observable<string[]> {
+    return this.allUniqueCategoriesSubject.pipe(
+      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
+    );
+  }
+
+  getCurrentTerms(): Observable<{
+    terms: GlossaryTerm[];
+    total: number;
+    currentPage: number;
+    resetTerms: boolean;
+  }> {
+    return this.termsSubject.asObservable();
+  }
+
+  getTotalItems(): Observable<number> {
+    return this.totalItemsSubject.asObservable();
+  }
+
+  // ====== Helpers privati ======
   private sameQuery(a: QueryState, b: QueryState): boolean {
     return (
       a.searchTerm === b.searchTerm &&
@@ -227,6 +277,16 @@ export class GlossaryService {
       a.page === b.page &&
       a.resetTerms === b.resetTerms
     );
+  }
+
+  private makeKey(q: QueryState): string {
+    // chiave deterministica per cache pagina/filtri
+    return JSON.stringify({
+      s: q.searchTerm || '',
+      c: q.selectedCategory || '',
+      p: q.page,
+      ps: this.pageSize,
+    });
   }
 
   private fetchAllCategories(): Observable<void> {
@@ -252,25 +312,5 @@ export class GlossaryService {
       }),
       map(() => void 0)
     );
-  }
-
-  // ===== Streams esposti =====
-  getCategories(): Observable<string[]> {
-    return this.allUniqueCategoriesSubject.pipe(
-      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
-    );
-  }
-
-  getCurrentTerms(): Observable<{
-    terms: GlossaryTerm[];
-    total: number;
-    currentPage: number;
-    resetTerms: boolean;
-  }> {
-    return this.termsSubject.asObservable();
-  }
-
-  getTotalItems(): Observable<number> {
-    return this.totalItemsSubject.asObservable();
   }
 }
