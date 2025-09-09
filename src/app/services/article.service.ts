@@ -1,7 +1,9 @@
+// src/app/services/article.service.ts
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { forkJoin, Observable, of, throwError } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, shareReplay } from 'rxjs/operators';
 import { env } from '../config/env';
 
 /* ===== Tipi ===== */
@@ -80,6 +82,22 @@ export class ArticleService {
   private strapiBaseUrl = env.apiUrl; // es: http://127.0.0.1:1337
   private apiUrl = `${this.strapiBaseUrl}/api/articles`;
 
+  // ---- CACHE IN-MEMORY ----
+  /** Cache per slug/id → Article */
+  private bySlug = new Map<string, Article>();
+  private byId = new Map<number, Article>();
+
+  /** Richieste in corso (coalescing) */
+  private inFlightSlug = new Map<string, Observable<Article | null>>();
+  private inFlightId = new Map<number, Observable<Article | null>>();
+
+  /** Cache liste (key = params/string) con TTL breve */
+  private listCache = new Map<
+    string,
+    { ts: number; stream$: Observable<StrapiResponse<Article>> }
+  >();
+  private listTTLms = 60_000; // 60s
+
   constructor(private http: HttpClient) {}
 
   /* --- Helpers immagini --- */
@@ -125,6 +143,22 @@ export class ArticleService {
     return article;
   }
 
+  // --------- Cache utils per liste ----------
+  private getCachedList(
+    key: string
+  ): Observable<StrapiResponse<Article>> | null {
+    const now = Date.now();
+    const hit = this.listCache.get(key);
+    if (hit && now - hit.ts < this.listTTLms) return hit.stream$;
+    return null;
+  }
+  private setCachedList(
+    key: string,
+    stream$: Observable<StrapiResponse<Article>>
+  ): void {
+    this.listCache.set(key, { ts: Date.now(), stream$ });
+  }
+
   /* =========================
    * LISTA (card)
    * ========================= */
@@ -139,8 +173,8 @@ export class ArticleService {
       .set('fields[0]', 'title')
       .set('fields[1]', 'slug')
       .set('fields[2]', 'introduction')
-      .set('sort', 'publishedAt:desc') // <-- come nel tuo file “buono”
-      .set('populate', 'image'); // <-- UNA chiave populate per riga
+      .set('sort', 'publishedAt:desc')
+      .set('populate', 'image');
 
     if (searchTerm) {
       params = params
@@ -148,98 +182,142 @@ export class ArticleService {
         .set('filters[$or][1][introduction][$containsi]', searchTerm);
     }
 
-    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
-      map((response) => {
-        const mapped: Article[] = (response.data ?? []).map((item: any) => {
-          const a: Article = {
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            introduction: item.introduction,
-            conclusion: item.conclusion,
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt,
-            publishedAt: item.publishedAt,
-            generated_at: item.generated_at,
-            article_status: item.article_status,
-            sections: item.sections || [],
-            image: item.image,
-            related_cocktails: item.related_cocktails || [],
-            related_ingredients: item.related_ingredients || [],
-            categories: item.categories || [],
-            content: item.content,
-          };
-          if (a.image) this.processSingleImage(a.image);
-          return a;
-        });
-        return { data: mapped, meta: response.meta };
-      }),
-      catchError((err) => {
-        console.error('Error loading articles:', err);
-        return throwError(() => new Error('Could not load articles.'));
-      })
-    );
+    const key = JSON.stringify({
+      fn: 'getArticles',
+      page,
+      pageSize,
+      searchTerm: searchTerm ?? '',
+    });
+    const cached = this.getCachedList(key);
+    if (cached) return cached;
+
+    const stream$ = this.http
+      .get<StrapiResponse<any>>(this.apiUrl, { params })
+      .pipe(
+        map((response) => {
+          const mapped: Article[] = (response.data ?? []).map((item: any) => {
+            const a: Article = {
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+              introduction: item.introduction,
+              conclusion: item.conclusion,
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt,
+              publishedAt: item.publishedAt,
+              generated_at: item.generated_at,
+              article_status: item.article_status,
+              sections: item.sections || [],
+              image: item.image,
+              related_cocktails: item.related_cocktails || [],
+              related_ingredients: item.related_ingredients || [],
+              categories: item.categories || [],
+              content: item.content,
+            };
+            if (a.image) this.processSingleImage(a.image);
+            return a;
+          });
+          return { data: mapped, meta: response.meta };
+        }),
+        catchError((err) =>
+          throwError(() => new Error('Could not load articles.'))
+        ),
+        shareReplay(1)
+      );
+
+    this.setCachedList(key, stream$);
+    return stream$;
   }
 
   /* =========================
-   * DETTAGLIO per slug
+   * DETTAGLIO per slug (memoized)
    * ========================= */
   getArticleBySlug(slug: string): Observable<Article | null> {
+    const keySlug = (slug || '').toLowerCase();
+
+    // 1) cache per slug
+    const hit = this.bySlug.get(keySlug);
+    if (hit) return of(hit);
+
+    // 2) richiesta in corso già esistente?
+    const inFlight = this.inFlightSlug.get(keySlug);
+    if (inFlight) return inFlight;
+
     let params = new HttpParams()
       .set('filters[slug][$eq]', slug)
       .append('populate', 'sections')
       .append('populate', 'image')
       .append('populate', 'categories')
-      .append('populate', 'related_cocktails.image') // <-- dot-notation che ti funzionava
-      // .append('populate', 'related_cocktails.category') // <-- SOLO se il campo SI CHIAMA davvero "category"
-      .append('populate', 'related_ingredients.image'); // <-- dot-notation che ti funzionava
+      .append('populate', 'related_cocktails.image')
+      .append('populate', 'related_ingredients.image');
 
-    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
-      map((response) => {
-        const raw = response.data?.[0];
-        if (!raw) return null;
+    const req$ = this.http
+      .get<StrapiResponse<any>>(this.apiUrl, { params })
+      .pipe(
+        map((response) => {
+          const raw = response.data?.[0];
+          if (!raw) return null;
 
-        const article: Article = {
-          id: raw.id,
-          title: raw.title,
-          slug: raw.slug,
-          introduction: raw.introduction,
-          conclusion: raw.conclusion,
-          createdAt: raw.createdAt,
-          updatedAt: raw.updatedAt,
-          publishedAt: raw.publishedAt,
-          generated_at: raw.generated_at,
-          article_status: raw.article_status,
-          sections: raw.sections || [],
-          image: raw.image,
-          related_cocktails: raw.related_cocktails || [],
-          related_ingredients: raw.related_ingredients || [],
-          categories: raw.categories || [],
-          content: raw.content,
-        };
+          const article: Article = {
+            id: raw.id,
+            title: raw.title,
+            slug: raw.slug,
+            introduction: raw.introduction,
+            conclusion: raw.conclusion,
+            createdAt: raw.createdAt,
+            updatedAt: raw.updatedAt,
+            publishedAt: raw.publishedAt,
+            generated_at: raw.generated_at,
+            article_status: raw.article_status,
+            sections: raw.sections || [],
+            image: raw.image,
+            related_cocktails: raw.related_cocktails || [],
+            related_ingredients: raw.related_ingredients || [],
+            categories: raw.categories || [],
+            content: raw.content,
+          };
 
-        return this.processArticleImages(article);
-      }),
-      catchError((err) => {
-        console.error('Error getting article by slug:', err);
-        return throwError(() => new Error('Could not get article by slug.'));
-      })
-    );
+          const processed = this.processArticleImages(article);
+          // memoize per slug/id
+          this.bySlug.set(keySlug, processed);
+          this.byId.set(processed.id, processed);
+          return processed;
+        }),
+        catchError(() =>
+          throwError(() => new Error('Could not get article by slug.'))
+        ),
+        shareReplay(1)
+      );
+
+    this.inFlightSlug.set(keySlug, req$);
+    req$.subscribe({
+      next: () => this.inFlightSlug.delete(keySlug),
+      error: () => this.inFlightSlug.delete(keySlug),
+    });
+
+    return req$;
   }
 
   /* =========================
-   * DETTAGLIO per ID
+   * DETTAGLIO per ID (memoized)
    * ========================= */
   getArticleById(id: number): Observable<Article | null> {
+    // 1) cache per id
+    const hit = this.byId.get(id);
+    if (hit) return of(hit);
+
+    // 2) richiesta in corso già esistente?
+    const inFlight = this.inFlightId.get(id);
+    if (inFlight) return inFlight;
+
     let params = new HttpParams()
       .append('populate', 'sections')
       .append('populate', 'image')
       .append('populate', 'categories')
       .append('populate', 'related_cocktails.image')
-      // .append('populate', 'related_cocktails.category') // vedi nota sopra
       .append('populate', 'related_ingredients.image');
 
-    return this.http
+    const req$ = this.http
       .get<StrapiSingleResponse<any>>(`${this.apiUrl}/${id}`, { params })
       .pipe(
         map((response) => {
@@ -265,17 +343,30 @@ export class ArticleService {
             content: raw.content,
           };
 
-          return this.processArticleImages(article);
+          const processed = this.processArticleImages(article);
+          // memoize per id/slug
+          this.byId.set(id, processed);
+          if (processed.slug)
+            this.bySlug.set(processed.slug.toLowerCase(), processed);
+          return processed;
         }),
-        catchError((err) => {
-          console.error('Error getting article by ID:', err);
-          return throwError(() => new Error('Could not get article by ID.'));
-        })
+        catchError(() =>
+          throwError(() => new Error('Could not get article by ID.'))
+        ),
+        shareReplay(1)
       );
+
+    this.inFlightId.set(id, req$);
+    req$.subscribe({
+      next: () => this.inFlightId.delete(id),
+      error: () => this.inFlightId.delete(id),
+    });
+
+    return req$;
   }
 
   /* =========================
-   * LISTA per categoria (card)
+   * LISTA per categoria (card) — cached
    * ========================= */
   getArticlesByCategorySlug(
     slug: string,
@@ -288,91 +379,115 @@ export class ArticleService {
       .set('filters[categories][slug][$eq]', slug)
       .set('fields[0]', 'title')
       .set('fields[1]', 'slug')
+      .set('fields[2]', 'introduction')
       .set('sort', 'publishedAt:desc')
       .set('populate', 'image');
 
-    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
-      map((response) => {
-        const mapped: Article[] = (response.data ?? []).map((item: any) => {
-          const a: Article = {
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            introduction: item.introduction,
-            conclusion: item.conclusion,
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt,
-            publishedAt: item.publishedAt,
-            generated_at: item.generated_at,
-            article_status: item.article_status,
-            sections: item.sections || [],
-            image: item.image,
-            related_cocktails: item.related_cocktails || [],
-            related_ingredients: item.related_ingredients || [],
-            categories: item.categories || [],
-            content: item.content,
-          };
-          if (a.image) this.processSingleImage(a.image);
-          return a;
-        });
-        return { data: mapped, meta: response.meta };
-      }),
-      catchError((err) => {
-        console.error('Error loading articles by category:', err);
-        return throwError(
-          () => new Error('Could not load articles by category.')
-        );
-      })
-    );
+    const key = JSON.stringify({
+      fn: 'getArticlesByCategorySlug',
+      slug,
+      page,
+      pageSize,
+    });
+    const cached = this.getCachedList(key);
+    if (cached) return cached;
+
+    const stream$ = this.http
+      .get<StrapiResponse<any>>(this.apiUrl, { params })
+      .pipe(
+        map((response) => {
+          const mapped: Article[] = (response.data ?? []).map((item: any) => {
+            const a: Article = {
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+              introduction: item.introduction,
+              conclusion: item.conclusion,
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt,
+              publishedAt: item.publishedAt,
+              generated_at: item.generated_at,
+              article_status: item.article_status,
+              sections: item.sections || [],
+              image: item.image,
+              related_cocktails: item.related_cocktails || [],
+              related_ingredients: item.related_ingredients || [],
+              categories: item.categories || [],
+              content: item.content,
+            };
+            if (a.image) this.processSingleImage(a.image);
+            return a;
+          });
+          return { data: mapped, meta: response.meta };
+        }),
+        catchError(() =>
+          throwError(() => new Error('Could not load articles by category.'))
+        ),
+        shareReplay(1)
+      );
+
+    this.setCachedList(key, stream$);
+    return stream$;
   }
 
   /* =========================
-   * ULTIMI N articoli (card)
+   * ULTIMI N articoli (card) — cached
    * ========================= */
   getLatestArticles(count: number): Observable<Article[]> {
     let params = new HttpParams()
       .set('pagination[limit]', count.toString())
-      .set('sort', 'publishedAt:desc') // come nel tuo file “buono”
+      .set('sort', 'publishedAt:desc')
       .set('fields[0]', 'title')
       .set('fields[1]', 'slug')
       .set('fields[2]', 'introduction')
       .set('populate', 'image');
 
-    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
-      map((response) =>
-        (response.data ?? []).map((item: any) => {
-          const a: Article = {
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            introduction: item.introduction,
-            conclusion: item.conclusion,
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt,
-            publishedAt: item.publishedAt,
-            generated_at: item.generated_at,
-            article_status: item.article_status,
-            sections: item.sections || [],
-            image: item.image,
-            related_cocktails: item.related_cocktails || [],
-            related_ingredients: item.related_ingredients || [],
-            categories: item.categories || [],
-            content: item.content,
-            summary: item.introduction,
-            imageUrl: item.image
-              ? this.getAbsoluteImageUrl(item.image.url)
-              : '/assets/no-image.png',
-          };
-          return a;
-        })
-      ),
-      catchError((err) => {
-        console.error('Error loading latest articles:', err);
-        return throwError(() => new Error('Could not load latest articles.'));
-      })
-    );
+    const key = JSON.stringify({ fn: 'getLatestArticles', count });
+    const cached = this.getCachedList(key);
+    if (cached) return cached.pipe(map((r) => r.data));
+
+    const stream$ = this.http
+      .get<StrapiResponse<any>>(this.apiUrl, { params })
+      .pipe(
+        map((response) => {
+          const data: Article[] = (response.data ?? []).map((item: any) => {
+            const a: Article = {
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+              introduction: item.introduction,
+              conclusion: item.conclusion,
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt,
+              publishedAt: item.publishedAt,
+              generated_at: item.generated_at,
+              article_status: item.article_status,
+              sections: item.sections || [],
+              image: item.image,
+              related_cocktails: item.related_cocktails || [],
+              related_ingredients: item.related_ingredients || [],
+              categories: item.categories || [],
+              content: item.content,
+              summary: item.introduction,
+              imageUrl: item.image
+                ? this.getAbsoluteImageUrl(item.image.url)
+                : '/assets/no-image.png',
+            };
+            return a;
+          });
+          return { data, meta: response.meta } as StrapiResponse<Article>;
+        }),
+        catchError(() =>
+          throwError(() => new Error('Could not load latest articles.'))
+        ),
+        shareReplay(1)
+      );
+
+    this.setCachedList(key, stream$);
+    return stream$.pipe(map((r) => r.data));
   }
-  // Articoli che citano un certo COCKTAIL (id Strapi)
+
+  // Articoli che citano un certo COCKTAIL (id Strapi) — cached
   getArticlesByRelatedCocktailId(
     cocktailId: number,
     limit = 6
@@ -386,46 +501,59 @@ export class ArticleService {
       .set('fields[2]', 'introduction')
       .set('populate', 'image');
 
-    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
-      map((res) => {
-        const list: Article[] = (res.data ?? []).map((raw: any) => {
-          const a: Article = {
-            id: raw.id,
-            title: raw.title,
-            slug: raw.slug,
-            introduction: raw.introduction,
-            conclusion: raw.conclusion,
-            createdAt: raw.createdAt,
-            updatedAt: raw.updatedAt,
-            publishedAt: raw.publishedAt,
-            generated_at: raw.generated_at,
-            article_status: raw.article_status,
-            sections: raw.sections || [],
-            image: raw.image,
-            related_cocktails: raw.related_cocktails || [],
-            related_ingredients: raw.related_ingredients || [],
-            categories: raw.categories || [],
-            content: raw.content,
-            imageUrl: undefined, // lo settiamo sotto
-          };
-          if (a.image) {
-            this.processSingleImage(a.image);
-            a.imageUrl = this.pickCardImageUrl(a.image);
-          } else {
-            a.imageUrl = '/assets/no-image.png';
-          }
-          return a;
-        });
-        return list;
-      }),
-      catchError((err) => {
-        console.error('Error loading related articles by cocktail:', err);
-        return throwError(() => new Error('Could not load related articles.'));
-      })
-    );
+    const key = JSON.stringify({
+      fn: 'getArticlesByRelatedCocktailId',
+      cocktailId,
+      limit,
+    });
+    const cached = this.getCachedList(key);
+    if (cached) return cached.pipe(map((r) => r.data));
+
+    const stream$ = this.http
+      .get<StrapiResponse<any>>(this.apiUrl, { params })
+      .pipe(
+        map((res) => {
+          const data: Article[] = (res.data ?? []).map((raw: any) => {
+            const a: Article = {
+              id: raw.id,
+              title: raw.title,
+              slug: raw.slug,
+              introduction: raw.introduction,
+              conclusion: raw.conclusion,
+              createdAt: raw.createdAt,
+              updatedAt: raw.updatedAt,
+              publishedAt: raw.publishedAt,
+              generated_at: raw.generated_at,
+              article_status: raw.article_status,
+              sections: raw.sections || [],
+              image: raw.image,
+              related_cocktails: raw.related_cocktails || [],
+              related_ingredients: raw.related_ingredients || [],
+              categories: raw.categories || [],
+              content: raw.content,
+              imageUrl: undefined,
+            };
+            if (a.image) {
+              this.processSingleImage(a.image);
+              a.imageUrl = this.pickCardImageUrl(a.image);
+            } else {
+              a.imageUrl = '/assets/no-image.png';
+            }
+            return a;
+          });
+          return { data, meta: res.meta } as StrapiResponse<Article>;
+        }),
+        catchError(() =>
+          throwError(() => new Error('Could not load related articles.'))
+        ),
+        shareReplay(1)
+      );
+
+    this.setCachedList(key, stream$);
+    return stream$.pipe(map((r) => r.data));
   }
 
-  // Articoli che citano un certo INGREDIENTE (id Strapi)
+  // Articoli che citano un certo INGREDIENTE (id Strapi) — cached
   getArticlesByRelatedIngredientId(
     ingredientId: number,
     limit = 6
@@ -439,43 +567,56 @@ export class ArticleService {
       .set('fields[2]', 'introduction')
       .set('populate', 'image');
 
-    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
-      map((res) => {
-        const list: Article[] = (res.data ?? []).map((raw: any) => {
-          const a: Article = {
-            id: raw.id,
-            title: raw.title,
-            slug: raw.slug,
-            introduction: raw.introduction,
-            conclusion: raw.conclusion,
-            createdAt: raw.createdAt,
-            updatedAt: raw.updatedAt,
-            publishedAt: raw.publishedAt,
-            generated_at: raw.generated_at,
-            article_status: raw.article_status,
-            sections: raw.sections || [],
-            image: raw.image,
-            related_cocktails: raw.related_cocktails || [],
-            related_ingredients: raw.related_ingredients || [],
-            categories: raw.categories || [],
-            content: raw.content,
-            imageUrl: undefined,
-          };
-          if (a.image) {
-            this.processSingleImage(a.image);
-            a.imageUrl = this.pickCardImageUrl(a.image);
-          } else {
-            a.imageUrl = '/assets/no-image.png';
-          }
-          return a;
-        });
-        return list;
-      }),
-      catchError((err) => {
-        console.error('Error loading related articles by ingredient:', err);
-        return throwError(() => new Error('Could not load related articles.'));
-      })
-    );
+    const key = JSON.stringify({
+      fn: 'getArticlesByRelatedIngredientId',
+      ingredientId,
+      limit,
+    });
+    const cached = this.getCachedList(key);
+    if (cached) return cached.pipe(map((r) => r.data));
+
+    const stream$ = this.http
+      .get<StrapiResponse<any>>(this.apiUrl, { params })
+      .pipe(
+        map((res) => {
+          const data: Article[] = (res.data ?? []).map((raw: any) => {
+            const a: Article = {
+              id: raw.id,
+              title: raw.title,
+              slug: raw.slug,
+              introduction: raw.introduction,
+              conclusion: raw.conclusion,
+              createdAt: raw.createdAt,
+              updatedAt: raw.updatedAt,
+              publishedAt: raw.publishedAt,
+              generated_at: raw.generated_at,
+              article_status: raw.article_status,
+              sections: raw.sections || [],
+              image: raw.image,
+              related_cocktails: raw.related_cocktails || [],
+              related_ingredients: raw.related_ingredients || [],
+              categories: raw.categories || [],
+              content: raw.content,
+              imageUrl: undefined,
+            };
+            if (a.image) {
+              this.processSingleImage(a.image);
+              a.imageUrl = this.pickCardImageUrl(a.image);
+            } else {
+              a.imageUrl = '/assets/no-image.png';
+            }
+            return a;
+          });
+          return { data, meta: res.meta } as StrapiResponse<Article>;
+        }),
+        catchError(() =>
+          throwError(() => new Error('Could not load related articles.'))
+        ),
+        shareReplay(1)
+      );
+
+    this.setCachedList(key, stream$);
+    return stream$.pipe(map((r) => r.data));
   }
 
   private pickCardImageUrl(image?: Image): string {
@@ -500,43 +641,62 @@ export class ArticleService {
       .set('pagination[pageSize]', String(limit))
       .set('sort', 'publishedAt:desc')
       .set('filters[slug][$ne]', excludeSlug)
-      .append('populate', 'image'); // ci basta l’immagine per la card
+      .append('populate', 'image');
 
     // OR su più categorie
     categorySlugs.forEach((slug, i) => {
       params = params.set(`filters[$or][${i}][categories][slug][$eq]`, slug);
     });
 
-    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
-      map((res) =>
-        (res.data ?? []).map((raw: any) => {
-          const a: Article = {
-            id: raw.id,
-            title: raw.title,
-            slug: raw.slug,
-            introduction: raw.introduction,
-            conclusion: raw.conclusion,
-            createdAt: raw.createdAt,
-            updatedAt: raw.updatedAt,
-            publishedAt: raw.publishedAt,
-            generated_at: raw.generated_at,
-            article_status: raw.article_status,
-            sections: raw.sections || [],
-            image: raw.image,
-            related_cocktails: raw.related_cocktails || [],
-            related_ingredients: raw.related_ingredients || [],
-            categories: raw.categories || [],
-            content: raw.content,
-            imageUrl: this.pickCardImageUrl(raw.image), // se hai l’helper
-          };
-          if (a.image) this.processSingleImage(a.image);
-          return a;
-        })
-      )
-    );
+    const key = JSON.stringify({
+      fn: 'getRelatedArticlesByCategories',
+      categorySlugs,
+      excludeSlug,
+      limit,
+    });
+    const cached = this.getCachedList(key);
+    if (cached) return cached.pipe(map((r) => r.data));
+
+    const stream$ = this.http
+      .get<StrapiResponse<any>>(this.apiUrl, { params })
+      .pipe(
+        map(
+          (res) =>
+            ({
+              data: (res.data ?? []).map((raw: any) => {
+                const a: Article = {
+                  id: raw.id,
+                  title: raw.title,
+                  slug: raw.slug,
+                  introduction: raw.introduction,
+                  conclusion: raw.conclusion,
+                  createdAt: raw.createdAt,
+                  updatedAt: raw.updatedAt,
+                  publishedAt: raw.publishedAt,
+                  generated_at: raw.generated_at,
+                  article_status: raw.article_status,
+                  sections: raw.sections || [],
+                  image: raw.image,
+                  related_cocktails: raw.related_cocktails || [],
+                  related_ingredients: raw.related_ingredients || [],
+                  categories: raw.categories || [],
+                  content: raw.content,
+                  imageUrl: this.pickCardImageUrl(raw.image),
+                };
+                if (a.image) this.processSingleImage(a.image);
+                return a;
+              }),
+              meta: res.meta,
+            } as StrapiResponse<Article>)
+        ),
+        shareReplay(1)
+      );
+
+    this.setCachedList(key, stream$);
+    return stream$.pipe(map((r) => r.data));
   }
 
-  /** Prende articoli per nome categoria (fallback se il category non ha slug) */
+  /** Prende articoli per nome categoria (fallback se il category non ha slug) — cached */
   getArticlesByCategoryName(
     name: string,
     page = 1,
@@ -545,49 +705,63 @@ export class ArticleService {
     let params = new HttpParams()
       .set('pagination[page]', page.toString())
       .set('pagination[pageSize]', pageSize.toString())
-      .set('filters[categories][name][$eqi]', name) // case-insensitive
+      .set('filters[categories][name][$eqi]', name)
       .set('fields[0]', 'title')
       .set('fields[1]', 'slug')
       .set('fields[2]', 'introduction')
       .set('populate', 'image')
       .set('sort[0]', 'publishedAt:desc');
 
-    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
-      map((response) => {
-        const mappedData: Article[] = response.data.map((item: any) => {
-          const article: Article = {
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            introduction: item.introduction,
-            conclusion: item.conclusion,
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt,
-            publishedAt: item.publishedAt,
-            generated_at: item.generated_at,
-            article_status: item.article_status,
-            sections: item.sections || [],
-            image: item.image,
-            related_cocktails: item.related_cocktails || [],
-            related_ingredients: item.related_ingredients || [],
-            categories: item.categories || [],
-            content: item.content,
-            imageUrl: item.image
-              ? this.getAbsoluteImageUrl(item.image.url)
-              : '/assets/no-image.png',
-          };
-          if (article.image) this.processSingleImage(article.image);
-          return article;
-        });
-        return { data: mappedData, meta: response.meta };
-      }),
-      catchError((err) => {
-        console.error('Error loading articles by category name:', err);
-        return throwError(
-          () => new Error('Could not load articles by category name.')
-        );
-      })
-    );
+    const key = JSON.stringify({
+      fn: 'getArticlesByCategoryName',
+      name,
+      page,
+      pageSize,
+    });
+    const cached = this.getCachedList(key);
+    if (cached) return cached;
+
+    const stream$ = this.http
+      .get<StrapiResponse<any>>(this.apiUrl, { params })
+      .pipe(
+        map((response) => {
+          const mappedData: Article[] = response.data.map((item: any) => {
+            const article: Article = {
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+              introduction: item.introduction,
+              conclusion: item.conclusion,
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt,
+              publishedAt: item.publishedAt,
+              generated_at: item.generated_at,
+              article_status: item.article_status,
+              sections: item.sections || [],
+              image: item.image,
+              related_cocktails: item.related_cocktails || [],
+              related_ingredients: item.related_ingredients || [],
+              categories: item.categories || [],
+              content: item.content,
+              imageUrl: item.image
+                ? this.getAbsoluteImageUrl(item.image.url)
+                : '/assets/no-image.png',
+            };
+            if (article.image) this.processSingleImage(article.image);
+            return article;
+          });
+          return { data: mappedData, meta: response.meta };
+        }),
+        catchError(() =>
+          throwError(
+            () => new Error('Could not load articles by category name.')
+          )
+        ),
+        shareReplay(1)
+      );
+
+    this.setCachedList(key, stream$);
+    return stream$;
   }
 
   /** Utility per deduplicare per slug */
@@ -604,7 +778,7 @@ export class ArticleService {
     return out;
   }
 
-  /** Articoli correlati in base alle categorie dell’articolo corrente */
+  /** Articoli correlati in base alle categorie dell’articolo corrente — usa le cache di lista */
   getRelatedArticlesByArticle(
     article: Article,
     limit = 6
@@ -613,17 +787,12 @@ export class ArticleService {
     const withSlug = cats
       .map((c) => c?.slug)
       .filter((s: any): s is string => !!s);
-
     const withName = cats
       .map((c) => (!c?.slug ? c?.name : null))
       .filter((n: any): n is string => !!n);
 
-    // se non ho né slug né name → niente correlati
-    if (withSlug.length === 0 && withName.length === 0) {
-      return of([]);
-    }
+    if (withSlug.length === 0 && withName.length === 0) return of([]);
 
-    // per ogni categoria creo una richiesta (per slug o per name)
     const perCatCalls: Observable<StrapiResponse<Article>>[] = [
       ...withSlug.map((slug) =>
         this.getArticlesByCategorySlug(slug, 1, Math.max(limit, 6))
@@ -635,19 +804,12 @@ export class ArticleService {
 
     return forkJoin(perCatCalls).pipe(
       map((results) => {
-        // unisco tutte le liste
         const merged: Article[] = results.flatMap((r) => r.data ?? []);
-        // tolgo l’articolo corrente
         const filtered = merged.filter((a) => a.slug !== article.slug);
-        // dedup per slug
         const unique = this.uniqueBySlug(filtered);
-        // prendo i primi N
         return unique.slice(0, limit);
       }),
-      catchError((err) => {
-        console.error('Error building related articles:', err);
-        return of([]); // fallback silenzioso
-      })
+      catchError(() => of([]))
     );
   }
 }

@@ -2,18 +2,23 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, throwError, BehaviorSubject } from 'rxjs';
-import { map, catchError, filter, take, tap } from 'rxjs/operators';
+import {
+  Observable,
+  of,
+  throwError,
+  BehaviorSubject,
+  Subscription,
+} from 'rxjs';
+import { map, catchError, filter, shareReplay } from 'rxjs/operators';
 import { env } from '../config/env';
-// --- Interfacce (Necessarie per la tipizzazione dei dati) ---
 
+// --- Interfacce (immutate) ---
 export interface Ingredient {
   id: number;
   name: string;
   quantity: string;
   measure: string;
 }
-
 export interface IngredientCT {
   id: number;
   name: string;
@@ -29,19 +34,16 @@ export interface IngredientCT {
   createdAt?: string;
   updatedAt?: string;
   publishedAt?: string;
-  ingredient_type?: string | null; // ASSICURATI CHE QUESTA LINEA SIA PRESENTE!
+  ingredient_type?: string | null;
 }
-
 export interface IngredientDetail extends IngredientCT {
   relatedCocktails: Cocktail[];
 }
-
 export interface CocktailIngredientListItem {
   id?: number;
   measure: string | null;
   ingredient: IngredientCT;
 }
-
 export interface StrapiSingleImageFormatDetails {
   ext: string;
   url: string;
@@ -54,14 +56,12 @@ export interface StrapiSingleImageFormatDetails {
   height: number;
   sizeInBytes?: number;
 }
-
 export interface StrapiImageFormats {
   thumbnail?: StrapiSingleImageFormatDetails;
   small?: StrapiSingleImageFormatDetails;
   medium?: StrapiSingleImageFormatDetails;
   large?: StrapiSingleImageFormatDetails;
 }
-
 export interface StrapiImage {
   id: number;
   name: string;
@@ -81,7 +81,6 @@ export interface StrapiImage {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface Cocktail {
   id: number;
   external_id: string;
@@ -108,13 +107,11 @@ export interface Cocktail {
   ai_variations: string | null;
   slug: string;
 }
-
 export interface CocktailWithLayoutAndMatch extends Cocktail {
   isTall?: boolean;
   isWide?: boolean;
   matchedIngredientCount?: number;
 }
-
 export interface StrapiResponse<T> {
   data: T[];
   meta: {
@@ -126,19 +123,15 @@ export interface StrapiResponse<T> {
     };
   };
 }
-
 export interface StrapiSingleResponse<T> {
   data: T;
   meta: any;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class CocktailService {
   private apiUrl = env.apiUrl;
   private cocktailsBaseUrl = `${this.apiUrl}/api/cocktails`;
-  // private ingredientsBaseUrl = `${this.apiUrl}/api/ingredients`; // Rimosso, non più usato direttamente qui
 
   private readonly UNKNOWN_INGREDIENT_CT: IngredientCT = {
     id: -1,
@@ -152,17 +145,37 @@ export class CocktailService {
     ai_brief_history: 'Unknown',
     ai_interesting_facts: 'Unknown',
     ai_alcohol_content: 'Unknown',
-    ingredient_type: 'Unknown Type', // Aggiunto anche qui per coerenza
+    ingredient_type: 'Unknown Type',
   };
 
+  // ------- CACHE IN-MEMORY --------
+  /** Cache "tutti i cocktail" (usata SOLO quando useCache === true). */
   private _allCocktailsCache: Cocktail[] | null = null;
   private _allCocktailsLoadingSubject = new BehaviorSubject<boolean>(false);
   private _allCocktailsDataSubject = new BehaviorSubject<Cocktail[] | null>(
     null
   );
 
+  /** Cache per slug → cocktail (hit istantanei nella stessa sessione). */
+  private bySlug = new Map<string, Cocktail>();
+  private bySlugInFlight = new Map<string, Observable<Cocktail | null>>();
+
+  /** Cache per liste: chiave = params stringificati → risposta (TTL leggero). */
+  private listCache = new Map<
+    string,
+    { ts: number; stream$: Observable<StrapiResponse<Cocktail>> }
+  >();
+  private listTTLms = 60_000; // 60s
+
+  // ------- PREFETCH (nuovo) --------
+  private PREFETCH_MAX_CONCURRENCY = 2;
+  private activePrefetch = 0;
+  private prefetchQueue: Array<() => Subscription> = [];
+  private prefetchSubs = new Set<Subscription>();
+
   constructor(private http: HttpClient) {}
 
+  // --------- Helpers ----------
   private getFullStrapiImageUrl(relativePath: string | null): string | null {
     if (!relativePath) return null;
     return relativePath.startsWith('http')
@@ -170,32 +183,24 @@ export class CocktailService {
       : this.apiUrl + relativePath;
   }
 
-  private cleanIngredientCTData(rawIngredientData: any): IngredientCT {
-    if (!rawIngredientData) {
-      return { ...this.UNKNOWN_INGREDIENT_CT, image: null };
-    }
-
-    const ingredient = rawIngredientData;
+  private cleanIngredientCTData(raw: any): IngredientCT {
+    if (!raw) return { ...this.UNKNOWN_INGREDIENT_CT, image: null };
 
     let ingredientImage: StrapiImage | null = null;
-    if (ingredient.image) {
-      const rawImage = ingredient.image;
-
+    if (raw.image) {
+      const rawImage = raw.image;
       const formatsWithFullUrls: StrapiImageFormats = {};
       if (rawImage.formats) {
         for (const key in rawImage.formats) {
-          if (rawImage.formats.hasOwnProperty(key)) {
-            const format = rawImage.formats[key];
-            if (format && format.url) {
-              formatsWithFullUrls[key as keyof StrapiImageFormats] = {
-                ...format,
-                url: this.getFullStrapiImageUrl(format.url)!,
-              };
-            }
+          const format = rawImage.formats[key];
+          if (format?.url) {
+            formatsWithFullUrls[key as keyof StrapiImageFormats] = {
+              ...format,
+              url: this.getFullStrapiImageUrl(format.url)!,
+            };
           }
         }
       }
-
       ingredientImage = {
         id: rawImage.id,
         name: rawImage.name,
@@ -212,53 +217,46 @@ export class CocktailService {
         previewUrl: this.getFullStrapiImageUrl(rawImage.previewUrl),
         provider: rawImage.provider,
         provider_metadata: rawImage.provider_metadata,
-        createdAt: ingredient.createdAt,
-        updatedAt: ingredient.updatedAt,
+        createdAt: raw.createdAt,
+        updatedAt: raw.updatedAt,
       } as StrapiImage;
     }
 
     return {
-      id: ingredient.id || this.UNKNOWN_INGREDIENT_CT.id,
-      name: ingredient.name || this.UNKNOWN_INGREDIENT_CT.name,
-      external_id:
-        ingredient.external_id || this.UNKNOWN_INGREDIENT_CT.external_id,
-      description_from_cocktaildb: ingredient.description_from_cocktaildb,
-      ai_flavor_profile: ingredient.ai_flavor_profile,
-      ai_common_uses: ingredient.ai_common_uses,
-      ai_substitutes: ingredient.ai_substitutes,
-      ai_brief_history: ingredient.ai_brief_history,
-      ai_interesting_facts: ingredient.ai_interesting_facts,
-      ai_alcohol_content: ingredient.ai_alcohol_content,
+      id: raw.id ?? this.UNKNOWN_INGREDIENT_CT.id,
+      name: raw.name ?? this.UNKNOWN_INGREDIENT_CT.name,
+      external_id: raw.external_id ?? this.UNKNOWN_INGREDIENT_CT.external_id,
+      description_from_cocktaildb: raw.description_from_cocktaildb,
+      ai_flavor_profile: raw.ai_flavor_profile,
+      ai_common_uses: raw.ai_common_uses,
+      ai_substitutes: raw.ai_substitutes,
+      ai_brief_history: raw.ai_brief_history,
+      ai_interesting_facts: raw.ai_interesting_facts,
+      ai_alcohol_content: raw.ai_alcohol_content,
       image: ingredientImage,
-      createdAt: ingredient.createdAt,
-      updatedAt: ingredient.updatedAt,
-      publishedAt: ingredient.publishedAt,
-      ingredient_type: ingredient.ingredient_type, // <--- ASSICURATI CHE QUESTA LINEA SIA PRESENTE
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+      publishedAt: raw.publishedAt,
+      ingredient_type: raw.ingredient_type,
     };
   }
 
-  private cleanCocktailData(rawCocktailData: any): Cocktail {
-    const cocktail = rawCocktailData;
-
+  private cleanCocktailData(raw: any): Cocktail {
     let cocktailImage: StrapiImage | null = null;
-    if (cocktail.image) {
-      const rawImage = cocktail.image;
-
+    if (raw.image) {
+      const rawImage = raw.image;
       const formatsWithFullUrls: StrapiImageFormats = {};
       if (rawImage.formats) {
         for (const key in rawImage.formats) {
-          if (rawImage.formats.hasOwnProperty(key)) {
-            const format = rawImage.formats[key];
-            if (format && format.url) {
-              formatsWithFullUrls[key as keyof StrapiImageFormats] = {
-                ...format,
-                url: this.getFullStrapiImageUrl(format.url)!,
-              };
-            }
+          const format = rawImage.formats[key];
+          if (format?.url) {
+            formatsWithFullUrls[key as keyof StrapiImageFormats] = {
+              ...format,
+              url: this.getFullStrapiImageUrl(format.url)!,
+            };
           }
         }
       }
-
       cocktailImage = {
         id: rawImage.id,
         name: rawImage.name,
@@ -281,104 +279,98 @@ export class CocktailService {
     }
 
     const cleanedIngredientsList: CocktailIngredientListItem[] = [];
-    if (cocktail.ingredients_list && Array.isArray(cocktail.ingredients_list)) {
-      cocktail.ingredients_list.forEach((item: any) => {
+    if (Array.isArray(raw.ingredients_list)) {
+      raw.ingredients_list.forEach((item: any) => {
         const cleanedIngredient = this.cleanIngredientCTData(item.ingredient);
         cleanedIngredientsList.push({
           id: item.id,
-          measure: item.measure || null,
+          measure: item.measure ?? null,
           ingredient: cleanedIngredient,
         });
       });
     }
 
     return {
-      id: cocktail.id,
-      external_id: cocktail.external_id,
-      name: cocktail.name,
-      category: cocktail.category,
-      alcoholic: cocktail.alcoholic,
-      glass: cocktail.glass,
-      instructions: cocktail.instructions,
+      id: raw.id,
+      external_id: raw.external_id,
+      name: raw.name,
+      category: raw.category,
+      alcoholic: raw.alcoholic,
+      glass: raw.glass,
+      instructions: raw.instructions,
       ingredients_list: cleanedIngredientsList,
       image: cocktailImage,
-      ai_description: cocktail.ai_description,
-      likes: cocktail.likes,
-      createdAt: cocktail.createdAt,
-      updatedAt: cocktail.updatedAt,
-      publishedAt: cocktail.publishedAt,
-      preparation_type: cocktail.preparation_type,
-      ai_alcohol_content: cocktail.ai_alcohol_content,
-      ai_presentation: cocktail.ai_presentation,
-      ai_pairing: cocktail.ai_pairing,
-      ai_origin: cocktail.ai_origin,
-      ai_occasion: cocktail.ai_occasion,
-      ai_sensory_description: cocktail.ai_sensory_description,
-      ai_personality: cocktail.ai_personality,
-      ai_variations: cocktail.ai_variations,
-      slug: cocktail.slug,
+      ai_description: raw.ai_description,
+      likes: raw.likes,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+      publishedAt: raw.publishedAt,
+      preparation_type: raw.preparation_type,
+      ai_alcohol_content: raw.ai_alcohol_content,
+      ai_presentation: raw.ai_presentation,
+      ai_pairing: raw.ai_pairing,
+      ai_origin: raw.ai_origin,
+      ai_occasion: raw.ai_occasion,
+      ai_sensory_description: raw.ai_sensory_description,
+      ai_personality: raw.ai_personality,
+      ai_variations: raw.ai_variations,
+      slug: raw.slug,
     };
   }
 
-  /**
-   * Recupera i cocktail con paginazione e filtri.
-   * Include una logica di caching per la lista completa di cocktail (pageSize 1000).
-   * @param useCache Se true, cerca di usare la cache per una richiesta di tutti i cocktail.
-   * @param forceReload Se true, forza il ricaricamento dei dati, ignorando la cache. Utile per refresh manuali.
-   */
+  // ---------- API PUBBLICHE (immutate nelle firme) ----------
+
   getCocktails(
     page: number = 1,
     pageSize: number = 10,
     searchTerm?: string,
     category?: string,
     alcoholic?: string,
-    useCache: boolean = false, // True solo per richieste all'intera lista (pageSize 1000)
-    forceReload: boolean = false // Nuovo parametro per forzare il ricaricamento
+    useCache: boolean = false,
+    forceReload: boolean = false
   ): Observable<StrapiResponse<Cocktail>> {
     const isAllCocktailsRequest =
-      pageSize === 48 && !searchTerm && !category && !alcoholic;
+      !!useCache && !searchTerm && !category && !alcoholic;
 
-    if (isAllCocktailsRequest && !forceReload) {
-      if (this._allCocktailsCache) {
-        console.log('Serving all cocktails from _allCocktailsCache.');
-        return of({
-          data: this._allCocktailsCache,
+    if (isAllCocktailsRequest && !forceReload && this._allCocktailsCache) {
+      return of({
+        data: this._allCocktailsCache,
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: this._allCocktailsCache.length,
+            pageCount: 1,
+            total: this._allCocktailsCache.length,
+          },
+        },
+      });
+    }
+
+    if (
+      isAllCocktailsRequest &&
+      this._allCocktailsLoadingSubject.getValue() &&
+      !forceReload
+    ) {
+      return this._allCocktailsDataSubject.pipe(
+        filter((data) => data !== null),
+        map((data) => ({
+          data: data!,
           meta: {
             pagination: {
               page: 1,
-              pageSize: this._allCocktailsCache.length,
+              pageSize: data!.length,
               pageCount: 1,
-              total: this._allCocktailsCache.length,
+              total: data!.length,
             },
           },
-        });
-      }
-
-      if (this._allCocktailsLoadingSubject.getValue()) {
-        console.log(
-          'All cocktails request already in progress, waiting for data via _allCocktailsDataSubject.'
-        );
-        return this._allCocktailsDataSubject.pipe(
-          filter((data) => data !== null),
-          map((data) => ({
-            data: data!,
-            meta: {
-              pagination: {
-                page: 1,
-                pageSize: data!.length,
-                pageCount: 1,
-                total: data!.length,
-              },
-            },
-          }))
-        );
-      }
+        }))
+      );
     }
 
     let params = new HttpParams()
       .set('pagination[page]', page.toString())
       .set('pagination[pageSize]', pageSize.toString())
-      .set('populate[image]', 'true') // Popola l'immagine principale del cocktail
+      .set('populate[image]', 'true')
       .set(
         'populate[ingredients_list][populate][ingredient][fields][0]',
         'name'
@@ -390,27 +382,33 @@ export class CocktailService {
       .set(
         'populate[ingredients_list][populate][ingredient][fields][2]',
         'ingredient_type'
-      ) // AGGIUNTO
+      )
       .set(
         'populate[ingredients_list][populate][ingredient][populate][image]',
         'true'
-      ); // Popola l'immagine dell'ingrediente nidificato
+      );
 
-    if (searchTerm) {
+    if (searchTerm)
       params = params.set('filters[name][$startsWithi]', searchTerm);
-    }
-    if (category) {
-      params = params.set('filters[category][$eq]', category);
-    }
-    if (alcoholic) {
-      params = params.set('filters[alcoholic][$eq]', alcoholic);
-    }
+    if (category) params = params.set('filters[category][$eq]', category);
+    if (alcoholic) params = params.set('filters[alcoholic][$eq]', alcoholic);
 
-    if (isAllCocktailsRequest && !this._allCocktailsLoadingSubject.getValue()) {
-      this._allCocktailsLoadingSubject.next(true);
-    }
+    const keyObj = {
+      page,
+      pageSize,
+      searchTerm: searchTerm ?? '',
+      category: category ?? '',
+      alcoholic: alcoholic ?? '',
+    };
+    const key = JSON.stringify(keyObj);
+    const cachedList = this.listCache.get(key);
+    const now = Date.now();
+    if (!forceReload && cachedList && now - cachedList.ts < this.listTTLms)
+      return cachedList.stream$;
 
-    return this.http
+    if (isAllCocktailsRequest) this._allCocktailsLoadingSubject.next(true);
+
+    const stream$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
         map((response) => {
@@ -418,88 +416,57 @@ export class CocktailService {
             this.cleanCocktailData(item)
           );
           if (isAllCocktailsRequest) {
-            this._allCocktailsCache = response.data.sort((a, b) =>
-              a.name.localeCompare(b.name)
-            );
+            this._allCocktailsCache = (response.data as Cocktail[])
+              .slice()
+              .sort((a, b) => a.name.localeCompare(b.name));
             this._allCocktailsDataSubject.next(this._allCocktailsCache);
             this._allCocktailsLoadingSubject.next(false);
+            this._allCocktailsCache.forEach((c) =>
+              this.bySlug.set(c.slug.toLowerCase(), c)
+            );
           }
           return response as StrapiResponse<Cocktail>;
         }),
         catchError((err) => {
-          console.error('Error loading cocktails:', err);
           if (isAllCocktailsRequest) {
             this._allCocktailsLoadingSubject.next(false);
             this._allCocktailsDataSubject.error(err);
           }
           return throwError(() => new Error('Could not load cocktails.'));
-        })
+        }),
+        shareReplay(1)
       );
+
+    this.listCache.set(key, { ts: now, stream$ });
+    return stream$;
   }
 
-  /**
-   * Recupera un singolo cocktail tramite il suo slug.
-   * Controlla prima la cache globale `_allCocktailsCache`.
-   */
   getCocktailBySlug(slug: string): Observable<Cocktail | null> {
-    // 1. Controlla la cache globale _allCocktailsCache
-    if (this._allCocktailsCache) {
-      const cachedCocktail = this._allCocktailsCache.find(
-        (c) => c.slug === slug
-      );
-      if (cachedCocktail) {
-        console.log(
-          `Cocktail with slug '${slug}' found in _allCocktailsCache.`
-        );
-        if (
-          cachedCocktail.ingredients_list &&
-          cachedCocktail.ingredients_list.length > 0
-        ) {
-          console.log(
-            `  Cached Cocktail Ingredient Type (from cache): ${cachedCocktail.ingredients_list[0].ingredient.ingredient_type}`
-          );
-        }
-        return of(cachedCocktail);
-      }
-    }
+    const norm = (slug || '').toLowerCase();
 
-    // 2. Se la richiesta per tutti i cocktail è in corso, attendi che finisca
+    const hit = this.bySlug.get(norm);
+    if (hit) return of(hit);
+
     if (this._allCocktailsLoadingSubject.getValue()) {
-      console.log(
-        `_allCocktailsCache is loading, waiting for cocktail with slug '${slug}'.`
-      );
       return this._allCocktailsDataSubject.pipe(
         filter((data) => data !== null),
         map((data) => {
-          const found = data!.find((c) => c.slug === slug);
-          if (found) {
-            console.log(
-              `Cocktail with slug '${slug}' found after _allCocktailsCache loaded.`
-            );
-            if (found.ingredients_list && found.ingredients_list.length > 0) {
-              console.log(
-                `  Found Cocktail Ingredient Type (after cache load): ${found.ingredients_list[0].ingredient.ingredient_type}`
-              );
-            }
-          } else {
-            console.warn(
-              `Cocktail with slug '${slug}' not found in _allCocktailsCache after load.`
-            );
-          }
-          return found || null;
+          const found =
+            data!.find((c) => c.slug.toLowerCase() === norm) || null;
+          if (found) this.bySlug.set(norm, found);
+          return found;
         })
       );
     }
 
-    // 3. Se non è in cache e non è in caricamento, fai una chiamata API specifica
-    console.log(
-      `Cocktail with slug '${slug}' not in cache, fetching from API.`
-    );
+    const inFlight = this.bySlugInFlight.get(norm);
+    if (inFlight) return inFlight;
+
     let params = new HttpParams()
       .set('filters[slug][$eq]', slug)
       .set('populate[image]', 'true')
-      .set('populate[category]', 'true') // Aggiunto per coerenza
-      .set('populate[glass]', 'true') // Aggiunto per coerenza
+      .set('populate[category]', 'true')
+      .set('populate[glass]', 'true')
       .set(
         'populate[ingredients_list][populate][ingredient][fields][0]',
         'name'
@@ -511,62 +478,50 @@ export class CocktailService {
       .set(
         'populate[ingredients_list][populate][ingredient][fields][2]',
         'ingredient_type'
-      ) // AGGIUNTO
+      )
       .set(
         'populate[ingredients_list][populate][ingredient][populate][image]',
         'true'
-      ); // Popola l'immagine dell'ingrediente nidificato
+      );
 
-    return this.http
+    const req$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
         map((response) => {
-          if (response.data && response.data.length > 0) {
-            const fetchedCocktail = this.cleanCocktailData(response.data[0]);
-            if (
-              fetchedCocktail.ingredients_list &&
-              fetchedCocktail.ingredients_list.length > 0
-            ) {
-              console.log(
-                `  Fetched Cocktail Ingredient Type (from API): ${fetchedCocktail.ingredients_list[0].ingredient.ingredient_type}`
-              );
-            }
-            return fetchedCocktail;
+          if (response.data?.length > 0) {
+            const fetched = this.cleanCocktailData(response.data[0]);
+            this.bySlug.set(norm, fetched);
+            return fetched;
           }
           return null;
         }),
-        catchError((err) => {
-          console.error('Error loading cocktail by slug from API:', err);
-          return throwError(
+        catchError(() =>
+          throwError(
             () => new Error('Could not load cocktail by slug from API.')
-          );
-        })
+          )
+        ),
+        shareReplay(1)
       );
+
+    this.bySlugInFlight.set(norm, req$);
+    req$.subscribe({
+      next: () => this.bySlugInFlight.delete(norm),
+      error: () => this.bySlugInFlight.delete(norm),
+    });
+    return req$;
   }
 
-  /**
-   * Simula l'azione di "mi piace" su un cocktail (nota: la logica attuale usa un valore casuale).
-   */
   likeCocktail(cocktailId: number): Observable<any> {
     const url = `${this.cocktailsBaseUrl}/${cocktailId}`;
     return this.http
       .put(url, { data: { likes: (Math.random() * 48).toFixed(0) } })
       .pipe(
-        tap(() =>
-          console.log(
-            `Simulazione: Mi piace aggiunto al cocktail ${cocktailId}`
-          )
-        ),
-        catchError((err) => {
-          console.error('Error liking cocktail:', err);
-          return throwError(() => new Error('Could not like cocktail.'));
-        })
+        catchError(() =>
+          throwError(() => new Error('Could not like cocktail.'))
+        )
       );
   }
 
-  /**
-   * Cerca cocktail per nome (ricerca "starts with" case-insensitive).
-   */
   searchCocktailsByName(query: string): Observable<Cocktail[]> {
     let params = new HttpParams()
       .set('filters[name][$startsWithi]', query)
@@ -583,28 +538,37 @@ export class CocktailService {
       .set(
         'populate[ingredients_list][populate][ingredient][fields][2]',
         'ingredient_type'
-      ) // AGGIUNTO
+      )
       .set(
         'populate[ingredients_list][populate][ingredient][populate][image]',
         'true'
-      ); // Popola l'immagine dell'ingrediente nidificato
+      );
 
-    return this.http
+    const key = JSON.stringify({ q: query, pageSize: 10, type: 'search' });
+    const cached = this.listCache.get(key);
+    const now = Date.now();
+    if (cached && now - cached.ts < this.listTTLms)
+      return cached.stream$.pipe(map((r) => r.data));
+
+    const stream$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
         map((response) => {
-          return response.data.map((item) => this.cleanCocktailData(item));
+          const data = response.data.map((item) =>
+            this.cleanCocktailData(item)
+          );
+          return { data, meta: response.meta } as StrapiResponse<Cocktail>;
         }),
-        catchError((err) => {
-          console.error('Error searching cocktails by name:', err);
-          return throwError(() => new Error('Could not search cocktails.'));
-        })
+        catchError(() =>
+          throwError(() => new Error('Could not search cocktails.'))
+        ),
+        shareReplay(1)
       );
+
+    this.listCache.set(key, { ts: now, stream$ });
+    return stream$.pipe(map((r) => r.data));
   }
 
-  /**
-   * Recupera cocktail correlati a un ingrediente specifico tramite il suo ID esterno.
-   */
   getRelatedCocktailsForIngredient(
     ingredientExternalId: string
   ): Observable<Cocktail[]> {
@@ -625,40 +589,42 @@ export class CocktailService {
       .set(
         'populate[ingredients_list][populate][ingredient][fields][2]',
         'ingredient_type'
-      ) // AGGIUNTO
+      )
       .set(
         'populate[ingredients_list][populate][ingredient][populate][image]',
         'true'
-      ); // Popola l'immagine dell'ingrediente nidificato
+      );
 
-    return this.http
+    const key = JSON.stringify({ rel: ingredientExternalId, type: 'related' });
+    const cached = this.listCache.get(key);
+    const now = Date.now();
+    if (cached && now - cached.ts < this.listTTLms)
+      return cached.stream$.pipe(map((r) => r.data));
+
+    const stream$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
         map((response) => {
-          return response.data.map((item) => this.cleanCocktailData(item));
-        }),
-        catchError((err) => {
-          console.error('Error getting related cocktails:', err);
-          return throwError(
-            () => new Error('Could not get related cocktails.')
+          const data = response.data.map((item) =>
+            this.cleanCocktailData(item)
           );
-        })
+          return { data, meta: response.meta } as StrapiResponse<Cocktail>;
+        }),
+        catchError(() =>
+          throwError(() => new Error('Could not get related cocktails.'))
+        ),
+        shareReplay(1)
       );
+
+    this.listCache.set(key, { ts: now, stream$ });
+    return stream$.pipe(map((r) => r.data));
   }
 
-  // Rimosso getIngredientByExternalId da qui, appartiene a IngredientService
-
-  /**
-   * Recupera cocktail in base a un array di ID esterni di ingredienti.
-   * Permette di specificare se la corrispondenza deve essere esatta.
-   */
   getCocktailsByIngredientIds(
     ingredientExternalIds: string[],
     exactMatch: boolean = false
   ): Observable<CocktailWithLayoutAndMatch[]> {
-    if (!ingredientExternalIds || ingredientExternalIds.length === 0) {
-      return of([]);
-    }
+    if (!ingredientExternalIds?.length) return of([]);
 
     let params = new HttpParams()
       .set('populate[image]', 'true')
@@ -673,11 +639,11 @@ export class CocktailService {
       .set(
         'populate[ingredients_list][populate][ingredient][fields][2]',
         'ingredient_type'
-      ) // AGGIUNTO
+      )
       .set(
         'populate[ingredients_list][populate][ingredient][populate][image]',
         'true'
-      ) // Popola l'immagine dell'ingrediente nidificato
+      )
       .set('pagination[pageSize]', '48');
 
     if (exactMatch) {
@@ -700,20 +666,14 @@ export class CocktailService {
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
         map((response) => {
-          const allMatchingCocktails = response.data.map((item) =>
-            this.cleanCocktailData(item)
-          );
-          return allMatchingCocktails.map((cocktail) => {
-            const cocktailIngredientExternalIds = new Set(
-              cocktail.ingredients_list.map(
-                (item) => item.ingredient.external_id
-              )
+          const all = response.data.map((item) => this.cleanCocktailData(item));
+          return all.map((cocktail) => {
+            const ids = new Set(
+              cocktail.ingredients_list.map((i) => i.ingredient.external_id)
             );
             let matchedCount = 0;
-            ingredientExternalIds.forEach((selectedId) => {
-              if (cocktailIngredientExternalIds.has(selectedId)) {
-                matchedCount++;
-              }
+            ingredientExternalIds.forEach((sel) => {
+              if (ids.has(sel)) matchedCount++;
             });
             return {
               ...cocktail,
@@ -721,125 +681,173 @@ export class CocktailService {
             } as CocktailWithLayoutAndMatch;
           });
         }),
-        catchError((err) => {
-          console.error('Error getting cocktails by ingredient IDs:', err);
-          return throwError(
-            () => new Error('Could not get cocktails by ingredients.')
-          );
-        })
+        catchError(() =>
+          throwError(() => new Error('Could not get cocktails by ingredients.'))
+        )
       );
   }
 
-  /**
-   * Recupera cocktail simili basandosi su un cocktail corrente.
-   * Utilizza la cache del servizio per i dati completi di tutti i cocktail.
-   */
   getSimilarCocktails(currentCocktail: Cocktail): Observable<Cocktail[]> {
-    if (
-      !currentCocktail ||
-      !currentCocktail.ingredients_list ||
-      currentCocktail.ingredients_list.length === 0
-    ) {
-      console.warn(
-        'Cannot find similar cocktails: current cocktail or its ingredients are missing.'
-      );
-      return of([]);
-    }
+    if (!currentCocktail?.ingredients_list?.length) return of([]);
 
-    // Questo forza il caricamento di tutti i cocktail in cache se non lo sono già,
-    // e poi li usa per la logica di similarità.
     return this.getCocktails(
       1,
       48,
       undefined,
       undefined,
       undefined,
-      true, // useCache è true per l'intera lista
-      false // non forzare il reload, usa la cache se disponibile
+      true,
+      false
     ).pipe(
       map((response) => {
-        const allCocktails = response.data; // Questi saranno i dati dalla cache o dalla nuova fetch
-
-        const primaryIngredientId =
+        const allCocktails = response.data;
+        const primary =
           currentCocktail.ingredients_list[0]?.ingredient?.external_id;
-        const secondaryIngredientId =
+        const secondary =
           currentCocktail.ingredients_list[1]?.ingredient?.external_id;
 
-        let similarCocktailsCandidates: Cocktail[] = [];
-
-        if (primaryIngredientId) {
-          const matches = allCocktails.filter((cocktail) => {
-            if (cocktail.external_id === currentCocktail.external_id) {
-              return false;
-            }
-            return cocktail.ingredients_list.some(
-              (item) => item.ingredient.external_id === primaryIngredientId
-            );
-          });
-          similarCocktailsCandidates = [...matches];
-        }
-
-        if (
-          similarCocktailsCandidates.length < 16 &&
-          secondaryIngredientId &&
-          primaryIngredientId !== secondaryIngredientId
-        ) {
-          const newMatches = allCocktails.filter((cocktail) => {
-            if (
-              cocktail.external_id === currentCocktail.external_id ||
-              similarCocktailsCandidates.some(
-                (s) => s.external_id === cocktail.external_id
+        let candidates: Cocktail[] = [];
+        if (primary) {
+          candidates = allCocktails.filter(
+            (c) =>
+              c.external_id !== currentCocktail.external_id &&
+              c.ingredients_list.some(
+                (it) => it.ingredient.external_id === primary
               )
-            ) {
-              return false;
-            }
-            return cocktail.ingredients_list.some(
-              (item) => item.ingredient.external_id === secondaryIngredientId
-            );
-          });
-          similarCocktailsCandidates = [
-            ...similarCocktailsCandidates,
-            ...newMatches,
-          ];
+          );
         }
-
-        if (similarCocktailsCandidates.length < 16) {
-          const fallbackMatches = allCocktails.filter((cocktail) => {
-            if (
-              cocktail.external_id === currentCocktail.external_id ||
-              similarCocktailsCandidates.some(
-                (s) => s.external_id === cocktail.external_id
+        if (candidates.length < 16 && secondary && secondary !== primary) {
+          const extra = allCocktails.filter(
+            (c) =>
+              c.external_id !== currentCocktail.external_id &&
+              !candidates.some((s) => s.external_id === c.external_id) &&
+              c.ingredients_list.some(
+                (it) => it.ingredient.external_id === secondary
               )
-            ) {
+          );
+          candidates = [...candidates, ...extra];
+        }
+        if (candidates.length < 16) {
+          const fallback = allCocktails.filter((c) => {
+            if (
+              c.external_id === currentCocktail.external_id ||
+              candidates.some((s) => s.external_id === c.external_id)
+            )
               return false;
-            }
-
             const matchCategory =
               currentCocktail.category &&
-              cocktail.category === currentCocktail.category;
+              c.category === currentCocktail.category;
             const matchAlcoholic =
               currentCocktail.alcoholic &&
-              cocktail.alcoholic === currentCocktail.alcoholic;
+              c.alcoholic === currentCocktail.alcoholic;
             const matchGlass =
-              currentCocktail.glass && cocktail.glass === currentCocktail.glass;
-
+              currentCocktail.glass && c.glass === currentCocktail.glass;
             return matchCategory || matchAlcoholic || matchGlass;
           });
-          similarCocktailsCandidates = [
-            ...similarCocktailsCandidates,
-            ...fallbackMatches,
-          ];
+          candidates = [...candidates, ...fallback];
         }
-
-        const shuffled = similarCocktailsCandidates.sort(
-          () => 0.5 - Math.random()
-        );
+        const shuffled = candidates.sort(() => 0.5 - Math.random());
         return shuffled.slice(0, 16);
       }),
-      catchError((err) => {
-        console.error('Error loading similar cocktails:', err);
-        return throwError(() => new Error('Could not load similar cocktails.'));
-      })
+      catchError(() =>
+        throwError(() => new Error('Could not load similar cocktails.'))
+      )
     );
+  }
+
+  // ================================
+  //        PREFETCH (nuovo)
+  // ================================
+
+  /** Avvia (in idle) un prefetch del dettaglio, con coda e cap di concorrenza. */
+  prefetchCocktailBySlug(slug: string): void {
+    const norm = (slug || '').toLowerCase();
+    if (!norm) return;
+    if (this.bySlug.get(norm)) return; // già in cache
+    if (this.bySlugInFlight.get(norm)) return; // già in volo
+    if (!this.canPrefetch()) return; // rispetta rete/SaveData
+
+    this.enqueueIdle(() => this.getCocktailBySlug(norm));
+  }
+
+  /** Prefetch di una lista di slug (es. card correlate visibili). */
+  prefetchCocktailsBySlugs(slugs: string[], limit = 6): void {
+    if (!Array.isArray(slugs) || !slugs.length) return;
+    const unique = Array.from(
+      new Set(slugs.map((s) => (s || '').toLowerCase()))
+    ).slice(0, limit);
+    unique.forEach((s) => this.prefetchCocktailBySlug(s));
+  }
+
+  /** Pre-warm dell’indice “all cocktails” (solo se non in cache). Parte in idle. */
+  prefetchAllCocktailsIndexSoft(): void {
+    if (this._allCocktailsCache || this._allCocktailsLoadingSubject.getValue())
+      return;
+    if (!this.canPrefetch()) return;
+    this.enqueueIdle(() =>
+      this.getCocktails(1, 48, undefined, undefined, undefined, true, false)
+    );
+  }
+
+  // ----- Prefetch runtime internals -----
+
+  /** Pianifica una richiesta (Observable) in idle, instradata nella coda con cap. */
+  private enqueueIdle<T>(factory: () => Observable<T>): void {
+    const job = () => {
+      const sub = factory().subscribe({
+        next: () => this.onPrefetchDone(sub),
+        error: () => this.onPrefetchDone(sub),
+      });
+      this.prefetchSubs.add(sub);
+      return sub;
+    };
+
+    // usa requestIdleCallback quando c’è, altrimenti micro-delay
+    this.scheduleIdle(() => this.enqueueJob(job));
+  }
+
+  private enqueueJob(job: () => Subscription): void {
+    this.prefetchQueue.push(job);
+    this.drainQueue();
+  }
+
+  private drainQueue(): void {
+    while (
+      this.activePrefetch < this.PREFETCH_MAX_CONCURRENCY &&
+      this.prefetchQueue.length
+    ) {
+      const job = this.prefetchQueue.shift()!;
+      this.activePrefetch++;
+      job();
+    }
+  }
+
+  private onPrefetchDone(sub?: Subscription): void {
+    if (sub) {
+      try {
+        sub.unsubscribe();
+      } catch {}
+      this.prefetchSubs.delete(sub);
+    }
+    this.activePrefetch = Math.max(0, this.activePrefetch - 1);
+    this.drainQueue();
+  }
+
+  private scheduleIdle(cb: () => void): void {
+    const anyWin = typeof window !== 'undefined' ? (window as any) : null;
+    if (anyWin?.requestIdleCallback) {
+      anyWin.requestIdleCallback(() => cb(), { timeout: 2000 });
+    } else {
+      setTimeout(() => cb(), 0);
+    }
+  }
+
+  private canPrefetch(): boolean {
+    // Risparmia dati o reti lente: evita di occupare banda
+    const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
+    const saveData = !!nav?.connection?.saveData;
+    const effectiveType = (nav?.connection?.effectiveType ?? '') as string;
+    const slow = /2g|slow-2g/.test(effectiveType);
+    return !(saveData || slow);
   }
 }
