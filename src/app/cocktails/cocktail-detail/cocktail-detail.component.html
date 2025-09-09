@@ -36,13 +36,14 @@
           <img
             class="detail-image"
             [src]="getCocktailImageUrl(cocktail)"
-            [attr.srcset]="getCocktailImageSrcset(cocktail)"
-            [attr.sizes]="detailSizes"
+            [srcset]="getCocktailImageSrcset(cocktail)"
+            [sizes]="detailSizes"
             alt="{{ cocktail.name || 'Cocktail photo' }}"
             width="800"
             height="800"
             loading="eager"
             fetchpriority="high"
+            decoding="async"
           />
         </div>
       </div>
