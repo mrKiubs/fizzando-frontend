@@ -82,7 +82,10 @@ export class CocktailDetailComponent
 
   allCocktails: Cocktail[] = [];
   currentCocktailIndex = -1;
-  detailSizes = '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 500px';
+  detailSizes =
+    '(max-width: 767px) calc(100vw - 32px), ' +
+    '(max-width: 1199px) calc((100vw - 48px)/2), ' +
+    '392px';
   heroSrc = '';
   heroSrcset = '';
   previousCocktail: {
@@ -474,15 +477,22 @@ export class CocktailDetailComponent
     const existing = this.document.querySelector<HTMLLinkElement>(
       'link[rel="preload"][as="image"][data-preload-hero="1"]'
     );
-    if (!existing && this.heroSrc) {
+    if (!existing && cocktailImageUrl) {
+      const srcset = this.getCocktailImageSrcset(this.cocktail); // la tua funzione
+      const sizes = this.detailSizes;
+
       const preload = this.renderer.createElement('link') as HTMLLinkElement;
       this.renderer.setAttribute(preload, 'rel', 'preload');
       this.renderer.setAttribute(preload, 'as', 'image');
-      this.renderer.setAttribute(preload, 'href', this.heroSrc);
-      if (this.heroSrcset) {
-        this.renderer.setAttribute(preload, 'imagesrcset', this.heroSrcset);
-      }
-      this.renderer.setAttribute(preload, 'imagesizes', this.detailSizes);
+      this.renderer.setAttribute(preload, 'fetchpriority', 'high');
+
+      // Fallback (ok tenerlo)
+      this.renderer.setAttribute(preload, 'href', cocktailImageUrl);
+
+      // 🔑 fondamentali per immagini responsive:
+      if (srcset) this.renderer.setAttribute(preload, 'imagesrcset', srcset);
+      if (sizes) this.renderer.setAttribute(preload, 'imagesizes', sizes);
+
       this.renderer.setAttribute(preload, 'data-preload-hero', '1');
       this.renderer.appendChild(this.document.head, preload);
     }
@@ -621,9 +631,10 @@ export class CocktailDetailComponent
     };
   }
 
-  getCocktailImageSrcset(cocktail: Cocktail | undefined): string {
+  getCocktailImageSrcset(cocktail?: Cocktail): string {
     const img: any = cocktail?.image;
     if (!img) return '';
+
     const abs = (u?: string | null) =>
       u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
 
@@ -634,7 +645,9 @@ export class CocktailDetailComponent
       parts.push(`${abs(img.formats.small.url)} 320w`);
     if (img?.formats?.medium?.url)
       parts.push(`${abs(img.formats.medium.url)} 640w`);
-    // niente large/original
+    if (img?.formats?.large?.url)
+      parts.push(`${abs(img.formats.large.url)} 1024w`);
+    if (img?.url) parts.push(`${abs(img.url)} 1600w`);
     return parts.join(', ');
   }
 }
