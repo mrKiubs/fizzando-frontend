@@ -144,13 +144,11 @@ export class AppComponent {
         if (!pathChanged) return;
 
         const nav = this.router.getCurrentNavigation();
-        const state =
-          (nav?.extras?.state as any) ||
-          (typeof window !== 'undefined' ? window.history.state : {}) ||
-          {};
-        if (state.suppressScroll) return;
-
-        this.viewportScroller.scrollToPosition([0, 0]);
+ const suppress = !!nav?.extras?.state?.['suppressScroll'];
+ if (suppress) return;
+ setTimeout(() => {
+   requestAnimationFrame(() => this.viewportScroller.scrollToPosition([0, 0]));
+ }, 0);
       });
   }
 
