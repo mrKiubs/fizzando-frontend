@@ -44,30 +44,6 @@ img {
   color: rgba(255, 255, 255, 0.85);
 }
 
-/* Buttons */
-.glass-button.primary,
-.glass-button.secondary {
-  border-radius: 8px;
-  padding: 8px;
-  flex-direction: column;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  /* 👉 permetti di andare a capo su viewport stretti */
-  white-space: normal;
-  word-break: break-word;
-  text-align: center;
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* evita che l'icona forzi la larghezza */
-.glass-button.primary mat-icon,
-.glass-button.secondary mat-icon {
-  flex: 0 0 auto;
-}
-
 /* Section defaults */
 section {
   h2,

@@ -32,11 +32,11 @@
       <!-- Image -->
       <div class="cocktail-image-column">
         <div class="image-wrapper">
-          <!-- ✅ LCP optimized hero -->
+          <!-- ✅ LCP optimized hero + WebP preferito con fallback -->
           <img
             class="detail-image"
-            [src]="getCocktailHeroUrl(cocktail)"
-            [srcset]="getCocktailImageSrcset(cocktail)"
+            [src]="heroSrc || getPreferred(getCocktailHeroUrl(cocktail))"
+            [srcset]="heroSrcset || getCocktailImageSrcsetPreferred(cocktail)"
             sizes="(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 500px"
             width="500"
             height="500"
@@ -44,6 +44,13 @@
             loading="eager"
             decoding="async"
             alt="{{ cocktail.name || 'Cocktail photo' }}"
+            (error)="
+              onImgErrorWithSrcset(
+                $event,
+                getCocktailHeroUrl(cocktail),
+                getCocktailImageSrcset(cocktail)
+              )
+            "
           />
         </div>
       </div>
@@ -68,13 +75,14 @@
             <li *ngFor="let item of cocktail.ingredients_list">
               <div class="image-ingredient-wrapper">
                 <img
-                  [src]="getIngredientImageUrl(item)"
+                  [src]="getPreferred(getIngredientImageUrl(item))"
                   [alt]="item.ingredient.name"
                   width="50"
                   height="50"
                   loading="lazy"
                   decoding="async"
                   [attr.fetchpriority]="'low'"
+                  (error)="onImgError($event, getIngredientImageUrl(item))"
                 />
               </div>
 
@@ -144,7 +152,7 @@
     *ngIf="cocktail && !loading && !error"
     class="ai-details-section glass-card"
   >
-    <h2 class="section-title">🔍 {{ cocktail.name }} Deep Dive</h2>
+    <h2 class="section-title">✨ {{ cocktail.name }} Deep Dive</h2>
     <div class="ai-blocks-grid">
       <div
         class="ai-detail-block glass-card-mini"
@@ -221,6 +229,17 @@
     </div>
   </section>
 
+  <section class="related-articles-section" *ngIf="relatedArticles.length > 0">
+    <h2 *ngIf="cocktail && !loading && !error" class="section-title">
+      ✨ More about {{ cocktail.name }}
+    </h2>
+    <div class="related-articles-grid">
+      <ng-container *ngFor="let a of relatedArticles; let i = index">
+        <app-article-card [article]="a"></app-article-card>
+      </ng-container>
+    </div>
+  </section>
+
   <!-- ===================== AD BLOCK #2 (dopo Deep Dive) ===================== -->
   <ng-container *ngIf="contentReady">
     @defer (on viewport) {
@@ -250,7 +269,7 @@
   <!-- Related con ad in-loop -->
   <section class="related-cocktails-section" *ngIf="relatedWithAds.length > 0">
     <h2 class="section-title">
-      🍹 If you liked the {{ cocktail?.name }}, try these too!
+      ✨ If you liked the {{ cocktail?.name }}, try these too!
     </h2>
 
     <div class="related-cocktail-cards-grid">
@@ -295,15 +314,6 @@
             }
           </ng-container>
         </ng-template>
-      </ng-container>
-    </div>
-  </section>
-
-  <section class="related-articles-section" *ngIf="relatedArticles.length > 0">
-    <h2 class="section-title">📰 Related Articles</h2>
-    <div class="related-articles-grid">
-      <ng-container *ngFor="let a of relatedArticles; let i = index">
-        <app-article-card [article]="a"></app-article-card>
       </ng-container>
     </div>
   </section>
@@ -363,6 +373,12 @@
             decoding="async"
             [attr.fetchpriority]="'low'"
             role="presentation"
+            (error)="
+              onImgError(
+                $event,
+                getCocktailThumbUrl(allCocktails[currentCocktailIndex - 1])
+              )
+            "
           />
         </div>
         {{ previousCocktail.name }}
@@ -388,6 +404,12 @@
             decoding="async"
             [attr.fetchpriority]="'low'"
             role="presentation"
+            (error)="
+              onImgError(
+                $event,
+                getCocktailThumbUrl(allCocktails[currentCocktailIndex + 1])
+              )
+            "
           />
         </div>
         <mat-icon svgIcon="chevron_right" aria-hidden="true"></mat-icon>

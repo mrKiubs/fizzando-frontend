@@ -80,10 +80,10 @@ export class CocktailDetailComponent
 
   allCocktails: Cocktail[] = [];
   currentCocktailIndex = -1;
-  detailSizes =
-    '(max-width: 767px) 324, ' + '(max-width: 1199px) 324), ' + '324';
+
   heroSrc = '';
   heroSrcset = '';
+
   previousCocktail: {
     externalId: string;
     name: string;
@@ -113,6 +113,9 @@ export class CocktailDetailComponent
   private siteBaseUrl = '';
   private cocktailSchemaScript: HTMLScriptElement | undefined;
 
+  // ===== WEBP support & helpers =====
+  private supportsWebp = false;
+
   // ===== Refs / listeners =====
   @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
   private wheelListenerCleanup?: () => void;
@@ -140,7 +143,10 @@ export class CocktailDetailComponent
       ? window.location.origin
       : '';
 
-    if (this.isBrowser) this.checkScreenWidth();
+    if (this.isBrowser) {
+      this.checkScreenWidth();
+      this.supportsWebp = this.checkWebpSupport();
+    }
   }
 
   // ===== Lifecycle =====
@@ -151,8 +157,8 @@ export class CocktailDetailComponent
       this.cocktail = resolved;
       this.loading = false;
       this.setNavigationCocktails(this.cocktail.external_id);
-      this.heroSrc = this.getCocktailImageUrl(this.cocktail);
-      this.heroSrcset = this.getCocktailImageSrcset(this.cocktail);
+      this.heroSrc = this.getPreferred(this.getCocktailHeroUrl(this.cocktail));
+      this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
       this.setSeoTagsAndSchema();
       this.loadSimilarCocktails();
       this.fetchRelatedArticles();
@@ -237,6 +243,11 @@ export class CocktailDetailComponent
       this.loadSimilarCocktails();
       this.fetchRelatedArticles();
       this.setSeoTagsAndSchema();
+
+      // Aggiorna hero preferendo webp
+      this.heroSrc = this.getPreferred(this.getCocktailHeroUrl(this.cocktail));
+      this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
+
       this.unlockAdsWhenStable();
       return;
     }
@@ -253,8 +264,13 @@ export class CocktailDetailComponent
           }
           this.cocktail = res;
           this.loading = false;
-          this.heroSrc = this.getCocktailImageUrl(this.cocktail);
-          this.heroSrcset = this.getCocktailImageSrcset(this.cocktail);
+
+          // Aggiorna hero preferendo webp
+          this.heroSrc = this.getPreferred(
+            this.getCocktailHeroUrl(this.cocktail)
+          );
+          this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
+
           this.setNavigationCocktails(this.cocktail.external_id);
           this.loadSimilarCocktails();
           this.fetchRelatedArticles();
@@ -271,7 +287,6 @@ export class CocktailDetailComponent
 
   private unlockAdsWhenStable(): void {
     if (!this.isBrowser) return;
-    // Evita ExpressionChanged & garantisce che il contenuto principale sia in DOM
     this.ngZone.runOutsideAngular(() => {
       requestAnimationFrame(() => {
         this.ngZone.run(() => (this.contentReady = true));
@@ -331,7 +346,7 @@ export class CocktailDetailComponent
       this.previousCocktail = {
         externalId: prev.external_id,
         name: prev.name,
-        imageUrl: this.getCocktailImageUrl(prev),
+        imageUrl: this.getPreferred(this.getCocktailThumbUrl(prev)),
         slug: prev.slug,
       };
     }
@@ -340,7 +355,7 @@ export class CocktailDetailComponent
       this.nextCocktail = {
         externalId: next.external_id,
         name: next.name,
-        imageUrl: this.getCocktailImageUrl(next),
+        imageUrl: this.getPreferred(this.getCocktailThumbUrl(next)),
         slug: next.slug,
       };
     }
@@ -364,6 +379,7 @@ export class CocktailDetailComponent
     this.location.back();
   }
 
+  // --- URL assoluti immagine cocktail/ingredienti (originali) ---
   getCocktailImageUrl(cocktail: Cocktail | undefined): string {
     if (cocktail?.image?.url) {
       return cocktail.image.url.startsWith('http')
@@ -375,11 +391,137 @@ export class CocktailDetailComponent
 
   getIngredientImageUrl(ingredientEntry: any): string {
     if (ingredientEntry?.ingredient?.image?.url) {
-      return ingredientEntry.ingredient.image.url.startsWith('http')
+      const raw = ingredientEntry.ingredient.image.url.startsWith('http')
         ? ingredientEntry.ingredient.image.url
         : env.apiUrl + ingredientEntry.ingredient.image.url;
+      return raw;
     }
     return 'assets/no-image.png';
+  }
+
+  /** URL thumbnail per miniature nav: thumbnail → small → original */
+  getCocktailThumbUrl(cocktail?: Cocktail): string {
+    const img: any = cocktail?.image;
+    if (!img) return 'assets/no-image.png';
+
+    const abs = (u?: string | null) =>
+      u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
+
+    if (img?.formats?.thumbnail?.url) return abs(img.formats.thumbnail.url); // ~150w
+    if (img?.formats?.small?.url) return abs(img.formats.small.url); // ~320w
+    if (img?.url) return abs(img.url); // fallback
+    return 'assets/no-image.png';
+  }
+
+  // --- Preferenze WebP + fallback ---
+  /** Rileva supporto WebP (client-only) */
+  private checkWebpSupport(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      if (!!(canvas.getContext && canvas.getContext('2d'))) {
+        const data = canvas.toDataURL('image/webp');
+        return data.indexOf('data:image/webp') === 0;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Converte estensione nota in .webp mantenendo la querystring */
+  toWebp(url?: string | null): string {
+    if (!url) return '';
+    // evita di toccare placeholder locali
+    if (url.startsWith('assets/')) return url;
+    return url.replace(/\.(jpe?g|png)(\?.*)?$/i, '.webp$2');
+  }
+
+  /** Restituisce URL preferito (webp se supportato) */
+  getPreferred(originalUrl?: string | null): string {
+    if (!originalUrl) return '';
+    if (!this.supportsWebp) return originalUrl;
+    return this.toWebp(originalUrl) || originalUrl;
+  }
+
+  /** Fallback semplice (solo src) */
+  onImgError(evt: Event, originalUrl: string): void {
+    const img = evt.target as HTMLImageElement | null;
+    if (!img) return;
+    if ((img as any).__fallbackApplied) return; // evita loop
+    (img as any).__fallbackApplied = true;
+    img.src = originalUrl;
+    img.removeAttribute('srcset'); // rimuovi eventuali srcset di prova
+  }
+
+  /** Fallback per img con src + srcset */
+  onImgErrorWithSrcset(
+    evt: Event,
+    originalSrc: string,
+    originalSrcset: string
+  ): void {
+    const img = evt.target as HTMLImageElement | null;
+    if (!img) return;
+    if ((img as any).__fallbackApplied) return;
+    (img as any).__fallbackApplied = true;
+    img.srcset = originalSrcset || '';
+    img.src = originalSrc;
+  }
+
+  /** Costruisce la srcset originale (jpg/png) */
+  getCocktailImageSrcset(cocktail?: Cocktail): string {
+    const img: any = cocktail?.image;
+    if (!img) return '';
+
+    const abs = (u?: string | null) =>
+      u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
+
+    const parts: string[] = [];
+    if (img?.formats?.thumbnail?.url)
+      parts.push(`${abs(img.formats.thumbnail.url)} 150w`);
+    if (img?.formats?.small?.url)
+      parts.push(`${abs(img.formats.small.url)} 320w`);
+    if (img?.formats?.medium?.url)
+      parts.push(`${abs(img.formats.medium.url)} 640w`);
+    if (img?.formats?.large?.url)
+      parts.push(`${abs(img.formats.large.url)} 1024w`);
+    if (img?.url) parts.push(`${abs(img.url)} 1600w`);
+    return parts.join(', ');
+  }
+
+  /** Versione preferita della srcset (trasforma in .webp se supportato) */
+  getCocktailImageSrcsetPreferred(cocktail?: Cocktail): string {
+    const original = this.getCocktailImageSrcset(cocktail);
+    if (!this.supportsWebp || !original) return original;
+
+    // Trasforma ciascuna URL in .webp, mantenendo il descriptor (es. "640w")
+    const out = original
+      .split(',')
+      .map((entry) => {
+        const [u, w] = entry.trim().split(/\s+/);
+        const uw = this.toWebp(u);
+        return `${uw} ${w || ''}`.trim();
+      })
+      .join(', ');
+    return out || original;
+  }
+
+  /** URL hero preferito (sceglie medium/large/original, poi converte in webp se supportato) */
+  getCocktailHeroUrl(cocktail?: Cocktail): string {
+    const img: any = cocktail?.image;
+    if (!img) return 'assets/no-image.png';
+
+    const abs = (u?: string | null) =>
+      u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
+
+    // L’hero rende ~500px: preferiamo medium (640w), altrimenti large, altrimenti original, poi small.
+    const original =
+      (img?.formats?.medium?.url && abs(img.formats.medium.url)) ||
+      (img?.formats?.large?.url && abs(img.formats.large.url)) ||
+      (img?.url && abs(img.url)) ||
+      (img?.formats?.small?.url && abs(img.formats.small.url)) ||
+      'assets/no-image.png';
+
+    return original;
   }
 
   @HostListener('window:resize')
@@ -410,7 +552,9 @@ export class CocktailDetailComponent
       .trim()
       .slice(0, 180);
 
-    const cocktailImageUrl = this.getCocktailImageUrl(this.cocktail);
+    const cocktailImageUrl = this.getPreferred(
+      this.getCocktailImageUrl(this.cocktail)
+    );
     const cocktailUrl = this.getFullSiteUrl(this.router.url);
 
     this.titleService.setTitle(`${cocktailName} | Fizzando`);
@@ -524,7 +668,7 @@ export class CocktailDetailComponent
   generateCocktailSchema(cocktail: any): any {
     const pageUrl = this.getFullSiteUrl(`/cocktails/${cocktail.slug}`);
     const imageUrl =
-      this.getCocktailImageUrl(cocktail) ||
+      this.getPreferred(this.getCocktailImageUrl(cocktail)) ||
       this.getFullSiteUrl('assets/no-image.png');
 
     return {
@@ -601,39 +745,5 @@ export class CocktailDetailComponent
       ].filter(Boolean),
       mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
     };
-  }
-
-  getCocktailImageSrcset(cocktail?: Cocktail): string {
-    const img: any = cocktail?.image;
-    if (!img) return '';
-
-    const abs = (u?: string | null) =>
-      u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
-
-    const parts: string[] = [];
-    if (img?.formats?.thumbnail?.url)
-      parts.push(`${abs(img.formats.thumbnail.url)} 150w`);
-    if (img?.formats?.small?.url)
-      parts.push(`${abs(img.formats.small.url)} 320w`);
-    if (img?.formats?.medium?.url)
-      parts.push(`${abs(img.formats.medium.url)} 640w`);
-    if (img?.formats?.large?.url)
-      parts.push(`${abs(img.formats.large.url)} 1024w`);
-    if (img?.url) parts.push(`${abs(img.url)} 1600w`);
-    return parts.join(', ');
-  }
-  getCocktailHeroUrl(cocktail?: Cocktail): string {
-    const img: any = cocktail?.image;
-    if (!img) return 'assets/no-image.png';
-
-    const abs = (u?: string | null) =>
-      u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
-
-    // L’hero rende ~500px: preferiamo medium (640w), altrimenti large, altrimenti original, poi small.
-    if (img?.formats?.medium?.url) return abs(img.formats.medium.url);
-    if (img?.formats?.large?.url) return abs(img.formats.large.url);
-    if (img?.url) return abs(img.url);
-    if (img?.formats?.small?.url) return abs(img.formats.small.url);
-    return 'assets/no-image.png';
   }
 }

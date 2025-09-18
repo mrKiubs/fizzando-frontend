@@ -45,6 +45,9 @@ export class ArticleDetailComponent implements OnInit, OnDestroy {
   isMobile = false;
   private readonly isBrowser: boolean;
 
+  // Preferenze immagine
+  private supportsWebp = false;
+
   // "More from {Category}"
   firstCategory?: { name: string; slug?: string } | null = null;
   moreFromCategory: Article[] = [];
@@ -64,7 +67,8 @@ export class ArticleDetailComponent implements OnInit, OnDestroy {
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
     if (this.isBrowser) {
-      this.checkScreenWidth(); // inizializza subito su client
+      this.checkScreenWidth(); // init client
+      this.supportsWebp = this.checkWebpSupport();
     }
   }
 
@@ -122,7 +126,7 @@ export class ArticleDetailComponent implements OnInit, OnDestroy {
         const cat0 = (data.categories?.[0] as any) ?? null;
         this.firstCategory = cat0 ? { name: cat0.name, slug: cat0.slug } : null;
 
-        this.loadMoreFromCategory(data);
+        this.loadMoreFromSameCocktail(data);
 
         this.loading = false;
       },
@@ -134,43 +138,32 @@ export class ArticleDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Carica articoli correlati in base alle categorie dell’articolo corrente.
-   *  Fallback: se l’articolo non ha categorie, mostra gli ultimi N articoli.
-   */
-  private loadMoreFromCategory(current: Article, limit = 6): void {
-    const hasCats =
-      Array.isArray(current.categories) &&
-      current.categories.some((c: any) => c?.slug || c?.name);
+  /** Carica articoli correlati in base al cocktail del corrente */
+  private loadMoreFromSameCocktail(current: Article, limit = 4): void {
+    const first = (current.related_cocktails ?? [])[0] as any;
+    const cocktailId: number | undefined = first?.id ?? first?.documentId;
 
-    if (hasCats) {
-      this.articleService
-        .getRelatedArticlesByArticle(current, limit)
-        .subscribe({
-          next: (list) => {
-            this.moreFromCategory = list ?? [];
-          },
-          error: (err) => {
-            console.error('Errore caricando i correlati per categoria:', err);
-            this.moreFromCategory = [];
-          },
-        });
-    } else {
-      // fallback: ultimi articoli
-      this.articleService.getLatestArticles(limit).subscribe({
+    if (!cocktailId) {
+      this.moreFromCategory = [];
+      this.firstCategory = null;
+      return;
+    }
+
+    this.articleService
+      .getArticlesByRelatedCocktailId(cocktailId, limit + 1)
+      .subscribe({
         next: (list) => {
-          this.moreFromCategory = (list ?? []).filter(
-            (a) => a.slug !== current.slug
-          );
-          if (this.moreFromCategory.length > 0) {
-            this.firstCategory = { name: 'Latest Articles' }; // titolo neutro
-          }
+          const filtered = (list ?? [])
+            .filter((a) => a.slug !== current.slug)
+            .slice(0, limit);
+          this.moreFromCategory = filtered;
+          this.firstCategory = { name: first?.name || 'this cocktail' };
         },
         error: (err) => {
-          console.error('Errore caricando ultimi articoli (fallback):', err);
+          console.error('Errore caricando correlati per cocktail:', err);
           this.moreFromCategory = [];
         },
       });
-    }
   }
 
   // ===== IMAGE URL FIX =====
@@ -194,6 +187,44 @@ export class ArticleDetailComponent implements OnInit, OnDestroy {
     article.sections?.forEach((section) => this.fixSingleImage(section.image));
     article.related_cocktails?.forEach((c) => this.fixSingleImage(c.image));
     article.related_ingredients?.forEach((i) => this.fixSingleImage(i.image));
+  }
+
+  /** Rileva supporto WebP (client-only) */
+  private checkWebpSupport(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      if (!!(canvas.getContext && canvas.getContext('2d'))) {
+        const data = canvas.toDataURL('image/webp');
+        return data.indexOf('data:image/webp') === 0;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Converte estensione nota in .webp mantenendo querystring */
+  toWebp(url?: string | null): string | null {
+    if (!url) return null;
+    return url.replace(/\.(jpe?g|png)(\?.*)?$/i, '.webp$2');
+  }
+
+  /** Restituisce l’URL preferito (WebP se supportato) */
+  getPreferred(originalUrl?: string | null): string | null {
+    if (!originalUrl) return null;
+    if (!this.supportsWebp) return originalUrl;
+    const webp = this.toWebp(originalUrl);
+    return webp || originalUrl;
+  }
+
+  /** Fallback automatico all’URL originale se la .webp fallisce */
+  onImgError(evt: Event, originalUrl: string): void {
+    const img = evt.target as HTMLImageElement | null;
+    if (!img) return;
+    // Evita loop: applica fallback una sola volta
+    if ((img as any).__fallbackApplied) return;
+    (img as any).__fallbackApplied = true;
+    img.src = originalUrl;
   }
 
   // ===== SEO / META =====

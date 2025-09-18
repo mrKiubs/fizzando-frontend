@@ -1,135 +1,225 @@
-<!-- src/app/cocktails/cocktail-card/cocktail-card.component.html -->
+<!-- Banner compatto per Article Detail -->
+<ng-container *ngIf="asArticleBanner; else defaultCard">
+  <div class="article-banner glassy-banner">
+    <picture>
+      <!-- WebP -->
+      <source
+        [srcset]="srcsetFromFormatsWebp(cocktail.image)"
+        type="image/webp"
+        sizes="96px"
+      />
+      <!-- Fallback JPG/PNG -->
+      <source [srcset]="srcsetFromFormatsJpg(cocktail.image)" sizes="96px" />
+      <img
+        [src]="getCocktailCardImageUrl(cocktail.image)"
+        [alt]="
+          cocktail.name
+            ? 'Photo of ' + cocktail.name + ' cocktail'
+            : 'Cocktail photo'
+        "
+        class="cocktail-card-image"
+        width="96"
+        height="96"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+        (error)="
+          onCardImgError($event, getCocktailCardImageUrl(cocktail.image))
+        "
+      />
+    </picture>
 
-<div class="cocktail-card" role="article" [@cardAnimation]>
-  <div class="glassy-image-container">
-    <img
-      [src]="getCocktailCardImageUrl(cocktail.image)"
-      [alt]="
-        cocktail.name
-          ? 'Photo of ' + cocktail.name + ' cocktail'
-          : 'Cocktail photo'
-      "
-      class="cocktail-card-image"
-      [attr.loading]="isLcp ? 'eager' : 'lazy'"
-      [attr.fetchpriority]="isLcp ? 'high' : 'low'"
-      decoding="async"
-      [attr.srcset]="getCocktailCardImageSrcset(cocktail.image)"
-      [attr.sizes]="
-        '(max-width: 599px) 100vw, ' +
-        '(max-width: 899px) calc(50vw - 8px), ' +
-        '(max-width: 1199px) calc((100vw - 32px)/3), ' +
-        '288px'
-      "
-    />
+    <div class="banner-text">
+      <span class="banner-label">{{ bannerLabel }}</span>
+      <h3 class="banner-title">{{ cocktail.name }}</h3>
+    </div>
 
-    <!-- badge reso “decorativo” agli screen reader -->
-    <span
-      class="matched-ingredients-badge"
-      [ngClass]="{
-        'perfect-match-badge':
-          cocktail.matchedIngredientCount === cocktail.ingredients_list.length
-      }"
-      *ngIf="matchedIngredientsBadgeText"
-      aria-hidden="true"
+    <button
+      class="glass-button secondary"
+      [routerLink]="['/cocktails', cocktail.slug]"
+      [attr.aria-label]="'Open ' + cocktail.name"
     >
-      <span class="desktop">{{ matchedIngredientsBadgeText.desktop }}</span>
-      <span
-        class="mobile"
-        [innerHTML]="matchedIngredientsBadgeText.mobile"
-      ></span>
-    </span>
+      View Recipe <mat-icon>visibility</mat-icon>
+    </button>
   </div>
+</ng-container>
 
-  <div class="glassy-content-container">
-    <div class="glassy-info">
-      <h3
-        class="cocktail-card-title no-color"
-        [class.fonts-loaded]="fontsLoaded"
+<!-- === Card “classica” === -->
+<ng-template #defaultCard>
+  <div class="cocktail-card" role="article" [@cardAnimation]>
+    <div class="glassy-image-container">
+      <picture>
+        <!-- WebP -->
+        <source
+          [srcset]="srcsetFromFormatsWebp(cocktail.image)"
+          type="image/webp"
+          [attr.sizes]="
+            '(max-width: 599px) 100vw, ' +
+            '(max-width: 899px) calc(50vw - 8px), ' +
+            '(max-width: 1199px) calc((100vw - 32px)/3), ' +
+            '288px'
+          "
+        />
+        <!-- Fallback JPG/PNG -->
+        <source
+          [srcset]="srcsetFromFormatsJpg(cocktail.image)"
+          [attr.sizes]="
+            '(max-width: 599px) 100vw, ' +
+            '(max-width: 899px) calc(50vw - 8px), ' +
+            '(max-width: 1199px) calc((100vw - 32px)/3), ' +
+            '288px'
+          "
+        />
+        <img
+          [src]="getCocktailCardImageUrl(cocktail.image)"
+          [alt]="
+            cocktail.name
+              ? 'Photo of ' + cocktail.name + ' cocktail'
+              : 'Cocktail photo'
+          "
+          class="cocktail-card-image"
+          [attr.loading]="isLcp ? 'eager' : 'lazy'"
+          [attr.fetchpriority]="isLcp ? 'high' : 'low'"
+          decoding="async"
+          (error)="
+            onCardImgError($event, getCocktailCardImageUrl(cocktail.image))
+          "
+        />
+      </picture>
+
+      <span
+        class="matched-ingredients-badge"
+        [ngClass]="{
+          'perfect-match-badge':
+            cocktail.matchedIngredientCount === cocktail.ingredients_list.length
+        }"
+        *ngIf="matchedIngredientsBadgeText"
+        aria-hidden="true"
       >
-        {{ cocktail.name }}
-      </h3>
+        <span class="desktop">{{ matchedIngredientsBadgeText.desktop }}</span>
+        <span
+          class="mobile"
+          [innerHTML]="matchedIngredientsBadgeText.mobile"
+        ></span>
+      </span>
+    </div>
 
-      <div class="cocktail-chips-container" aria-hidden="true">
-        <span class="cocktail-chip category-chip">{{ cocktail.category }}</span>
-        <span class="cocktail-chip abv-chip">
-          ABV:
-          <ng-container
-            *ngIf="+('' + cocktail?.ai_alcohol_content).replace('%', '') !== 0"
-            >~</ng-container
-          >{{ cocktail.ai_alcohol_content }}
-        </span>
-      </div>
+    <div class="glassy-content-container">
+      <div class="glassy-info">
+        <h3
+          class="cocktail-card-title no-color"
+          [class.fonts-loaded]="fontsLoaded"
+        >
+          {{ cocktail.name }}
+        </h3>
 
-      <div
-        class="cocktail-key-info"
-        *ngIf="mainIngredientsFormatted.length > 0"
-      >
-        <p class="info-label">Key Ingredients</p>
-
-        <div class="ingredients-list">
-          <ng-container
-            *ngFor="let ingredient of mainIngredientsFormatted; let last = last"
-          >
-            <span
-              class="ingredient-item-link"
-              [routerLink]="['/ingredients', getIngredientId(ingredient)]"
-              (click)="$event.stopPropagation()"
-              role="link"
-              tabindex="0"
-              (keydown.enter)="
-                $event.stopPropagation(); $any($event.currentTarget).click()
+        <div class="cocktail-chips-container" aria-hidden="true">
+          <span class="cocktail-chip category-chip">{{
+            cocktail.category
+          }}</span>
+          <span class="cocktail-chip abv-chip">
+            ABV:
+            <ng-container
+              *ngIf="
+                +('' + cocktail?.ai_alcohol_content).replace('%', '') !== 0
               "
-              (keydown.space)="
-                $event.preventDefault();
-                $event.stopPropagation();
-                $any($event.currentTarget).click()
+              >~</ng-container
+            >
+            {{ cocktail.ai_alcohol_content }}
+          </span>
+        </div>
+
+        <div
+          class="cocktail-key-info"
+          *ngIf="mainIngredientsFormatted.length > 0"
+        >
+          <p class="info-label">Key Ingredients</p>
+
+          <div class="ingredients-list">
+            <ng-container
+              *ngFor="
+                let ingredient of mainIngredientsFormatted;
+                let last = last
               "
             >
-              <img
-                *ngIf="getIngredientThumbUrl(ingredient) as thumbUrl"
-                [src]="thumbUrl"
-                sizes="20px"
-                alt=""
-                width="20"
-                height="20"
-                loading="lazy"
-                fetchpriority="low"
-                decoding="async"
-                class="ingredient-icon"
-              />
-              {{ ingredient }}
-            </span>
-          </ng-container>
+              <span
+                class="ingredient-item-link"
+                [routerLink]="['/ingredients', getIngredientId(ingredient)]"
+                (click)="$event.stopPropagation()"
+                role="link"
+                tabindex="0"
+                (keydown.enter)="
+                  $event.stopPropagation(); $any($event.currentTarget).click()
+                "
+                (keydown.space)="
+                  $event.preventDefault();
+                  $event.stopPropagation();
+                  $any($event.currentTarget).click()
+                "
+              >
+                <!-- 🔽 Icona ingrediente: WebP + fallback, target 20px -->
+                <picture *ngIf="true">
+                  <source
+                    [srcset]="srcsetFromIngredientWebp(ingredient)"
+                    type="image/webp"
+                    sizes="20px"
+                  />
+                  <source
+                    [srcset]="srcsetFromIngredientJpg(ingredient)"
+                    sizes="20px"
+                  />
+                  <img
+                    [src]="getIngredientIconUrlJpg(ingredient)"
+                    alt=""
+                    width="20"
+                    height="20"
+                    loading="lazy"
+                    fetchpriority="low"
+                    decoding="async"
+                    class="ingredient-icon"
+                    (error)="
+                      onCardImgError(
+                        $event,
+                        getIngredientIconUrlJpg(ingredient)
+                      )
+                    "
+                  />
+                </picture>
 
-          <span
-            class="ingredient-item-more"
-            *ngIf="(cocktail?.ingredients_list?.length || 0) > 3"
-            aria-hidden="true"
-            >...</span
-          >
+                {{ ingredient }}
+              </span>
+            </ng-container>
+
+            <span
+              class="ingredient-item-more"
+              *ngIf="(cocktail?.ingredients_list?.length || 0) > 3"
+              aria-hidden="true"
+              >...</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="cocktail-extra-info" aria-hidden="true">
+        <div class="info-item" *ngIf="cocktail.glass">
+          <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
+          <span>{{ cocktail.glass }}</span>
+        </div>
+
+        <div class="info-item">
+          <span class="icon">{{
+            getPreparationIcon(cocktail.preparation_type)
+          }}</span>
+          <span>{{ cocktail.preparation_type }}</span>
         </div>
       </div>
     </div>
 
-    <div class="cocktail-extra-info" aria-hidden="true">
-      <div class="info-item" *ngIf="cocktail.glass">
-        <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
-        <span>{{ cocktail.glass }}</span>
-      </div>
-
-      <div class="info-item">
-        <span class="icon">{{
-          getPreparationIcon(cocktail.preparation_type)
-        }}</span>
-        <span>{{ cocktail.preparation_type }}</span>
-      </div>
-    </div>
+    <a
+      [routerLink]="['/cocktails', cocktail.slug]"
+      class="cocktail-card-link-wrapper"
+    >
+      <span class="visually-hidden">Open {{ cocktail.name }}</span>
+    </a>
   </div>
-
-  <a
-    [routerLink]="['/cocktails', cocktail.slug]"
-    class="cocktail-card-link-wrapper"
-  >
-    <span class="visually-hidden">Open {{ cocktail.name }}</span>
-  </a>
-</div>
+</ng-template>

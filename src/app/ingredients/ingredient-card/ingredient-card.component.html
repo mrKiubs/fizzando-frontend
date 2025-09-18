@@ -5,15 +5,25 @@
 >
   <div class="glass-card ingredient-layout">
     <div class="image-wrapper">
-      <img
-        [src]="getIngredientCardImageUrl(ingredient.image)"
-        [alt]="ingredient.name || ''"
-        loading="eager"
-        fetchpriority="high"
-        decoding="async"
-        width="60"
-        height="60"
-      />
+      <picture>
+        <!-- Preferisci WebP (una sola sorgente piccola) -->
+        <source
+          [srcset]="webpSrc(ingredient.image)"
+          type="image/webp"
+          sizes="60px"
+        />
+
+        <!-- Fallback JPG/PNG singolo -->
+        <img
+          [src]="getIngredientCardImageUrl(ingredient.image)"
+          [alt]="ingredient.name || ''"
+          [attr.loading]="priority ? 'eager' : lazyLoadImage ? 'lazy' : 'eager'"
+          [attr.fetchpriority]="priority ? 'high' : 'low'"
+          decoding="async"
+          width="60"
+          height="60"
+        />
+      </picture>
     </div>
 
     <div class="ingredient-details">
