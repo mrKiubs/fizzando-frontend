@@ -343,3 +343,78 @@
     padding: 0 4px;
   }
 }
+
+/* Banner compatto per Article Detail */
+.glassy-banner.article-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 16px;
+  text-decoration: none;
+  position: relative;
+
+  /* richiama il tuo stile “glassy” */
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  picture {
+    border-radius: 12px;
+    overflow: hidden;
+    img {
+      max-width: 75px;
+    }
+  }
+
+  .banner-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex: 0 0 auto;
+  }
+
+  .banner-text {
+    min-width: 0; /* truncate sicuro */
+    flex: 1;
+    display: grid;
+    gap: 2px;
+    color: white;
+
+    .banner-label {
+      font-size: 12px;
+      opacity: 0.8;
+      font-weight: 600;
+    }
+    .banner-title {
+      font-size: 24px;
+      line-height: 1.2;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .banner-meta {
+      font-size: 12px;
+      opacity: 0.85;
+      .chip {
+        opacity: 0.9;
+      }
+      .dot {
+        margin: 0 6px;
+        opacity: 0.55;
+      }
+    }
+  }
+
+  .banner-cta {
+    font-size: 12px;
+    opacity: 0.9;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}

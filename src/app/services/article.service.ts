@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { forkJoin, Observable, of, throwError } from 'rxjs';
-import { map, catchError, shareReplay } from 'rxjs/operators';
+import { map, catchError, shareReplay, switchMap, tap } from 'rxjs/operators';
 import { env } from '../config/env';
 
 /* ===== Tipi ===== */
@@ -232,70 +232,85 @@ export class ArticleService {
   /* =========================
    * DETTAGLIO per slug (memoized)
    * ========================= */
+  /* =========================
+   * DETTAGLIO per slug (memoized)
+   * ========================= */
   getArticleBySlug(slug: string): Observable<Article | null> {
-    const keySlug = (slug || '').toLowerCase();
+    const rawSlug = (slug ?? '').trim();
 
-    // 1) cache per slug
-    const hit = this.bySlug.get(keySlug);
-    if (hit) return of(hit);
-
-    // 2) richiesta in corso già esistente?
-    const inFlight = this.inFlightSlug.get(keySlug);
-    if (inFlight) return inFlight;
-
-    let params = new HttpParams()
-      .set('filters[slug][$eq]', slug)
+    // usa SEMPRE l'apiUrl del service (evita mismatch con env.apiBaseUrl)
+    const params = new HttpParams()
+      .set('filters[slug][$eq]', rawSlug)
+      .set('publicationState', 'live')
+      .set('pagination[limit]', '1')
+      // populate mirato, come nel resto del service
       .append('populate', 'sections')
       .append('populate', 'image')
       .append('populate', 'categories')
       .append('populate', 'related_cocktails.image')
       .append('populate', 'related_ingredients.image');
 
-    const req$ = this.http
-      .get<StrapiResponse<any>>(this.apiUrl, { params })
-      .pipe(
-        map((response) => {
-          const raw = response.data?.[0];
-          if (!raw) return null;
+    return this.http.get<StrapiResponse<any>>(this.apiUrl, { params }).pipe(
+      map((response) => {
+        const raw = response?.data?.[0];
+        if (!raw) return null;
 
-          const article: Article = {
-            id: raw.id,
-            title: raw.title,
-            slug: raw.slug,
-            introduction: raw.introduction,
-            conclusion: raw.conclusion,
-            createdAt: raw.createdAt,
-            updatedAt: raw.updatedAt,
-            publishedAt: raw.publishedAt,
-            generated_at: raw.generated_at,
-            article_status: raw.article_status,
-            sections: raw.sections || [],
-            image: raw.image,
-            related_cocktails: raw.related_cocktails || [],
-            related_ingredients: raw.related_ingredients || [],
-            categories: raw.categories || [],
-            content: raw.content,
-          };
+        // *** NORMALIZZAZIONE COERENTE con gli altri metodi ***
+        const article: Article = {
+          id: raw.id,
+          title: raw.title,
+          slug: raw.slug,
+          introduction: raw.introduction,
+          conclusion: raw.conclusion,
+          createdAt: raw.createdAt,
+          updatedAt: raw.updatedAt,
+          publishedAt: raw.publishedAt,
+          generated_at: raw.generated_at,
+          article_status: raw.article_status,
+          sections: Array.isArray(raw.sections)
+            ? raw.sections
+            : raw.sections
+            ? [raw.sections]
+            : [],
+          image: raw.image,
+          related_cocktails: Array.isArray(raw.related_cocktails)
+            ? raw.related_cocktails
+            : raw.related_cocktails
+            ? [raw.related_cocktails]
+            : [],
+          related_ingredients: Array.isArray(raw.related_ingredients)
+            ? raw.related_ingredients
+            : raw.related_ingredients
+            ? [raw.related_ingredients]
+            : [],
+          categories: Array.isArray(raw.categories)
+            ? raw.categories
+            : raw.categories
+            ? [raw.categories]
+            : [],
+          content: raw.content,
+          imageUrl: undefined,
+        };
 
-          const processed = this.processArticleImages(article);
-          // memoize per slug/id
-          this.bySlug.set(keySlug, processed);
-          this.byId.set(processed.id, processed);
-          return processed;
-        }),
-        catchError(() =>
-          throwError(() => new Error('Could not get article by slug.'))
-        ),
-        shareReplay(1)
-      );
+        const processed = this.processArticleImages(article);
 
-    this.inFlightSlug.set(keySlug, req$);
-    req$.subscribe({
-      next: () => this.inFlightSlug.delete(keySlug),
-      error: () => this.inFlightSlug.delete(keySlug),
-    });
+        // memoize per slug/id, come fai altrove
+        if (processed.slug)
+          this.bySlug.set(processed.slug.toLowerCase(), processed);
+        if (processed.id) this.byId.set(processed.id, processed);
 
-    return req$;
+        return processed;
+      }),
+      catchError((err) => {
+        console.error('[getArticleBySlug] HTTP error', {
+          slug: rawSlug,
+          status: (err as any)?.status,
+          message: (err as any)?.message,
+        });
+        return throwError(() => new Error('Could not get article by slug'));
+      }),
+      shareReplay(1)
+    );
   }
 
   /* =========================

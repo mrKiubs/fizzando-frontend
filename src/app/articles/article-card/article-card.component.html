@@ -1,28 +1,17 @@
 <!-- === article-card.component.html === -->
 <article class="article-card">
-  <a
-    class="stretched-link"
+  <div class="content">
+    <h3 class="card-title">{{ article.title }}</h3>
+    <p class="intro" [attr.title]="article.introduction || ''">
+      {{ article.introduction }}
+    </p>
+  </div>
+
+  <button
+    class="glass-button secondary"
     [routerLink]="getArticleDetailLink()"
     [attr.aria-label]="article.title"
   >
-    <div class="image-wrapper">
-      <img
-        class="cover"
-        [src]="articleImageUrl"
-        [alt]="article.title || 'Article image preview'"
-        width="400"
-        height="400"
-        [attr.loading]="priority ? null : 'lazy'"
-        [attr.fetchpriority]="priority ? 'high' : null"
-        [attr.decoding]="priority ? null : 'async'"
-      />
-    </div>
-
-    <div class="content">
-      <h3 class="card-title">{{ article.title }}</h3>
-      <p class="intro" [attr.title]="article.introduction || ''">
-        {{ article.introduction }}
-      </p>
-    </div>
-  </a>
+    View Article <mat-icon>visibility</mat-icon>
+  </button>
 </article>

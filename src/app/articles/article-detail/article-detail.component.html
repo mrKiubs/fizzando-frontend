@@ -9,8 +9,21 @@
   </div>
 
   <ng-container *ngIf="article && !loading && !error">
-    <main class="content" role="main">
-      <article>
+    <main role="main">
+      <!-- RELATED COCKTAILS -->
+      <section
+        *ngIf="(article.related_cocktails?.length ?? 0) > 0"
+        class="related-content"
+      >
+        <app-cocktail-card
+          *ngIf="(article?.related_cocktails?.length || 0) > 0"
+          [cocktail]="article.related_cocktails[0]"
+          [asArticleBanner]="true"
+          bannerLabel="This article is about"
+        />
+      </section>
+
+      <article class="glass-card content-article">
         <header class="article-header">
           <h1>{{ article.title }}</h1>
         </header>
@@ -19,13 +32,14 @@
         <figure *ngIf="article.image?.url as heroUrl" class="image-container">
           <img
             class="hero-image"
-            [src]="heroUrl"
+            [src]="getPreferred(heroUrl)"
             [alt]="article.title || 'Article image'"
             width="325"
             height="325"
             loading="eager"
             fetchpriority="high"
             decoding="async"
+            (error)="onImgError($event, heroUrl)"
           />
         </figure>
 
@@ -69,57 +83,20 @@
 
             <figure *ngIf="sec.image?.url as imgUrl" class="section-image">
               <img
-                [src]="imgUrl"
+                [src]="getPreferred(imgUrl)"
                 [alt]="sec.heading || 'Section image'"
                 loading="lazy"
+                (error)="onImgError($event, imgUrl)"
               />
             </figure>
           </section>
-
-          <!-- AD: in-content 2 (a metà articolo, dopo la 2ª sezione) -->
         </ng-container>
 
         <!-- CONCLUSION -->
         <section class="conclusion" *ngIf="article.conclusion">
           <p>{{ article.conclusion }}</p>
         </section>
-
-        <ng-container>
-          <div
-            *ngIf="isMobile"
-            class="mobile-ad-container"
-            role="complementary"
-            aria-label="Sponsored content"
-          >
-            <span class="ad-badge">Ad</span>
-            <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
-          </div>
-
-          <div
-            class="ad-desktop-card"
-            *ngIf="!isMobile"
-            role="complementary"
-            aria-label="Sponsored content"
-          >
-            <span class="ad-badge">Ad</span>
-            <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
-          </div>
-        </ng-container>
       </article>
-
-      <!-- RELATED COCKTAILS -->
-      <section
-        *ngIf="(article.related_cocktails?.length ?? 0) > 0"
-        class="related-content"
-      >
-        <h3 class="correlated">Related Cocktails</h3>
-        <div class="related-items-grid">
-          <app-cocktail-card
-            *ngFor="let c of article.related_cocktails ?? []"
-            [cocktail]="c"
-          ></app-cocktail-card>
-        </div>
-      </section>
 
       <ng-container>
         <div
@@ -148,7 +125,7 @@
         class="related-content"
       >
         <h3 class="more-from">
-          More from {{ firstCategory?.name || "this category" }}
+          ✨ More on {{ firstCategory?.name || "this cocktail" }}
         </h3>
 
         <div class="related-items-grid">

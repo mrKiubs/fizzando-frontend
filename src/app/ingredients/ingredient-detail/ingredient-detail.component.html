@@ -19,10 +19,10 @@
     <section class="main-ingredient-header glass-card">
       <div class="header-content">
         <div class="ingredient-main-image-wrapper">
-          <!-- ✅ LCP-optimized hero -->
+          <!-- ✅ LCP-optimized hero + WebP preferito con fallback -->
           <img
             class="ingredient-image-circular"
-            [ngSrc]="getIngredientImageUrl(ingredient)"
+            [ngSrc]="getPreferred(getIngredientHeroUrl(ingredient))"
             alt="{{ ingredient.name }}"
             width="100"
             height="100"
@@ -30,6 +30,7 @@
             fetchpriority="high"
             decoding="async"
             sizes="(max-width: 150px) 100vw, (max-width: 150px) 50vw, 33vw"
+            (error)="onImgError($event, getIngredientHeroUrl(ingredient))"
           />
         </div>
 
@@ -98,7 +99,7 @@
     <!-- AI Insights -->
     <section class="ai-insights-section glass-card">
       <h2 class="section-title">
-        🔬 In-depth Details of {{ ingredient.name }}
+        ✨ In-depth Details of {{ ingredient.name }}
       </h2>
       <div class="ai-blocks-grid">
         <div
@@ -140,23 +141,12 @@
           <h3 class="ai-block-title">💡 Interesting Facts</h3>
           <p>{{ ingredient.ai_interesting_facts }}</p>
         </div>
-        <!--
-        <div
-          class="ai-detail-block glass-card-mini full-width"
-          *ngIf="ingredient.ai_cocktail_substitutes"
-        >
-          <h3 class="ai-block-title">🍹 AI Cocktail Substitutes</h3>
-          <pre class="json-display">{{
-            ingredient.ai_cocktail_substitutes | json
-          }}</pre>
-        </div>
-        -->
       </div>
     </section>
 
     <!-- Related Cocktails (1 ad ogni 6 card) -->
     <section class="related-cocktails-section glass-card">
-      <h2 class="section-title">🍹 Cocktails using {{ ingredient.name }}</h2>
+      <h2 class="section-title">✨ Cocktails using {{ ingredient.name }}</h2>
 
       <div
         *ngIf="
@@ -238,6 +228,14 @@
             decoding="async"
             [attr.fetchpriority]="'low'"
             role="presentation"
+            (error)="
+              onImgError(
+                $event,
+                getIngredientThumbUrl(
+                  allIngredients[currentIngredientIndex - 1]
+                )
+              )
+            "
           />
         </div>
 
@@ -265,6 +263,14 @@
             decoding="async"
             [attr.fetchpriority]="'low'"
             role="presentation"
+            (error)="
+              onImgError(
+                $event,
+                getIngredientThumbUrl(
+                  allIngredients[currentIngredientIndex + 1]
+                )
+              )
+            "
           />
         </div>
 

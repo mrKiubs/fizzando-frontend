@@ -140,6 +140,9 @@ export class IngredientDetailComponent
     },
   ];
 
+  // --- WEBP preferenza
+  private supportsWebp = false;
+
   // --- subscriptions
   private routeSubscription?: Subscription;
   private allIngredientsSubscription?: Subscription;
@@ -157,6 +160,7 @@ export class IngredientDetailComponent
     if (this.isBrowser) {
       this.siteBaseUrl = window.location.origin;
       this.isMobile = window.innerWidth <= 768;
+      this.supportsWebp = this.checkWebpSupport();
     }
   }
 
@@ -287,7 +291,7 @@ export class IngredientDetailComponent
       this.previousIngredient = {
         externalId: prev.external_id,
         name: prev.name,
-        imageUrl: this.getIngredientImageUrl(prev),
+        imageUrl: this.getPreferred(this.getIngredientThumbUrl(prev)),
       };
     }
     if (this.currentIngredientIndex < this.allIngredients.length - 1) {
@@ -295,7 +299,7 @@ export class IngredientDetailComponent
       this.nextIngredient = {
         externalId: next.external_id,
         name: next.name,
-        imageUrl: this.getIngredientImageUrl(next),
+        imageUrl: this.getPreferred(this.getIngredientThumbUrl(next)),
       };
     }
   }
@@ -304,8 +308,9 @@ export class IngredientDetailComponent
     if (this.isBrowser) window.history.back();
   }
 
-  // === utilities ============================================================
+  // === IMG utilities (URL assoluti + WebP preferenza + fallback) ===========
 
+  /** URL originale assoluto (qualsiasi formato disponibile) */
   getIngredientImageUrl(ing: Ingredient | undefined): string {
     if (ing?.image?.url) {
       return ing.image.url.startsWith('http')
@@ -314,6 +319,76 @@ export class IngredientDetailComponent
     }
     return 'assets/no-image.png';
   }
+
+  /** Preferisci medium/small/original per l’hero circolare (100x100) */
+  getIngredientHeroUrl(ing?: Ingredient | null): string {
+    const img: any = ing?.image;
+    if (!img) return 'assets/no-image.png';
+
+    const abs = (u?: string | null) =>
+      u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
+
+    // Per 100px vanno bene thumbnail/small/medium in ordine
+    if (img?.formats?.thumbnail?.url) return abs(img.formats.thumbnail.url);
+    if (img?.formats?.small?.url) return abs(img.formats.small.url);
+    if (img?.formats?.medium?.url) return abs(img.formats.medium.url);
+    if (img?.url) return abs(img.url);
+    return 'assets/no-image.png';
+  }
+
+  /** Thumbnail per i bottoni Prev/Next: thumbnail → small → original */
+  getIngredientThumbUrl(ing?: Ingredient | null): string {
+    const img: any = ing?.image;
+    if (!img) return 'assets/no-image.png';
+
+    const abs = (u?: string | null) =>
+      u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
+
+    if (img?.formats?.thumbnail?.url) return abs(img.formats.thumbnail.url); // ~150w
+    if (img?.formats?.small?.url) return abs(img.formats.small.url); // ~320w
+    if (img?.url) return abs(img.url);
+    return 'assets/no-image.png';
+  }
+
+  /** Rileva supporto WebP (client-only) */
+  private checkWebpSupport(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      if (!!(canvas.getContext && canvas.getContext('2d'))) {
+        const data = canvas.toDataURL('image/webp');
+        return data.indexOf('data:image/webp') === 0;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Converte in .webp mantenendo querystring (non su assets locali) */
+  private toWebp(url?: string | null): string {
+    if (!url) return '';
+    if (url.startsWith('assets/')) return url;
+    return url.replace(/\.(jpe?g|png)(\?.*)?$/i, '.webp$2');
+  }
+
+  /** Restituisce l’URL preferito (webp se supportato, altrimenti originale) */
+  getPreferred(originalUrl?: string | null): string {
+    if (!originalUrl) return '';
+    if (!this.supportsWebp) return originalUrl;
+    return this.toWebp(originalUrl) || originalUrl;
+  }
+
+  /** Fallback automatico all’URL originale quando la .webp fallisce */
+  onImgError(evt: Event, originalUrl: string): void {
+    const img = evt.target as HTMLImageElement | null;
+    if (!img) return;
+    if ((img as any).__fallbackApplied) return; // evita loop
+    (img as any).__fallbackApplied = true;
+    img.src = originalUrl;
+    img.removeAttribute('srcset'); // pulizia eventuale
+  }
+
+  // === misc ================================================================
 
   getRelatedCocktailImageUrl(cocktail: Cocktail): string {
     if (cocktail?.image?.url) {
@@ -368,7 +443,10 @@ export class IngredientDetailComponent
       this.ingredient.description_from_cocktaildb ||
       `${name} ingredient details, uses and profile.`;
 
-    const imageUrl = this.getIngredientImageUrl(this.ingredient);
+    // Usa l'hero (piccolo ma sicuro) con preferenza WebP
+    const imageUrl = this.getPreferred(
+      this.getIngredientHeroUrl(this.ingredient)
+    );
     const pageUrl = this.getFullSiteUrl(
       `/ingredients/${this.ingredient.external_id}`
     );
@@ -458,7 +536,7 @@ export class IngredientDetailComponent
   private generateIngredientSchema(ing: IngredientDetail): any {
     const pageUrl = this.getFullSiteUrl(`/ingredients/${ing.external_id}`);
     const imageUrl =
-      this.getIngredientImageUrl(ing) ||
+      this.getPreferred(this.getIngredientHeroUrl(ing)) ||
       this.getFullSiteUrl('assets/no-image.png');
 
     const additionalProps: any[] = [];
