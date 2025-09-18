@@ -50,7 +50,7 @@ app.use(
   express.static(browserDistFolder, {
     index: false,
     setHeaders: (res, filePath) => {
-      const isHashed = /\.[0-9a-f]{8,}\./i.test(filePath);
+      const isHashed = /(?:-|\.)([A-Za-z0-9_-]{8,})\.(?:js|css|woff2|webp|png|jpe?g|svg)$/i.test(filePath);
 
       if (isHashed) {
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
