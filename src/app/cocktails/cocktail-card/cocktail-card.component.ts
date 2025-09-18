@@ -47,7 +47,7 @@ export class CocktailCardComponent implements OnInit {
   @Input() asArticleBanner = false;
   /** Label in alto al banner */
   @Input() bannerLabel = 'This article is about';
-
+  isMobile: boolean = false;
   mainIngredientsFormatted: string[] = [];
   public fontsLoaded = false;
 
