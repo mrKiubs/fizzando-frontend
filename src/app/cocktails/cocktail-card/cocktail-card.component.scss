@@ -343,6 +343,11 @@
     padding: 0 4px;
   }
 }
+@media (max-width: 600px) {
+  .label-hay {
+    display: none;
+  }
+}
 
 /* Banner compatto per Article Detail */
 .glassy-banner.article-banner {
