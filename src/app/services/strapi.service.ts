@@ -280,7 +280,7 @@ export class CocktailService {
 
     const cleanedIngredientsList: CocktailIngredientListItem[] = [];
     if (Array.isArray(raw.ingredients_list)) {
-      raw.ingredients_list.forEach((item: any) => {
+      (raw.ingredients_list as any[]).forEach((item: any) => {
         const cleanedIngredient = this.cleanIngredientCTData(item.ingredient);
         cleanedIngredientsList.push({
           id: item.id,
@@ -354,13 +354,13 @@ export class CocktailService {
       return this._allCocktailsDataSubject.pipe(
         filter((data) => data !== null),
         map((data) => ({
-          data: data!,
+          data: data as Cocktail[],
           meta: {
             pagination: {
               page: 1,
-              pageSize: data!.length,
+              pageSize: (data as Cocktail[]).length,
               pageCount: 1,
-              total: data!.length,
+              total: (data as Cocktail[]).length,
             },
           },
         }))
@@ -411,8 +411,8 @@ export class CocktailService {
     const stream$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
-        map((response) => {
-          response.data = response.data.map((item) =>
+        map((response: StrapiResponse<any>) => {
+          response.data = (response.data as any[]).map((item: any) =>
             this.cleanCocktailData(item)
           );
           if (isAllCocktailsRequest) {
@@ -452,7 +452,8 @@ export class CocktailService {
         filter((data) => data !== null),
         map((data) => {
           const found =
-            data!.find((c) => c.slug.toLowerCase() === norm) || null;
+            (data as Cocktail[]).find((c) => c.slug.toLowerCase() === norm) ||
+            null;
           if (found) this.bySlug.set(norm, found);
           return found;
         })
@@ -462,11 +463,12 @@ export class CocktailService {
     const inFlight = this.bySlugInFlight.get(norm);
     if (inFlight) return inFlight;
 
+    // ✅ Strapi v5: popola solo relazioni/media/comp. Se category/glass sono stringhe, NON popolarle.
     let params = new HttpParams()
       .set('filters[slug][$eq]', slug)
       .set('populate[image]', 'true')
-      .set('populate[category]', 'true')
-      .set('populate[glass]', 'true')
+      // .set('populate[category]', 'true') // ❌ rimosso (scalare in molti modelli)
+      // .set('populate[glass]', 'true')    // ❌ rimosso (scalare in molti modelli)
       .set(
         'populate[ingredients_list][populate][ingredient][fields][0]',
         'name'
@@ -487,7 +489,7 @@ export class CocktailService {
     const req$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
-        map((response) => {
+        map((response: StrapiResponse<any>) => {
           if (response.data?.length > 0) {
             const fetched = this.cleanCocktailData(response.data[0]);
             this.bySlug.set(norm, fetched);
@@ -553,8 +555,8 @@ export class CocktailService {
     const stream$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
-        map((response) => {
-          const data = response.data.map((item) =>
+        map((response: StrapiResponse<any>) => {
+          const data = (response.data as any[]).map((item: any) =>
             this.cleanCocktailData(item)
           );
           return { data, meta: response.meta } as StrapiResponse<Cocktail>;
@@ -566,7 +568,7 @@ export class CocktailService {
       );
 
     this.listCache.set(key, { ts: now, stream$ });
-    return stream$.pipe(map((r) => r.data));
+    return stream$.pipe(map((r: StrapiResponse<Cocktail>) => r.data));
   }
 
   getRelatedCocktailsForIngredient(
@@ -604,8 +606,8 @@ export class CocktailService {
     const stream$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
-        map((response) => {
-          const data = response.data.map((item) =>
+        map((response: StrapiResponse<any>) => {
+          const data = (response.data as any[]).map((item: any) =>
             this.cleanCocktailData(item)
           );
           return { data, meta: response.meta } as StrapiResponse<Cocktail>;
@@ -617,7 +619,7 @@ export class CocktailService {
       );
 
     this.listCache.set(key, { ts: now, stream$ });
-    return stream$.pipe(map((r) => r.data));
+    return stream$.pipe(map((r: StrapiResponse<Cocktail>) => r.data));
   }
 
   getCocktailsByIngredientIds(
@@ -665,8 +667,10 @@ export class CocktailService {
     return this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
-        map((response) => {
-          const all = response.data.map((item) => this.cleanCocktailData(item));
+        map((response: StrapiResponse<any>) => {
+          const all = (response.data as any[]).map((item: any) =>
+            this.cleanCocktailData(item)
+          );
           return all.map((cocktail) => {
             const ids = new Set(
               cocktail.ingredients_list.map((i) => i.ingredient.external_id)
@@ -699,7 +703,7 @@ export class CocktailService {
       true,
       false
     ).pipe(
-      map((response) => {
+      map((response: StrapiResponse<Cocktail>) => {
         const allCocktails = response.data;
         const primary =
           currentCocktail.ingredients_list[0]?.ingredient?.external_id;

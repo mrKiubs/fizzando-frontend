@@ -7,11 +7,12 @@ import {
   AfterViewInit,
   Renderer2,
   Inject,
-  inject,
   NgZone,
   PLATFORM_ID,
   HostListener,
+  inject,
 } from '@angular/core';
+import { concatMap } from 'rxjs/operators';
 import {
   CommonModule,
   DOCUMENT,
@@ -25,10 +26,11 @@ import {
   CocktailWithLayoutAndMatch,
 } from '../../services/strapi.service';
 import { MatIconModule } from '@angular/material/icon';
-import { Subscription } from 'rxjs';
+import { Observable, of, Subscription } from 'rxjs';
+import { Title, Meta } from '@angular/platform-browser';
+
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
 import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
-import { Title, Meta } from '@angular/platform-browser';
 import { ArticleService, Article } from '../../services/article.service';
 import { ArticleCardComponent } from '../../articles/article-card/article-card.component';
 import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-card.component';
@@ -149,39 +151,49 @@ export class CocktailDetailComponent
     }
   }
 
+  // ======================
+  // Utilities (defer)
+  // ======================
+  /** Esegue la callback dopo il primo paint, solo in browser */
+  private runAfterFirstPaint(cb: () => void): void {
+    if (!this.isBrowser) return;
+    this.ngZone.runOutsideAngular(() => {
+      // rAF garantisce paint; setTimeout 0 sposta fuori dalla rAF
+      requestAnimationFrame(() => setTimeout(() => cb(), 0));
+    });
+  }
+
+  /** Sblocca gli ads dopo il primo paint */
+  private unlockAdsWhenStable(): void {
+    if (!this.isBrowser) return;
+    this.runAfterFirstPaint(() => {
+      this.ngZone.run(() => (this.contentReady = true));
+    });
+  }
+
   // ===== Lifecycle =====
   ngOnInit(): void {
-    // Se stai usando un resolver SSR
+    // 1) SSR/resolver: abbiamo già il cocktail → render immediato
     const resolved = this.route.snapshot.data['cocktail'] as Cocktail | null;
     if (resolved) {
       this.cocktail = resolved;
       this.loading = false;
-      this.setNavigationCocktails(this.cocktail.external_id);
+
+      // hero + SEO
       this.heroSrc = this.getPreferred(this.getCocktailHeroUrl(this.cocktail));
       this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
       this.setSeoTagsAndSchema();
-      this.loadSimilarCocktails();
-      this.fetchRelatedArticles();
-      this.unlockAdsWhenStable();
+
+      // 2) ❗ Defer NON-critiche dopo il paint (SOLO browser)
+      this.runAfterFirstPaint(() => this.kickOffNonCritical());
+
+      // 3) routing reattivo per navigazioni client-side
+      this.subscribeToRouteParams(false);
+      return;
     }
 
-    // Carica elenco (prev/next) + fallback client
-    this.allCocktailsSubscription = this.cocktailService
-      .getCocktails(1, 1000)
-      .subscribe({
-        next: (response) => {
-          this.allCocktails = response.data.sort((a, b) =>
-            a.name.localeCompare(b.name)
-          );
-          if (this.cocktail)
-            this.setNavigationCocktails(this.cocktail.external_id);
-          this.subscribeToRouteParams(!resolved);
-        },
-        error: () => {
-          this.error = 'Could not load all cocktails for navigation.';
-          this.subscribeToRouteParams(!resolved);
-        },
-      });
+    // Fallback: nessun resolver → gestisci route subito (CSR/edge cases)
+    this.subscribeToRouteParams(true);
   }
 
   ngAfterViewInit(): void {
@@ -210,7 +222,7 @@ export class CocktailDetailComponent
   }
 
   // ===== Routing/Data =====
-  private subscribeToRouteParams(shouldHandleFirst = true): void {
+  private subscribeToRouteParams(handleFirst: boolean): void {
     this.routeSubscription = this.route.paramMap.subscribe((params) => {
       const slug = params.get('slug');
       if (!slug) {
@@ -219,12 +231,31 @@ export class CocktailDetailComponent
         return;
       }
 
-      if (!shouldHandleFirst) {
-        shouldHandleFirst = true; // attiva per le successive
+      if (!handleFirst) {
+        // la prima navigazione è già stata renderizzata dal resolver
+        handleFirst = true;
         return;
       }
       this.loadCocktailDetail(slug);
     });
+  }
+
+  /** Avvia le richieste non critiche solo in browser e dopo il paint */
+  private kickOffNonCritical(): void {
+    if (!this.isBrowser) return;
+
+    // A) Prev/Next: indice ordinato (usa in-memory cache del service)
+
+    this.fetchAllCocktailsIndex();
+
+    // B) Simili
+    this.loadSimilarCocktails();
+
+    // C) Articoli correlati
+    this.fetchRelatedArticles();
+
+    // D) Ads dopo paint
+    this.unlockAdsWhenStable();
   }
 
   loadCocktailDetail(slug: string): void {
@@ -235,23 +266,25 @@ export class CocktailDetailComponent
     this.contentReady = false; // blocca ads tra una navigazione e l’altra
     this.cleanupSeo();
 
+    // Se abbiamo già l’indice in memoria, prova cache rapida per UX
     const cached = this.allCocktails.find((c) => c.slug === slug);
     if (cached) {
       this.cocktail = cached;
       this.loading = false;
-      this.setNavigationCocktails(this.cocktail.external_id);
-      this.loadSimilarCocktails();
-      this.fetchRelatedArticles();
-      this.setSeoTagsAndSchema();
 
-      // Aggiorna hero preferendo webp
+      // hero + SEO
       this.heroSrc = this.getPreferred(this.getCocktailHeroUrl(this.cocktail));
       this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
+      this.setSeoTagsAndSchema();
 
-      this.unlockAdsWhenStable();
+      this.setNavigationCocktails(this.cocktail.external_id);
+
+      // non critiche, ma sempre deferite (browser)
+      this.runAfterFirstPaint(() => this.kickOffNonCritical());
       return;
     }
 
+    // Dettaglio dall’API
     this.cocktailDetailSubscription = this.cocktailService
       .getCocktailBySlug(slug)
       .subscribe({
@@ -265,17 +298,19 @@ export class CocktailDetailComponent
           this.cocktail = res;
           this.loading = false;
 
-          // Aggiorna hero preferendo webp
+          // hero + SEO
           this.heroSrc = this.getPreferred(
             this.getCocktailHeroUrl(this.cocktail)
           );
           this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
-
-          this.setNavigationCocktails(this.cocktail.external_id);
-          this.loadSimilarCocktails();
-          this.fetchRelatedArticles();
           this.setSeoTagsAndSchema();
-          this.unlockAdsWhenStable();
+
+          // prev/next: se abbiamo già l’elenco lo aggiorniamo subito,
+          // altrimenti lo calcoleremo quando l’indice arriva
+          this.setNavigationCocktails(this.cocktail.external_id);
+
+          // non critiche deferite
+          this.runAfterFirstPaint(() => this.kickOffNonCritical());
         },
         error: () => {
           this.error = 'Could not load cocktail details from API.';
@@ -285,17 +320,8 @@ export class CocktailDetailComponent
       });
   }
 
-  private unlockAdsWhenStable(): void {
-    if (!this.isBrowser) return;
-    this.ngZone.runOutsideAngular(() => {
-      requestAnimationFrame(() => {
-        this.ngZone.run(() => (this.contentReady = true));
-      });
-    });
-  }
-
   loadSimilarCocktails(): void {
-    if (!this.cocktail) {
+    if (!this.isBrowser || !this.cocktail) {
       this.similarCocktails = [];
       this.relatedWithAds = [];
       return;
@@ -346,7 +372,7 @@ export class CocktailDetailComponent
       this.previousCocktail = {
         externalId: prev.external_id,
         name: prev.name,
-        imageUrl: this.getPreferred(this.getCocktailThumbUrl(prev)),
+        imageUrl: this.getPreferred(this.getCocktailImageUrl(prev)),
         slug: prev.slug,
       };
     }
@@ -355,14 +381,14 @@ export class CocktailDetailComponent
       this.nextCocktail = {
         externalId: next.external_id,
         name: next.name,
-        imageUrl: this.getPreferred(this.getCocktailThumbUrl(next)),
+        imageUrl: this.getPreferred(this.getCocktailImageUrl(next)),
         slug: next.slug,
       };
     }
   }
 
   private fetchRelatedArticles(): void {
-    if (!this.cocktail?.id) {
+    if (!this.isBrowser || !this.cocktail?.id) {
       this.relatedArticles = [];
       return;
     }
@@ -414,7 +440,6 @@ export class CocktailDetailComponent
   }
 
   // --- Preferenze WebP + fallback ---
-  /** Rileva supporto WebP (client-only) */
   private checkWebpSupport(): boolean {
     try {
       const canvas = document.createElement('canvas');
@@ -428,32 +453,27 @@ export class CocktailDetailComponent
     }
   }
 
-  /** Converte estensione nota in .webp mantenendo la querystring */
   toWebp(url?: string | null): string {
     if (!url) return '';
-    // evita di toccare placeholder locali
-    if (url.startsWith('assets/')) return url;
+    if (url.startsWith('assets/')) return url; // non toccare placeholder locali
     return url.replace(/\.(jpe?g|png)(\?.*)?$/i, '.webp$2');
   }
 
-  /** Restituisce URL preferito (webp se supportato) */
   getPreferred(originalUrl?: string | null): string {
     if (!originalUrl) return '';
     if (!this.supportsWebp) return originalUrl;
     return this.toWebp(originalUrl) || originalUrl;
   }
 
-  /** Fallback semplice (solo src) */
   onImgError(evt: Event, originalUrl: string): void {
     const img = evt.target as HTMLImageElement | null;
     if (!img) return;
-    if ((img as any).__fallbackApplied) return; // evita loop
+    if ((img as any).__fallbackApplied) return;
     (img as any).__fallbackApplied = true;
     img.src = originalUrl;
-    img.removeAttribute('srcset'); // rimuovi eventuali srcset di prova
+    img.removeAttribute('srcset');
   }
 
-  /** Fallback per img con src + srcset */
   onImgErrorWithSrcset(
     evt: Event,
     originalSrc: string,
@@ -467,7 +487,6 @@ export class CocktailDetailComponent
     img.src = originalSrc;
   }
 
-  /** Costruisce la srcset originale (jpg/png) */
   getCocktailImageSrcset(cocktail?: Cocktail): string {
     const img: any = cocktail?.image;
     if (!img) return '';
@@ -488,12 +507,10 @@ export class CocktailDetailComponent
     return parts.join(', ');
   }
 
-  /** Versione preferita della srcset (trasforma in .webp se supportato) */
   getCocktailImageSrcsetPreferred(cocktail?: Cocktail): string {
     const original = this.getCocktailImageSrcset(cocktail);
     if (!this.supportsWebp || !original) return original;
 
-    // Trasforma ciascuna URL in .webp, mantenendo il descriptor (es. "640w")
     const out = original
       .split(',')
       .map((entry) => {
@@ -505,7 +522,6 @@ export class CocktailDetailComponent
     return out || original;
   }
 
-  /** URL hero preferito (sceglie medium/large/original, poi converte in webp se supportato) */
   getCocktailHeroUrl(cocktail?: Cocktail): string {
     const img: any = cocktail?.image;
     if (!img) return 'assets/no-image.png';
@@ -513,7 +529,6 @@ export class CocktailDetailComponent
     const abs = (u?: string | null) =>
       u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
 
-    // L’hero rende ~500px: preferiamo medium (640w), altrimenti large, altrimenti original, poi small.
     const original =
       (img?.formats?.medium?.url && abs(img.formats.medium.url)) ||
       (img?.formats?.large?.url && abs(img.formats.large.url)) ||
@@ -745,5 +760,83 @@ export class CocktailDetailComponent
       ].filter(Boolean),
       mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl },
     };
+  }
+
+  /** Scarica tutto l’indice cocktail paginando lato client (rispetta il maxPageSize di Strapi) */
+  private fetchAllCocktailsIndex(): void {
+    const PAGE_SIZE = 100; // sicuro per Strapi (se il tuo max è 250 puoi alzarlo)
+    const collected: Cocktail[] = [];
+
+    // prima pagina per sapere quante pagine totali servono
+    const first$ = this.cocktailService.getCocktails(
+      1,
+      PAGE_SIZE,
+      undefined,
+      undefined,
+      undefined,
+      true,
+      false
+    );
+
+    this.allCocktailsSubscription = first$.subscribe({
+      next: (firstResp) => {
+        collected.push(...firstResp.data);
+        const totalPages = firstResp.meta?.pagination?.pageCount || 1;
+
+        // se c'è solo 1 pagina siamo già a posto
+        if (totalPages <= 1) {
+          this.allCocktails = collected
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name));
+          if (this.cocktail)
+            this.setNavigationCocktails(this.cocktail.external_id);
+          return;
+        }
+
+        // concatena sequenzialmente le restanti pagine: 2..N
+        let chain$ = of(null as unknown);
+        for (let p = 2; p <= totalPages; p++) {
+          chain$ = (chain$ as Observable<unknown>).pipe(
+            concatMap(() =>
+              this.cocktailService.getCocktails(
+                p,
+                PAGE_SIZE,
+                undefined,
+                undefined,
+                undefined,
+                true,
+                false
+              )
+            )
+          );
+        }
+
+        this.allCocktailsSubscription?.add(
+          (chain$ as Observable<any>).subscribe({
+            next: (resp) => {
+              if (resp?.data) collected.push(...(resp.data as Cocktail[]));
+            },
+            complete: () => {
+              this.allCocktails = collected
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name));
+              if (this.cocktail)
+                this.setNavigationCocktails(this.cocktail.external_id);
+            },
+            error: () => {
+              // anche se fallisce una pagina, usiamo quello che abbiamo
+              this.allCocktails = collected
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name));
+              if (this.cocktail)
+                this.setNavigationCocktails(this.cocktail.external_id);
+            },
+          })
+        );
+      },
+      error: () => {
+        this.error = 'Could not load all cocktails for navigation.';
+      },
+    });
   }
 }
