@@ -324,13 +324,25 @@ export class ArticleService {
     // 2) richiesta in corso già esistente?
     const inFlight = this.inFlightId.get(id);
     if (inFlight) return inFlight;
+    // Crea un array con le relazioni di primo livello da popolare
+    const relations = ['sections', 'image', 'categories'];
 
-    let params = new HttpParams()
-      .append('populate', 'sections')
-      .append('populate', 'image')
-      .append('populate', 'categories')
-      .append('populate', 'related_cocktails.image')
-      .append('populate', 'related_ingredients.image');
+    // Crea un array per le relazioni annidate che includono media (immagini)
+    const nestedRelationsWithMedia = [
+      'related_cocktails.image',
+      'related_ingredients.image',
+    ];
+
+    let params = new HttpParams();
+
+    // Unisci tutti i populate in un unico array
+    const allPopulates = [...relations, ...nestedRelationsWithMedia];
+
+    // Converti l'array in una stringa separata da virgole
+    const populateString = allPopulates.join(',');
+
+    // Imposta il parametro 'populate' una sola volta
+    params = params.set('populate', populateString);
 
     const req$ = this.http
       .get<StrapiSingleResponse<any>>(`${this.apiUrl}/${id}`, { params })
