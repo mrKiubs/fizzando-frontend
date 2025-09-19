@@ -367,26 +367,27 @@ export class CocktailService {
       );
     }
 
+    // Crea un array con i nomi dei campi degli ingredienti
+    const ingredientFields = ['name', 'external_id', 'ingredient_type'];
+
     let params = new HttpParams()
       .set('pagination[page]', page.toString())
       .set('pagination[pageSize]', pageSize.toString())
-      .set('populate[image]', 'true')
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][0]',
-        'name'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][1]',
-        'external_id'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][2]',
-        'ingredient_type'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][populate][image]',
-        'true'
+      .set('populate[image]', 'true'); // Popola l'immagine del cocktail
+
+    // Cicla sull'array e imposta i campi degli ingredienti in modo dinamico
+    ingredientFields.forEach((field, index) => {
+      params = params.set(
+        `populate[ingredients_list][populate][ingredient][fields][${index}]`,
+        field
       );
+    });
+
+    // Popola l'immagine annidata dell'ingrediente
+    params = params.set(
+      'populate[ingredients_list][populate][ingredient][populate][image]',
+      'true'
+    );
 
     if (searchTerm)
       params = params.set('filters[name][$startsWithi]', searchTerm);
@@ -464,27 +465,29 @@ export class CocktailService {
     if (inFlight) return inFlight;
 
     // ✅ Strapi v5: popola solo relazioni/media/comp. Se category/glass sono stringhe, NON popolarle.
+    // Definisci i campi che ti servono per l'entità 'ingredient'
+    const ingredientFields = ['name', 'external_id', 'ingredient_type'];
+
     let params = new HttpParams()
+      // Filtra per slug, come nella tua versione originale
       .set('filters[slug][$eq]', slug)
-      .set('populate[image]', 'true')
-      // .set('populate[category]', 'true') // ❌ rimosso (scalare in molti modelli)
-      // .set('populate[glass]', 'true')    // ❌ rimosso (scalare in molti modelli)
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][0]',
-        'name'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][1]',
-        'external_id'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][2]',
-        'ingredient_type'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][populate][image]',
-        'true'
+
+      // Popola l'immagine del cocktail
+      .set('populate[image]', 'true');
+
+    // Aggiungi i campi dell'ingrediente in modo dinamico
+    ingredientFields.forEach((field, index) => {
+      params = params.set(
+        `populate[ingredients_list][populate][ingredient][fields][${index}]`,
+        field
       );
+    });
+
+    // Popola l'immagine dell'ingrediente annidata
+    params = params.set(
+      'populate[ingredients_list][populate][ingredient][populate][image]',
+      'true'
+    );
 
     const req$ = this.http
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
@@ -525,26 +528,29 @@ export class CocktailService {
   }
 
   searchCocktailsByName(query: string): Observable<Cocktail[]> {
+    // Definisci i campi che ti servono per l'entità 'ingredient'
+    const ingredientFields = ['name', 'external_id', 'ingredient_type'];
+
     let params = new HttpParams()
+      // Filtro per nome e paginazione
       .set('filters[name][$startsWithi]', query)
       .set('pagination[pageSize]', '10')
-      .set('populate[image]', 'true')
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][0]',
-        'name'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][1]',
-        'external_id'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][2]',
-        'ingredient_type'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][populate][image]',
-        'true'
+      // Popola l'immagine del cocktail
+      .set('populate[image]', 'true');
+
+    // Aggiungi i campi dell'ingrediente in modo dinamico
+    ingredientFields.forEach((field, index) => {
+      params = params.set(
+        `populate[ingredients_list][populate][ingredient][fields][${index}]`,
+        field
       );
+    });
+
+    // Popola l'immagine dell'ingrediente annidata
+    params = params.set(
+      'populate[ingredients_list][populate][ingredient][populate][image]',
+      'true'
+    );
 
     const key = JSON.stringify({ q: query, pageSize: 10, type: 'search' });
     const cached = this.listCache.get(key);
@@ -574,29 +580,32 @@ export class CocktailService {
   getRelatedCocktailsForIngredient(
     ingredientExternalId: string
   ): Observable<Cocktail[]> {
+    // Definisci i campi che ti servono per l'entità 'ingredient'
+    const ingredientFields = ['name', 'external_id', 'ingredient_type'];
+
     let params = new HttpParams()
+      // Filtro per l'ingrediente esterno
       .set(
         'filters[ingredients_list][ingredient][external_id][$eq]',
         ingredientExternalId
       )
-      .set('populate[image]', 'true')
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][0]',
-        'name'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][1]',
-        'external_id'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][2]',
-        'ingredient_type'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][populate][image]',
-        'true'
-      );
 
+      // Popola l'immagine del cocktail
+      .set('populate[image]', 'true');
+
+    // Aggiungi i campi dell'ingrediente in modo dinamico
+    ingredientFields.forEach((field, index) => {
+      params = params.set(
+        `populate[ingredients_list][populate][ingredient][fields][${index}]`,
+        field
+      );
+    });
+
+    // Popola l'immagine dell'ingrediente annidata
+    params = params.set(
+      'populate[ingredients_list][populate][ingredient][populate][image]',
+      'true'
+    );
     const key = JSON.stringify({ rel: ingredientExternalId, type: 'related' });
     const cached = this.listCache.get(key);
     const now = Date.now();
@@ -628,25 +637,29 @@ export class CocktailService {
   ): Observable<CocktailWithLayoutAndMatch[]> {
     if (!ingredientExternalIds?.length) return of([]);
 
+    // Definisci i campi che ti servono per l'entità 'ingredient'
+    const ingredientFields = ['name', 'external_id', 'ingredient_type'];
+
     let params = new HttpParams()
-      .set('populate[image]', 'true')
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][0]',
-        'name'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][1]',
-        'external_id'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][fields][2]',
-        'ingredient_type'
-      )
-      .set(
-        'populate[ingredients_list][populate][ingredient][populate][image]',
-        'true'
-      )
-      .set('pagination[pageSize]', '48');
+      // Paginazione
+      .set('pagination[pageSize]', '48')
+
+      // Popola l'immagine del cocktail
+      .set('populate[image]', 'true');
+
+    // Aggiungi i campi dell'ingrediente in modo dinamico
+    ingredientFields.forEach((field, index) => {
+      params = params.set(
+        `populate[ingredients_list][populate][ingredient][fields][${index}]`,
+        field
+      );
+    });
+
+    // Popola l'immagine dell'ingrediente annidata
+    params = params.set(
+      'populate[ingredients_list][populate][ingredient][populate][image]',
+      'true'
+    );
 
     if (exactMatch) {
       ingredientExternalIds.forEach((id, index) => {
