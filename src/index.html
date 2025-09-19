@@ -11,42 +11,37 @@
 
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
-    <!-- Preconnect Google Fonts -->
+    <!-- Preconnect per ridurre la latenza -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- 🔹 PRELOAD dei binari woff2 realmente usati -->
+    <!-- 🔹 Preload del CSS font -->
     <link
       rel="preload"
-      as="font"
-      type="font/woff2"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;700&display=swap"
       crossorigin
-      href="https://fonts.gstatic.com/s/inter/v19/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
     <link
       rel="preload"
-      as="font"
-      type="font/woff2"
+      as="style"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap"
       crossorigin
-      href="https://fonts.gstatic.com/s/bebasneue/v15/JTUSjIg69CK48gW7PXoo9Wlhyw.woff2"
-    />
-    <link
-      rel="preload"
-      as="font"
-      type="font/woff2"
-      crossorigin
-      href="https://fonts.gstatic.com/s/materialicons/v144/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
 
-    <!-- Fogli stile font (sincronizzati: niente FOUT → niente CLS) -->
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;700&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap"
-    />
+    <!-- 🔹 Fallback per browser che ignorano preload -->
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;700&display=swap"
+      />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap"
+      />
+    </noscript>
   </head>
 
   <body>
