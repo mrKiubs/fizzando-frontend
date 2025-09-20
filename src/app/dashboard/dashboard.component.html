@@ -175,10 +175,8 @@
         <h3>Fizzando’s Cocktail of the Day</h3>
 
         <img
-          [src]="getBestImageUrl(randomCocktail.image, 210)"
-          [attr.srcset]="getImageSrcSet(randomCocktail.image)"
-          sizes="(max-width: 768px) 90vw, 210px"
-          [alt]="randomCocktail.name || 'Random cocktail'"
+          [src]="getSmallestUrl(randomCocktail.image)"
+          alt="{{ randomCocktail.name || 'Random cocktail' }}"
           width="210"
           height="210"
           loading="eager"
@@ -274,6 +272,7 @@
     </ng-container>
 
     <!-- FEATURED COCKTAILS -->
+    @defer (on viewport) {
     <section class="section-block glass-card" *ngIf="featuredCocktails.length">
       <div class="section-head">
         <h3>Featured Cocktails</h3>
@@ -287,11 +286,17 @@
             trackBy: trackByCocktail
           "
           [cocktail]="c"
-          [isLcp]="i === 0"
+          [isLcp]="false"
         ></app-cocktail-card>
       </div>
     </section>
-
+    } @placeholder {
+    <section class="section-block glass-card" aria-hidden="true">
+      <div class="cards-grid limit-4">
+        <div class="skeleton-card" *ngFor="let _ of [1, 2, 3, 4]"></div>
+      </div>
+    </section>
+    }
     <!-- ===================== AD #2 (defer + SSR-safe) ===================== -->
     <ng-container *ngIf="contentReady">
       @defer (on viewport) {

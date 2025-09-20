@@ -162,6 +162,20 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   // Subscriptions
   private dataSubscription?: Subscription;
 
+  private preconnectAdded = false;
+  private addPreconnectToBackendOnce(): void {
+    if (!this.isBrowser || this.preconnectAdded) return;
+    try {
+      const href = (env.apiUrl || '').replace(/\/$/, '');
+      if (!href) return;
+      const link = this.renderer.createElement('link') as HTMLLinkElement;
+      this.renderer.setAttribute(link, 'rel', 'preconnect');
+      this.renderer.setAttribute(link, 'href', href);
+      this.renderer.setAttribute(link, 'crossorigin', '');
+      this.renderer.appendChild(this.doc.head, link);
+      this.preconnectAdded = true;
+    } catch {}
+  }
   // ===== Ads gating (SSR-safe) =====
   /** Mostra gli Ad solo quando i dati sono pronti e siamo nel browser */
   contentReady = false;
@@ -186,6 +200,11 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     this.loadDashboardData();
     this.applySeo();
+
+    if (this.isBrowser) {
+      this.isMobile = window.matchMedia('(max-width: 768px)').matches;
+      this.addPreconnectToBackendOnce();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -202,7 +221,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.carouselObserver?.disconnect();
     this.dataSubscription?.unsubscribe();
     this.cleanupSeo();
-    this.removeRandomImagePreload();
+    //this.removeRandomImagePreload();
   }
 
   // ======== helpers ========
@@ -356,8 +375,8 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
           isWide: false,
         };
         // Preload (browser-side, ok così)
-        const preloadUrl = this.getBestImageUrl(this.randomCocktail.image, 360);
-        this.addRandomImagePreload(preloadUrl);
+        //const preloadUrl = this.getBestImageUrl(this.randomCocktail.image, 360);
+        //this.addRandomImagePreload(preloadUrl);
       }
     }
 
@@ -440,7 +459,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   private addRandomImagePreload(url: string) {
     try {
       if (!this.isBrowser || !url) return;
-      this.removeRandomImagePreload();
+      //this.removeRandomImagePreload();
       const link = this.renderer.createElement('link') as HTMLLinkElement;
       this.renderer.setAttribute(link, 'rel', 'preload');
       this.renderer.setAttribute(link, 'as', 'image');
@@ -797,5 +816,19 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   onTouchEnd(e: TouchEvent) {
     const dx = (e.changedTouches[0]?.clientX ?? 0) - this.touchStartX;
     if (Math.abs(dx) > 40) dx > 0 ? this.prevSlide() : this.nextSlide();
+  }
+
+  getSmallestUrl(image: any): string {
+    const f = image?.formats || {};
+    const toAbs = (u: string) => (u?.startsWith('http') ? u : env.apiUrl + u);
+    // priorità: thumbnail → small → medium → large → originale
+    return toAbs(
+      f.thumbnail?.url ||
+        f.small?.url ||
+        f.medium?.url ||
+        f.large?.url ||
+        image?.url ||
+        ''
+    );
   }
 }
