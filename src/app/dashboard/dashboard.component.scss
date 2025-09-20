@@ -90,8 +90,8 @@ section {
   min-width: 0; /* permette compressione in grid */
 }
 .random-cocktail-image {
-  width: 100%;
-  height: auto;
+  width: 210px;
+  height: 210px;
   object-fit: cover;
   border-radius: 10px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);

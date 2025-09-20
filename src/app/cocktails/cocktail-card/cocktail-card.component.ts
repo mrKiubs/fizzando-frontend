@@ -128,36 +128,39 @@ export class CocktailCardComponent implements OnInit {
   srcsetFromFormatsJpg(img: StrapiImage | null | undefined): string {
     if (!img) return '';
     const f: any = img.formats || {};
-    const entries: Array<{ url?: string; w?: number; key?: string }> = [
-      { url: f?.thumbnail?.url, w: f?.thumbnail?.width, key: 'thumbnail' },
-      { url: f?.small?.url, w: f?.small?.width, key: 'small' },
-      { url: f?.medium?.url, w: f?.medium?.width, key: 'medium' },
-      { url: f?.large?.url, w: f?.large?.width, key: 'large' },
-      { url: img.url ?? undefined, w: undefined },
+
+    const candidates: Array<{ url?: string; w?: number }> = [
+      { url: f?.thumbnail?.url, w: f?.thumbnail?.width ?? 150 },
+      { url: f?.small?.url, w: f?.small?.width ?? 320 },
+      { url: f?.medium?.url, w: f?.medium?.width ?? 640 },
+      { url: f?.large?.url, w: f?.large?.width ?? 1024 },
+      // 👉 originale con width reale (Strapi la fornisce)
+      { url: img.url ?? undefined, w: (img as any)?.width },
     ];
-    const parts = entries
-      .filter((e) => !!e.url)
-      .map((e) => {
-        const url = this.abs(e.url!);
-        const w = e.w ?? (e.key ? this.extWidth(e.key) : undefined);
-        return w ? `${url} ${w}w` : `${url}`;
-      });
+
+    const parts = candidates
+      .filter((c) => !!c.url && !!c.w && c.w! > 0)
+      .sort((a, b) => a.w! - b.w!) // ordine crescente
+      .map((c) => `${this.abs(c.url!)} ${c.w}w`);
+
     return Array.from(new Set(parts)).join(', ');
   }
 
   srcsetFromFormatsWebp(img: StrapiImage | null | undefined): string {
     const jpg = this.srcsetFromFormatsJpg(img);
-    if (!jpg) return img?.url ? `${this.toWebp(this.abs(img.url))} 1600w` : '';
+    if (!jpg) return '';
+
     const out = jpg
       .split(',')
       .map((s) => {
-        const m = s.trim().match(/^(\S+)(?:\s+(\d+w))?$/);
+        const m = s.trim().match(/^(\S+)\s+(\d+)w$/);
         if (!m) return '';
         const url = m[1];
-        const w = m[2] || '';
-        return `${this.toWebp(url)}${w ? ' ' + w : ''}`.trim();
+        const w = m[2];
+        return `${this.toWebp(url)} ${w}w`;
       })
       .filter(Boolean);
+
     return Array.from(new Set(out)).join(', ');
   }
 
@@ -359,5 +362,46 @@ export class CocktailCardComponent implements OnInit {
       default:
         return '🥛';
     }
+  }
+
+  /** Raccoglie i candidati da Strapi con le width reali (fallback su stime) */
+  private getCandidates(
+    img: StrapiImage | null | undefined
+  ): Array<{ url: string; w: number }> {
+    if (!img) return [];
+    const f: any = img.formats || {};
+    const rows: Array<{ url?: string; w?: number; key?: string }> = [
+      { url: f?.thumbnail?.url, w: f?.thumbnail?.width, key: 'thumbnail' }, // ~150
+      { url: f?.small?.url, w: f?.small?.width, key: 'small' }, // ~320/500
+      { url: f?.medium?.url, w: f?.medium?.width, key: 'medium' }, // ~640/750
+      { url: f?.large?.url, w: f?.large?.width, key: 'large' }, // ~1024
+      // ❌ NIENTE img.url (originale) per evitare prelievi enormi
+    ];
+    return rows
+      .filter((r) => !!r.url)
+      .map((r) => ({
+        url: this.abs(r.url!),
+        w: r.w ?? this.extWidth(r.key || '') ?? 0,
+      }))
+      .filter((r) => r.w > 0)
+      .sort((a, b) => a.w - b.w);
+  }
+
+  /** Crea un srcset JPG/PNG con candidati <= maxW (o il più piccolo) */
+  srcsetMaxJpg(img: StrapiImage | null | undefined, maxW: number): string {
+    const all = this.getCandidates(img);
+    if (!all.length) return '';
+    let pick = all.filter((c) => c.w <= maxW);
+    if (!pick.length) pick = [all[0]]; // fallback al più piccolo
+    return pick.map((c) => `${c.url} ${c.w}w`).join(', ');
+  }
+
+  /** Versione WebP coerente (stessa lista, stessa cap) */
+  srcsetMaxWebp(img: StrapiImage | null | undefined, maxW: number): string {
+    const all = this.getCandidates(img);
+    if (!all.length) return '';
+    let pick = all.filter((c) => c.w <= maxW);
+    if (!pick.length) pick = [all[0]];
+    return pick.map((c) => `${this.toWebp(c.url)} ${c.w}w`).join(', ');
   }
 }

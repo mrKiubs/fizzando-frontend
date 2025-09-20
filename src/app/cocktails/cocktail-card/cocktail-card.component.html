@@ -49,27 +49,32 @@
   <div class="cocktail-card" role="article" [@cardAnimation]>
     <div class="glassy-image-container">
       <picture>
-        <!-- WebP -->
+        <!-- MOBILE: max 80px di slot → cap a 160w (DPR 2), ma forziamo il più piccolo disponibile -->
         <source
-          [srcset]="srcsetFromFormatsWebp(cocktail.image)"
+          media="(max-width: 700px)"
+          [srcset]="srcsetMaxWebp(cocktail.image, 160)"
           type="image/webp"
-          [attr.sizes]="
-            '(max-width: 599px) 100vw, ' +
-            '(max-width: 899px) calc(50vw - 8px), ' +
-            '(max-width: 1199px) calc((100vw - 32px)/3), ' +
-            '288px'
-          "
+          sizes="80px"
         />
-        <!-- Fallback JPG/PNG -->
         <source
-          [srcset]="srcsetFromFormatsJpg(cocktail.image)"
-          [attr.sizes]="
-            '(max-width: 599px) 100vw, ' +
-            '(max-width: 899px) calc(50vw - 8px), ' +
-            '(max-width: 1199px) calc((100vw - 32px)/3), ' +
-            '288px'
-          "
+          media="(max-width: 700px)"
+          [srcset]="srcsetMaxJpg(cocktail.image, 160)"
+          sizes="80px"
         />
+
+        <!-- DESKTOP: slot ~300px → preferisci ≤500w, quindi 320w -->
+        <source
+          media="(min-width: 701px)"
+          [srcset]="srcsetMaxWebp(cocktail.image, 500)"
+          type="image/webp"
+          sizes="300px"
+        />
+        <source
+          media="(min-width: 701px)"
+          [srcset]="srcsetMaxJpg(cocktail.image, 500)"
+          sizes="300px"
+        />
+
         <img
           [src]="getCocktailCardImageUrl(cocktail.image)"
           [alt]="
