@@ -98,6 +98,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
   totalPages = 0;
   isMobile = false;
   readonly paginationRange = 2;
+  contentReady = false;
 
   productList: ProductItem[] = [
     {
@@ -328,6 +329,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
           }
 
           this.setSeoTagsAndSchemaList();
+          this.unlockAdsWhenStable();
         },
         error: (err) => {
           this.error = 'Unable to load ingredients. Please try again later.';
@@ -337,6 +339,7 @@ export class IngredientListComponent implements OnInit, OnDestroy {
           this.unfreezeScroll(true);
           this.unlockListHeight();
           this.setSeoTagsAndSchemaList();
+
           console.error(err);
         },
       });
@@ -1052,5 +1055,32 @@ export class IngredientListComponent implements OnInit, OnDestroy {
 
   toggleFaq(faqItem: FaqItemState): void {
     faqItem.isExpanded = !faqItem.isExpanded;
+  }
+
+  /** Sblocca gli ads dopo il primo paint (SSR-safe) */
+  private runAfterFirstPaint(cb: () => void): void {
+    if (!this.isBrowser) return;
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => setTimeout(cb, 0));
+    });
+  }
+  private unlockAdsWhenStable(): void {
+    if (!this.isBrowser) return;
+    this.runAfterFirstPaint(() => {
+      this.ngZone.run(() => (this.contentReady = true));
+    });
+  }
+
+  /** Tipi pubblicitari centralizzati */
+  getInloopAdType(): 'mobile-banner' | 'square' {
+    return this.isMobile ? 'mobile-banner' : 'mobile-banner';
+  }
+  getBottomAdType(): 'mobile-banner' | 'half-page' {
+    return this.isMobile ? 'mobile-banner' : 'half-page';
+  }
+
+  /** Classe slot per width fisse (usa le regole CSS che hai già) */
+  adSlotClass(type: string): string {
+    return `ad-slot ${type}`;
   }
 }

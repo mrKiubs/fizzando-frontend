@@ -107,26 +107,6 @@ section {
 }
 
 /* Ads: spazio riservato (no CLS) + safe width */
-.ad-block {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 120px;
-  padding: 8px;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-}
-.ad-skeleton {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-}
-
-/* assicurati che i componenti annidati non sforino */
-.ad-block .ad-desktop-card,
-.ad-block .mobile-ad-container,
-.ad-block app-dev-ads {
-}
 
 /* Quick links */
 .quick-links-section .links-grid {

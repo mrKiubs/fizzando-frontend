@@ -218,25 +218,31 @@
     ></app-cocktail-card>
 
     <ng-container *ngIf="i > 0 && (i + 1) % 6 === 0">
-      <div
-        *ngIf="isMobile"
-        class="mobile-ad-container"
+      @defer (on viewport) {
+      <section
+        class="ad-block"
         role="complementary"
         aria-label="Sponsored content"
       >
         <span class="ad-badge">Ad</span>
-        <app-dev-ads [type]="'responsive'"></app-dev-ads>
-      </div>
-
-      <div
-        class="ad-desktop-card"
-        *ngIf="!isMobile"
+        <app-dev-ads
+          [type]="isMobile ? 'responsive' : 'small-square'"
+        ></app-dev-ads>
+      </section>
+      } @placeholder {
+      <!-- Placeholder identico: stesso wrapper + stesso componente -->
+      <section
+        class="ad-block"
         role="complementary"
         aria-label="Sponsored content"
+        aria-hidden="true"
       >
         <span class="ad-badge">Ad</span>
-        <app-dev-ads [type]="'small-square'"></app-dev-ads>
-      </div>
+        <app-dev-ads
+          [type]="isMobile ? 'responsive' : 'small-square'"
+        ></app-dev-ads>
+      </section>
+      }
     </ng-container>
   </ng-container>
 </div>
@@ -607,23 +613,26 @@
     </div>
   </div>
 
-  <div
-    class="banner-container"
+  @defer (on viewport) {
+  <section class="ad-block" role="complementary" aria-label="Sponsored content">
+    <span class="ad-badge">Ad</span>
+
+    <app-dev-ads [type]="isMobile ? 'responsive' : 'half-page'"></app-dev-ads>
+  </section>
+  } @placeholder {
+  <section
+    class="ad-block"
     role="complementary"
     aria-label="Sponsored content"
+    aria-hidden="true"
   >
-    <div class="banner-content">
-      <span class="ad-badge">Ad</span>
-      <ng-container>
-        <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-        <app-dev-ads *ngIf="!isMobile" [type]="'half-page'"></app-dev-ads>
-      </ng-container>
-    </div>
-  </div>
+    <span class="ad-badge">Ad</span>
+    <app-dev-ads [type]="isMobile ? 'responsive' : 'half-page'"></app-dev-ads>
+  </section>
+  }
 </div>
 } @placeholder {
 <div class="bottom-container placeholder" aria-hidden="true">
   <div class="faq-section skeleton"></div>
-  <div class="banner-container skeleton"></div>
 </div>
 }

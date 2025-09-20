@@ -88,7 +88,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   selectedCategory = this._selectedCategory;
   selectedAlcoholic = this._selectedAlcoholic;
   isExpanded = this._isExpanded;
-
+  contentReady = false;
   // --- Freeze/Unfreeze scroll viewport + lock altezza lista ---
 
   private prevScrollBehavior = '';

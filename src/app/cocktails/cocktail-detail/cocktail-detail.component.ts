@@ -839,4 +839,21 @@ export class CocktailDetailComponent
       },
     });
   }
+
+  /** Tipi pubblicitari centralizzati */
+  getTopAdType(): 'mobile-banner' | 'leaderboard' {
+    return this.isMobile ? 'mobile-banner' : 'leaderboard';
+  }
+  getBottomAdType(): 'mobile-banner' | 'leaderboard' {
+    return this.isMobile ? 'mobile-banner' : 'leaderboard';
+  }
+  /** Nel loop related: mobile=mobile-banner, desktop=square */
+  getLoopAdType(): 'mobile-banner' | 'square' {
+    return this.isMobile ? 'mobile-banner' : 'square';
+  }
+
+  /** Classe slot: aggiunge la classe specifica per width fissa in CSS */
+  adSlotClass(type: string): string {
+    return `ad-slot ${type}`;
+  }
 }

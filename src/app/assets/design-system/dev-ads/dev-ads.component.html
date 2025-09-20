@@ -1,10 +1,20 @@
-<div *ngIf="isDev; else prodTpl" class="ad-placeholder" [ngClass]="type">
-  <span class="ad-label">DEV MODE - {{ type | titlecase }} Ad Placeholder</span>
-</div>
+<!-- wrapper con altezza RISERVATA: nessun shift -->
+<section
+  class="ad-slot"
+  [ngClass]="type"
+  [style.height.px]="heightPx"
+  [style.minHeight.px]="heightPx"
+  [style.maxHeight.px]="heightPx"
+>
+  <!-- SKELETON interno (uguale altezza) -->
+  <div class="ad-skeleton" *ngIf="isDev" aria-hidden="true">
+    <span class="ad-label"
+      >DEV MODE - {{ type | titlecase }} Ad Placeholder</span
+    >
+  </div>
 
-<ng-template #prodTpl>
-  <!-- In produzione andrà inserito qui il codice reale -->
-  <div class="ad-placeholder prod" [ngClass]="type">
+  <!-- PRODUZIONE: contenitore reale (puoi sostituire con script/iframe quando servirà) -->
+  <div class="ad-placeholder prod" *ngIf="!isDev">
     <span>PROD MODE - Annuncio reale (non simulato)</span>
   </div>
-</ng-template>
+</section>
