@@ -72,29 +72,33 @@
       </div>
     </section>
 
-    <div class="ad-block">
-      <ng-container>
-        <div
-          *ngIf="isMobile"
-          class="mobile-ad-container"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
-          <span class="ad-badge">Ad</span>
-          <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
+    <ng-container *ngIf="contentReady">
+      @defer (on viewport) {
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
+        <div [class]="adSlotClass(getTopBannerType())">
+          <app-dev-ads [type]="getTopBannerType()"></app-dev-ads>
         </div>
-
-        <div
-          class="ad-desktop-card"
-          *ngIf="!isMobile"
-          role="complementary"
-          aria-label="Sponsored content"
-        >
-          <span class="ad-badge">Ad</span>
-          <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+      </section>
+      } @placeholder {
+      <!-- Placeholder IDENTICO → zero-CLS -->
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+        aria-hidden="true"
+      >
+        <span class="ad-badge">Ad</span>
+        <div [class]="adSlotClass(getTopBannerType())">
+          <app-dev-ads [type]="getTopBannerType()"></app-dev-ads>
         </div>
-      </ng-container>
-    </div>
+      </section>
+      }
+    </ng-container>
 
     <!-- AI Insights -->
     <section class="ai-insights-section glass-card">
@@ -163,25 +167,33 @@
           </ng-container>
 
           <ng-template #adBlock>
-            <div
-              *ngIf="isMobile"
-              class="mobile-ad-container"
-              role="complementary"
-              aria-label="Sponsored content"
-            >
-              <span class="ad-badge">Ad</span>
-              <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
-            </div>
-
-            <div
-              class="ad-desktop-card"
-              *ngIf="!isMobile"
-              role="complementary"
-              aria-label="Sponsored content"
-            >
-              <span class="ad-badge">Ad</span>
-              <app-dev-ads [type]="'square'"></app-dev-ads>
-            </div>
+            <ng-container *ngIf="contentReady">
+              @defer (on viewport) {
+              <section
+                class="ad-block"
+                role="complementary"
+                aria-label="Sponsored content"
+              >
+                <span class="ad-badge">Ad</span>
+                <div [class]="adSlotClass(getGridAdType())">
+                  <app-dev-ads [type]="getGridAdType()"></app-dev-ads>
+                </div>
+              </section>
+              } @placeholder {
+              <!-- Placeholder IDENTICO -->
+              <section
+                class="ad-block"
+                role="complementary"
+                aria-label="Sponsored content"
+                aria-hidden="true"
+              >
+                <span class="ad-badge">Ad</span>
+                <div [class]="adSlotClass(getGridAdType())">
+                  <app-dev-ads [type]="getGridAdType()"></app-dev-ads>
+                </div>
+              </section>
+              }
+            </ng-container>
           </ng-template>
         </ng-container>
       </div>
@@ -288,25 +300,31 @@
   </div>
 
   <!-- Bottom banner -->
-  <ng-container *ngIf="!loading && !error">
-    <div
-      *ngIf="isMobile"
-      class="mobile-ad-container"
+  <ng-container *ngIf="!loading && !error && contentReady">
+    @defer (on viewport) {
+    <section
+      class="ad-block"
       role="complementary"
       aria-label="Sponsored content"
     >
       <span class="ad-badge">Ad</span>
-      <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
-    </div>
-
-    <div
-      class="ad-desktop-card"
-      *ngIf="!isMobile"
+      <div [class]="adSlotClass(getBottomBannerType())">
+        <app-dev-ads [type]="getBottomBannerType()"></app-dev-ads>
+      </div>
+    </section>
+    } @placeholder {
+    <!-- Placeholder IDENTICO -->
+    <section
+      class="ad-block"
       role="complementary"
       aria-label="Sponsored content"
+      aria-hidden="true"
     >
       <span class="ad-badge">Ad</span>
-      <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
-    </div>
+      <div [class]="adSlotClass(getBottomBannerType())">
+        <app-dev-ads [type]="getBottomBannerType()"></app-dev-ads>
+      </div>
+    </section>
+    }
   </ng-container>
 </div>

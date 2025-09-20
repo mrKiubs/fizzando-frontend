@@ -39,14 +39,12 @@ import {
   CocktailWithLayoutAndMatch,
 } from '../services/strapi.service';
 import { IngredientService, Ingredient } from '../services/ingredient.service';
-import { ArticleService, Article } from '../services/article.service';
 import { GlossaryCardComponent } from '../glossary/glossary-card/glossary-card.component';
 import { GlossaryTerm } from '../services/glossary.service';
 
 // Cards
 import { CocktailCardComponent } from '../cocktails/cocktail-card/cocktail-card.component';
 import { IngredientCardComponent } from '../ingredients/ingredient-card/ingredient-card.component';
-import { ArticleCardComponent } from '../articles/article-card/article-card.component';
 import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.component';
 import { LogoComponent } from '../assets/design-system/logo/logo.component';
 
@@ -74,10 +72,6 @@ interface StrapiGlossaryResponse {
 type DashboardPayload = {
   cocktailsResponse: any;
   ingredientsResponse: any;
-  articlesResponse: any;
-  historyArticles: any;
-  techniquesArticles: any;
-  ingredientsArticles: any;
   glossaryResponse: StrapiGlossaryResponse;
 };
 
@@ -90,7 +84,6 @@ type DashboardPayload = {
     RouterLink,
     CocktailCardComponent,
     IngredientCardComponent,
-    ArticleCardComponent,
     GlossaryCardComponent,
     DatePipe,
     DevAdsComponent,
@@ -109,11 +102,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   randomCocktail?: CocktailWithLayoutAndMatch;
 
   latestIngredients: Ingredient[] = [];
-  latestArticles: Article[] = [];
-
-  historyArticles: Article[] = [];
-  techniquesArticles: Article[] = [];
-  ingredientsArticles: Article[] = [];
 
   categoriesCount: Record<string, number> = {};
   topCocktailCategories: string[] = [];
@@ -136,7 +124,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   // ===== SERVICES =====
   private cocktailService = inject(CocktailService);
   private ingredientService = inject(IngredientService);
-  private articleService = inject(ArticleService);
   private http = inject(HttpClient);
   private meta = inject(Meta);
   private title = inject(Title);
@@ -144,7 +131,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   // ===== TransferState (anti-flicker SSR → client) =====
   private state = inject(TransferState);
   private readonly DASHBOARD_DATA =
-    makeStateKey<DashboardPayload>('dashboard-data-v1');
+    makeStateKey<DashboardPayload>('dashboard-data-v2');
 
   // ===== VIEW / RESPONSIVE =====
   isMobile = false;
@@ -267,7 +254,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // 2) nessuna cache → fetch come prima
     const ING_POOL = 32;
-    const ART_POOL = 24;
     const GLO_POOL = 40;
 
     const baseUrl = (env.apiUrl || '').replace(/\/$/, '');
@@ -299,22 +285,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
         undefined,
         true,
         false
-      ),
-      articlesResponse: this.articleService.getLatestArticles(ART_POOL),
-      historyArticles: this.articleService.getArticlesByCategorySlug(
-        'history',
-        1,
-        3
-      ),
-      techniquesArticles: this.articleService.getArticlesByCategorySlug(
-        'techniques',
-        1,
-        3
-      ),
-      ingredientsArticles: this.articleService.getArticlesByCategorySlug(
-        'ingredients',
-        1,
-        3
       ),
       glossaryResponse: this.http
         .get<StrapiGlossaryResponse>(glossaryUrl, { params: glossaryParams })
@@ -353,10 +323,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   private hydrateFromData({
     cocktailsResponse,
     ingredientsResponse,
-    articlesResponse,
-    historyArticles,
-    techniquesArticles,
-    ingredientsArticles,
     glossaryResponse,
   }: DashboardPayload): void {
     // === COCKTAILS ===
@@ -413,10 +379,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     // INGREDIENTS (random 8)
     const ingPool = ingredientsResponse?.data ?? [];
     this.latestIngredients = this.sampleArray(ingPool, 8);
-
-    // ARTICLES (random 8)
-    const artPool = articlesResponse ?? [];
-    this.latestArticles = this.sampleArray(artPool, 8);
 
     // GLOSSARY (random 4)
     const mappedGlossary: GlossaryTerm[] = (glossaryResponse?.data ?? []).map(
@@ -550,8 +512,6 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     (c as any)?.id ?? (c as any)?.slug ?? _;
   trackByIngredient = (_: number, i: Ingredient) =>
     (i as any)?.id ?? (i as any)?.slug ?? _;
-  trackByArticle = (_: number, a: Article) =>
-    (a as any)?.id ?? (a as any)?.slug ?? _;
   trackByString = (_: number, s: string) => s ?? _;
   trackByGlossary = (_: number, g: GlossaryTerm) => g?.id ?? g?.slug ?? _;
 

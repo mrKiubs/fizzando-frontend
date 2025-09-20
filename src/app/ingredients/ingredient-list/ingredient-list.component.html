@@ -216,27 +216,35 @@
       [priority]="isMobile && i === 0"
     ></app-ingredient-card>
 
-    <!-- slot adv ogni 6 card -->
+    <!-- slot adv ogni adInterval card -->
     <ng-container *ngIf="i > 0 && (i + 1) % adInterval === 0">
-      <div
-        *ngIf="isMobile"
-        class="mobile-ad-container ingredients-card"
-        role="complementary"
-        aria-label="Sponsored content"
-      >
-        <span class="ad-badge">Ad</span>
-        <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
-      </div>
-
-      <div
-        class="ad-desktop-card ingredients-card"
-        *ngIf="!isMobile"
-        role="complementary"
-        aria-label="Sponsored content"
-      >
-        <span class="ad-badge">Ad</span>
-        <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
-      </div>
+      <ng-container *ngIf="contentReady">
+        @defer (on viewport) {
+        <section
+          class="ad-block ingredients-card"
+          role="complementary"
+          aria-label="Sponsored content"
+        >
+          <span class="ad-badge">Ad</span>
+          <div [class]="adSlotClass(getInloopAdType())">
+            <app-dev-ads [type]="getInloopAdType()"></app-dev-ads>
+          </div>
+        </section>
+        } @placeholder {
+        <!-- Placeholder IDENTICO per zero-CLS -->
+        <section
+          class="ad-block ingredients-card"
+          role="complementary"
+          aria-label="Sponsored content"
+          aria-hidden="true"
+        >
+          <span class="ad-badge">Ad</span>
+          <div [class]="adSlotClass(getInloopAdType())">
+            <app-dev-ads [type]="getInloopAdType()"></app-dev-ads>
+          </div>
+        </section>
+        }
+      </ng-container>
     </ng-container>
   </ng-container>
 </div>
@@ -619,19 +627,33 @@
     </div>
   </div>
 
-  <div
-    class="banner-container"
-    role="complementary"
-    aria-label="Sponsored content"
-  >
-    <div class="banner-content">
+  <ng-container *ngIf="contentReady">
+    @defer (on viewport) {
+    <section
+      class="ad-block"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
       <span class="ad-badge">Ad</span>
-      <ng-container>
-        <app-dev-ads *ngIf="isMobile" [type]="'mobile-banner'"></app-dev-ads>
-        <app-dev-ads *ngIf="!isMobile" [type]="'half-page'"></app-dev-ads>
-      </ng-container>
-    </div>
-  </div>
+      <div [class]="adSlotClass(getBottomAdType())">
+        <app-dev-ads [type]="getBottomAdType()"></app-dev-ads>
+      </div>
+    </section>
+    } @placeholder {
+    <!-- Placeholder IDENTICO -->
+    <section
+      class="ad-block"
+      role="complementary"
+      aria-label="Sponsored content"
+      aria-hidden="true"
+    >
+      <span class="ad-badge">Ad</span>
+      <div [class]="adSlotClass(getBottomAdType())">
+        <app-dev-ads [type]="getBottomAdType()"></app-dev-ads>
+      </div>
+    </section>
+    }
+  </ng-container>
 </div>
 } @placeholder {
 <div class="bottom-container placeholder" aria-hidden="true">

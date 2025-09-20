@@ -73,7 +73,7 @@ export class IngredientDetailComponent
   ingredient: IngredientDetail | null = null;
   loading = true;
   error: string | null = null;
-
+  contentReady = false;
   // --- navigazione prev/next
   allIngredients: Ingredient[] = [];
   currentIngredientIndex = -1;
@@ -223,6 +223,7 @@ export class IngredientDetailComponent
   private loadIngredientDetails(externalId: string): void {
     this.loading = true;
     this.error = null;
+    this.contentReady = false;
     this.cleanupSeo(); // pulisci meta/ld+json precedenti
 
     // prova cache allIngredients
@@ -233,6 +234,7 @@ export class IngredientDetailComponent
       this.ingredient = { ...(cached as IngredientDetail) };
       this.setNavigationIngredients(externalId);
       this.setSeoTagsAndSchema(); // ✅ SEO subito
+      this.unlockAdsWhenStable();
       this.loadRelatedCocktails(externalId);
       return;
     }
@@ -248,12 +250,14 @@ export class IngredientDetailComponent
         this.ingredient = { ...(res as IngredientDetail) };
         this.setNavigationIngredients(externalId);
         this.setSeoTagsAndSchema(); // ✅ SEO subito
+        this.unlockAdsWhenStable();
         this.loadRelatedCocktails(externalId);
       },
       error: (err) => {
         console.error('Error fetching ingredient directly:', err);
         this.error = 'Unable to load ingredient details.';
         this.loading = false;
+        this.unlockAdsWhenStable();
       },
     });
   }
@@ -270,6 +274,7 @@ export class IngredientDetailComponent
           console.error('Error fetching related cocktails:', err);
           this.error = 'Could not load related cocktails.';
           this.loading = false;
+          this.unlockAdsWhenStable();
         },
       });
   }
@@ -605,5 +610,35 @@ export class IngredientDetailComponent
   private cleanupJsonLd(): void {
     const old = this.document.getElementById('ingredient-schema');
     if (old) this.renderer.removeChild(this.document.head, old);
+  }
+
+  /** Esegue cb dopo il primo paint (solo browser) */
+  private runAfterFirstPaint(cb: () => void) {
+    if (!this.isBrowser) return;
+    requestAnimationFrame(() => setTimeout(cb, 0));
+  }
+
+  /** Sblocca gli ads quando il contenuto è stabile */
+  private unlockAdsWhenStable(): void {
+    if (!this.isBrowser) return;
+    this.runAfterFirstPaint(() => {
+      this.contentReady = true;
+    });
+  }
+
+  /** Mappa classi width per lo slot (usa le tue regole .ad-slot.*) */
+  adSlotClass(type: string): string {
+    return `ad-slot ${type}`;
+  }
+
+  /** Tipi di formato, centralizzati */
+  getTopBannerType(): 'mobile-banner' | 'leaderboard' {
+    return this.isMobile ? 'mobile-banner' : 'leaderboard';
+  }
+  getGridAdType(): 'mobile-banner' | 'square' {
+    return this.isMobile ? 'mobile-banner' : 'square';
+  }
+  getBottomBannerType(): 'mobile-banner' | 'leaderboard' {
+    return this.isMobile ? 'mobile-banner' : 'leaderboard';
   }
 }
