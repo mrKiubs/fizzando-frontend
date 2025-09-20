@@ -730,3 +730,22 @@ hr {
     transition: width 80ms linear; /* fluida ma leggera */
   }
 }
+
+/* 1. riserva spazio fisso al blocco (stesse dimensioni del finale) */
+.section-block.glass-card.skeleton {
+  /* scegli una delle due strategie: */
+  /* A) altezza fissa o min-height uguale al finale */
+  min-height: 420px; /* esempio: la stessa altezza della card finale */
+  /* B) se è una card con immagine: usa aspect ratio */
+  /* aspect-ratio: 4 / 3; */
+
+  /* 2. evita reflow quando si popola */
+  overflow: hidden;
+  contain: layout paint; /* isola layout interno */
+}
+
+/* 3. se riveli contenuti con @defer / ngIf, riserva dimensione con CIS */
+.section-block[hidden] {
+  content-visibility: auto;
+  contain-intrinsic-size: 420px; /* stessa altezza riservata */
+}

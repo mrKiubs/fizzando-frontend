@@ -119,17 +119,6 @@ export class AppComponent {
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  get animParams() {
-    const reduce = this.isTouch || this.prefersReduced;
-    return reduce
-      ? { duration: '240ms ease-out', enterY: '24px', leaveY: '24px' }
-      : {
-          duration: '700ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-          enterY: '64px',
-          leaveY: '64px',
-        };
-  }
-
   constructor() {
     this.viewportScroller.setHistoryScrollRestoration('manual');
 
@@ -150,6 +139,30 @@ export class AppComponent {
    requestAnimationFrame(() => this.viewportScroller.scrollToPosition([0, 0]));
  }, 0);
       });
+  }
+
+  ngOnInit() {
+    if (typeof window !== 'undefined') {
+      const htmlEl = document.querySelector('html') as HTMLElement;
+      if ('fonts' in (document as any)) {
+        (document as any).fonts.ready.finally(() =>
+          htmlEl.classList.add('icons-ready')
+        );
+      } else {
+        htmlEl.classList.add('icons-ready');
+      }
+    }
+  }
+
+  get animParams() {
+    const reduce = this.isTouch || this.prefersReduced;
+    return reduce
+      ? { duration: '240ms ease-out', enterY: '24px', leaveY: '24px' }
+      : {
+          duration: '700ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+          enterY: '64px',
+          leaveY: '64px',
+        };
   }
 
   getRouteAnimationData(outlet: RouterOutlet) {
