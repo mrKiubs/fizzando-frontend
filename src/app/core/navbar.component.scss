@@ -550,10 +550,9 @@
           gap: 8px;
           align-items: center;
           text-transform: uppercase;
-          padding: 8px 0;
+          padding: 8px;
           &:hover {
-            color: #555;
-            text-decoration: underline;
+            background-color: #0000000c;
           }
         }
 
