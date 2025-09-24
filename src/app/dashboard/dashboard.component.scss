@@ -115,7 +115,7 @@ section {
   gap: var(--gap);
 }
 .quick-links-section .links-grid > * {
-  min-width: 0; /* i bottoni possono comprimersi */
+  min-width: 100%; /* i bottoni possono comprimersi */
 }
 .quick-links-section .links-grid .glass-button.secondary {
   height: 78px;
@@ -320,6 +320,19 @@ h4 {
       margin-bottom: 8px;
       flex-direction: row;
       padding: 8px 16px;
+    }
+  }
+}
+
+.cocktail-display-button {
+  h3 {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .quick-link-home {
+    button {
+      width: 100%;
     }
   }
 }
@@ -670,7 +683,7 @@ h4 {
 .quick-link-home {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
   align-items: stretch;
   width: 100%;
   width: 100%;
