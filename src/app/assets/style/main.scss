@@ -1160,7 +1160,6 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  /* 👉 permetti di andare a capo su viewport stretti */
   white-space: normal;
   word-break: break-word;
   text-align: center;
@@ -1194,6 +1193,12 @@ mat-icon {
   overflow: hidden;
   flex-direction: column;
   gap: 8px;
+
+  margin: 32px 0;
+
+  @media (max-width: 600px) {
+    margin: 16px 0;
+  }
 
   &.ingredients-card {
     flex-direction: row;

@@ -2,24 +2,41 @@
   <div class="header-content">
     <app-logo (click)="closeMenu()"></app-logo>
 
-    <button
-      #menuToggle
-      type="button"
-      class="menu-toggle-button"
-      (click)="toggleMenu()"
-      [attr.aria-expanded]="isMenuOpen"
-      aria-controls="primary-navigation"
-      [attr.aria-label]="isMenuOpen ? 'Close menu' : 'Open menu'"
-      [attr.aria-haspopup]="'dialog'"
-    >
-      <!-- LIGATURE (niente svgIcon) -->
-      <mat-icon aria-hidden="true">{{
-        isMenuOpen ? "close" : "menu"
-      }}</mat-icon>
-    </button>
+    <div class="header-actions">
+      <!-- Bottone SEARCH -->
+      <button
+        type="button"
+        class="icon-button"
+        (click)="toggleSearch()"
+        [attr.aria-expanded]="isSearchOpen"
+        aria-controls="search-overlay"
+        aria-label="Open search"
+      >
+        <mat-icon aria-hidden="true">
+          {{ isSearchOpen ? "close" : "search" }}
+        </mat-icon>
+      </button>
+
+      <!-- Bottone MENU -->
+      <button
+        #menuToggle
+        type="button"
+        class="menu-toggle-button icon-button"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="isMenuOpen"
+        aria-controls="primary-navigation"
+        [attr.aria-label]="isMenuOpen ? 'Close menu' : 'Open menu'"
+        [attr.aria-haspopup]="'dialog'"
+      >
+        <mat-icon aria-hidden="true">
+          {{ isMenuOpen ? "close" : "menu" }}
+        </mat-icon>
+      </button>
+    </div>
   </div>
 </header>
 
+<!-- MENU OVERLAY (hamburger) -->
 <div
   #overlayRoot
   class="full-screen-menu-overlay"
@@ -36,199 +53,7 @@
       <app-breadcrumbs (linkClicked)="closeMenu()"></app-breadcrumbs>
     </div>
 
-    <div class="overlay-search-section">
-      <div class="search-input-container" role="search">
-        <label class="visually-hidden" for="overlay-search-input"
-          >Search site</label
-        >
-        <input
-          #overlaySearchInput
-          id="overlay-search-input"
-          type="text"
-          placeholder="Find cocktail, ingredient, article..."
-          class="overlay-search-input"
-          [(ngModel)]="overlaySearchTerm"
-          (input)="onSearchTermChange()"
-          (focus)="onSearchInputFocus()"
-          (blur)="onSearchInputBlur()"
-          [class.has-value]="overlaySearchTerm.length > 0"
-          aria-controls="live-search-results"
-          [attr.aria-expanded]="
-            isSearchInputFocused && overlaySearchTerm.length >= 3
-              ? 'true'
-              : 'false'
-          "
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          inputmode="search"
-          enterkeyhint="search"
-        />
-        <button
-          *ngIf="overlaySearchTerm.length > 0"
-          type="button"
-          class="clear-search-button"
-          (click)="clearSearchTerm($event)"
-          aria-label="Clear search"
-        >
-          <!-- LIGATURE (niente svgIcon) -->
-          <mat-icon aria-hidden="true">close</mat-icon>
-        </button>
-      </div>
-    </div>
-
-    <div
-      id="live-search-results"
-      class="live-search-results"
-      *ngIf="overlaySearchTerm.length >= 3 && isSearchInputFocused"
-    >
-      <div
-        *ngIf="liveSearchLoading"
-        class="loading-message"
-        role="status"
-        aria-live="polite"
-      >
-        Caricamento risultati...
-      </div>
-
-      <div
-        *ngIf="
-          !liveSearchLoading &&
-          (liveCocktailResults.length ||
-            liveIngredientResults.length ||
-            liveArticleResults.length)
-        "
-      >
-        <div
-          class="results-group"
-          role="region"
-          aria-label="Cocktails results"
-          *ngIf="liveCocktailResults.length"
-        >
-          <h4 class="group-title">
-            🍸 Cocktails ({{ liveCocktailResults.length }})
-          </h4>
-          <ul role="list">
-            <li *ngFor="let cocktail of liveCocktailResults" role="listitem">
-              <a
-                [routerLink]="['/cocktails', cocktail.slug]"
-                (click)="closeMenu()"
-              >
-                <img
-                  *ngIf="cocktail.image?.formats?.thumbnail?.url"
-                  [src]="cocktail.image?.formats?.thumbnail?.url"
-                  [alt]="cocktail.name"
-                  class="img-cocktail"
-                  width="30"
-                  height="30"
-                  loading="lazy"
-                  decoding="async"
-                />
-                {{ cocktail.name }}
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div
-          class="results-group"
-          role="region"
-          aria-label="Ingredients results"
-          *ngIf="liveIngredientResults.length"
-        >
-          <h4 class="group-title">
-            🍋 Ingredients ({{ liveIngredientResults.length }})
-          </h4>
-          <ul role="list">
-            <li
-              *ngFor="let ingredient of liveIngredientResults"
-              role="listitem"
-            >
-              <a
-                [routerLink]="['/ingredients', ingredient.external_id]"
-                (click)="closeMenu()"
-              >
-                <img
-                  *ngIf="ingredient.image?.url"
-                  [src]="ingredient.image?.url"
-                  [alt]="ingredient.name"
-                  class="img-ingredient"
-                  width="30"
-                  height="30"
-                  loading="lazy"
-                  decoding="async"
-                />
-                {{ ingredient.name }}
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div
-          class="results-group"
-          role="region"
-          aria-label="Articles results"
-          *ngIf="liveArticleResults.length"
-        >
-          <h4 class="group-title">
-            📚 Articles ({{ liveArticleResults.length }})
-          </h4>
-          <ul role="list">
-            <li *ngFor="let article of liveArticleResults" role="listitem">
-              <a
-                [routerLink]="['/articles', article.slug]"
-                (click)="closeMenu()"
-              >
-                <img
-                  *ngIf="article.image?.formats?.thumbnail?.url"
-                  [src]="article.image.formats.thumbnail?.url"
-                  [alt]="article.title"
-                  class="img-article"
-                  width="30"
-                  height="30"
-                  loading="lazy"
-                  decoding="async"
-                />
-                {{ article.title }}
-              </a>
-            </li>
-          </ul>
-        </div>
-        <!--
-        <div
-          class="results-group"
-          role="region"
-          aria-label="Quizzes results"
-          *ngIf="liveQuizResults.length"
-        >
-          <h4 class="group-title">❓ Quizzes ({{ liveQuizResults.length }})</h4>
-          <ul role="list">
-            <li *ngFor="let quiz of liveQuizResults" role="listitem">
-              <a [routerLink]="['/quiz', quiz.slug]" (click)="closeMenu()">
-                {{ quiz.title }}
-              </a>
-            </li>
-          </ul>
-        </div>
--->
-      </div>
-
-      <div
-        *ngIf="
-          !liveSearchLoading &&
-          overlaySearchTerm.length >= 3 &&
-          !liveCocktailResults.length &&
-          !liveIngredientResults.length &&
-          !liveArticleResults.length
-        "
-        class="no-results-message"
-        role="status"
-        aria-live="polite"
-      >
-        Nessun risultato trovato per "{{ overlaySearchTerm }}".
-      </div>
-    </div>
+    <!-- NIENTE ricerca qui dentro (rimossa) -->
 
     <nav id="primary-navigation" role="navigation" aria-label="Primary">
       <div class="menu-grid">
@@ -290,7 +115,6 @@
                 <option value="hot">♨️ Hot</option>
                 <option value="other">❓ Other</option>
               </select>
-              <!-- LIGATURE (niente svgIcon) -->
               <mat-icon class="select-arrow-icon" aria-hidden="true"
                 >arrow_drop_down</mat-icon
               >
@@ -309,7 +133,7 @@
                 ' cocktails'
               "
             >
-              Go
+              <mat-icon aria-hidden="true">arrow_forward</mat-icon>
             </button>
           </div>
         </div>
@@ -396,7 +220,6 @@
                 </option>
                 <option value="miscellaneous">✨ Miscellaneous</option>
               </select>
-              <!-- LIGATURE (niente svgIcon) -->
               <mat-icon class="select-arrow-icon" aria-hidden="true"
                 >arrow_drop_down</mat-icon
               >
@@ -415,7 +238,7 @@
                 ' ingredients'
               "
             >
-              Go
+              <mat-icon aria-hidden="true">arrow_forward</mat-icon>
             </button>
           </div>
         </div>
@@ -432,17 +255,8 @@
           </ul>
         </div>
 
-        <!-- Quizzes 
-        <div class="menu-card my-recipes-card">
-          <h3>❓ Quiz</h3>
-          <ul>
-            <li>
-              <a routerLink="/quiz" (click)="closeMenu()">🗒️ All quizzes</a>
-            </li>
-          </ul>
-        </div>
--->
-        <!-- Articles -->
+        <!-- Articles (restano nel menu come link e filtro) -->
+        <!--
         <div class="menu-card articles-card">
           <h3>📚 Articles</h3>
           <ul>
@@ -506,7 +320,6 @@
                 <option value="tropical-drinks">🥭 Tropical Drinks</option>
                 <option value="winter-warmers">🧣 Winter Warmers</option>
               </select>
-              <!-- LIGATURE (niente svgIcon) -->
               <mat-icon class="select-arrow-icon" aria-hidden="true"
                 >arrow_drop_down</mat-icon
               >
@@ -525,12 +338,12 @@
                 ' articles'
               "
             >
-              Go
+              <mat-icon aria-hidden="true">arrow_forward</mat-icon>
             </button>
           </div>
         </div>
-
-        <!-- Glossary (NUOVO, ultima sezione) -->
+-->
+        <!-- Glossary -->
         <div class="menu-card glossary-card">
           <h3>📘 Glossary</h3>
           <ul>
@@ -583,7 +396,7 @@
                 ' glossary terms'
               "
             >
-              Go
+              <mat-icon aria-hidden="true">arrow_forward</mat-icon>
             </button>
           </div>
         </div>
@@ -602,5 +415,164 @@
         </div>
       </div>
     </nav>
+  </div>
+</div>
+
+<!-- SEARCH OVERLAY (nuovo, solo cocktail & ingredienti) -->
+<div
+  #searchOverlayRoot
+  id="search-overlay"
+  class="search-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="search-title"
+  [class.open]="isSearchOpen"
+  (keydown.escape)="closeSearch()"
+  (click)="closeSearch()"
+>
+  <div class="search-overlay__content" (click)="$event.stopPropagation()">
+    <h2 id="search-title" class="visually-hidden">Site search</h2>
+
+    <div class="overlay-search-section">
+      <div class="search-input-container" role="search">
+        <label class="visually-hidden" for="overlay-search-input"
+          >Search site</label
+        >
+        <input
+          #overlaySearchInput
+          id="overlay-search-input"
+          type="text"
+          placeholder="Find cocktail or ingredient..."
+          class="overlay-search-input"
+          [(ngModel)]="overlaySearchTerm"
+          (input)="onSearchTermChange()"
+          (focus)="onSearchInputFocus()"
+          (blur)="onSearchInputBlur()"
+          [class.has-value]="overlaySearchTerm.length > 0"
+          aria-controls="live-search-results"
+          [attr.aria-expanded]="
+            isSearchInputFocused && overlaySearchTerm.length >= 3
+              ? 'true'
+              : 'false'
+          "
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          inputmode="search"
+          enterkeyhint="search"
+        />
+        <button
+          *ngIf="overlaySearchTerm.length > 0"
+          type="button"
+          class="clear-search-button"
+          (click)="clearSearchTerm($event)"
+          aria-label="Clear search"
+        >
+          <mat-icon aria-hidden="true">close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div
+      id="live-search-results"
+      class="live-search-results"
+      *ngIf="overlaySearchTerm.length >= 3"
+    >
+      <div
+        *ngIf="liveSearchLoading"
+        class="loading-message"
+        role="status"
+        aria-live="polite"
+      >
+        Caricamento risultati...
+      </div>
+
+      <div
+        *ngIf="
+          !liveSearchLoading &&
+          (liveCocktailResults.length || liveIngredientResults.length)
+        "
+      >
+        <div
+          class="results-group"
+          role="region"
+          aria-label="Cocktails results"
+          *ngIf="liveCocktailResults.length"
+        >
+          <h4 class="group-title">
+            🍸 Cocktails ({{ liveCocktailResults.length }})
+          </h4>
+          <ul role="list">
+            <li *ngFor="let cocktail of liveCocktailResults" role="listitem">
+              <a
+                [routerLink]="['/cocktails', cocktail.slug]"
+                (click)="closeSearch()"
+              >
+                <img
+                  *ngIf="cocktail.image?.formats?.thumbnail?.url"
+                  [src]="cocktail.image?.formats?.thumbnail?.url"
+                  [alt]="cocktail.name"
+                  class="img-cocktail"
+                  width="30"
+                  height="30"
+                  loading="lazy"
+                  decoding="async"
+                />
+                {{ cocktail.name }}
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div
+          class="results-group"
+          role="region"
+          aria-label="Ingredients results"
+          *ngIf="liveIngredientResults.length"
+        >
+          <h4 class="group-title">
+            🍋 Ingredients ({{ liveIngredientResults.length }})
+          </h4>
+          <ul role="list">
+            <li
+              *ngFor="let ingredient of liveIngredientResults"
+              role="listitem"
+            >
+              <a
+                [routerLink]="['/ingredients', ingredient.external_id]"
+                (click)="closeSearch()"
+              >
+                <img
+                  *ngIf="ingredient.image?.url"
+                  [src]="ingredient.image?.url"
+                  [alt]="ingredient.name"
+                  class="img-ingredient"
+                  width="30"
+                  height="30"
+                  loading="lazy"
+                  decoding="async"
+                />
+                {{ ingredient.name }}
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div
+        *ngIf="
+          !liveSearchLoading &&
+          overlaySearchTerm.length >= 3 &&
+          !liveCocktailResults.length &&
+          !liveIngredientResults.length
+        "
+        class="no-results-message"
+        role="status"
+        aria-live="polite"
+      >
+        Nessun risultato trovato per "{{ overlaySearchTerm }}".
+      </div>
+    </div>
   </div>
 </div>

@@ -27,12 +27,11 @@ import {
   distinctUntilChanged,
   switchMap,
   catchError,
+  take,
 } from 'rxjs/operators';
-
 import { CocktailService, Cocktail } from '../services/strapi.service';
 import { IngredientService, Ingredient } from '../services/ingredient.service';
-import { ArticleService, Article } from '../services/article.service';
-import { GlossaryService } from '../services/glossary.service'; // 👈 NUOVO
+import { GlossaryService } from '../services/glossary.service';
 import { BreadcrumbsComponent } from '../assets/design-system/breadcrumbs/breadcrumbs.component';
 import { LogoComponent } from '../assets/design-system/logo/logo.component';
 
@@ -56,23 +55,32 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly ngZone = inject(NgZone);
 
+  @ViewChild('overlayRoot') overlayRoot!: ElementRef<HTMLElement>; // menu overlay
+  @ViewChild('searchOverlayRoot') searchOverlayRoot!: ElementRef<HTMLElement>; // search overlay
   @ViewChild('overlaySearchInput')
   overlaySearchInput!: ElementRef<HTMLInputElement>;
-  @ViewChild('overlayRoot') overlayRoot!: ElementRef<HTMLElement>;
   @ViewChild('menuToggle') menuToggleBtn!: ElementRef<HTMLButtonElement>;
 
   isMenuOpen = false;
+  isSearchOpen = false;
   isScrolled = false;
+  // live search (SOLO cocktail & ingredienti)
   overlaySearchTerm = '';
-
   isSearchInputFocused = false;
+  liveSearchLoading = false;
+  liveCocktailResults: Cocktail[] = [];
+  liveIngredientResults: Ingredient[] = [];
+  private searchTerms = new Subject<string>();
   private blurTimeout: any;
-
+  private readonly TRANSITION_MS = 200;
+  private waitAfterTransition(ms = this.TRANSITION_MS): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  // filtri e stato url
   selectedCocktailCategory = '';
   selectedIngredientType = '';
   selectedArticleCategory = '';
 
-  // 👇 NUOVO stato per Glossary
   selectedGlossaryCategory = '';
   glossaryCategories: string[] = [];
   activeGlossaryCategoryInUrl = '';
@@ -81,15 +89,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   activeIngredientTypeInUrl = '';
   activeArticleCategoryInUrl = '';
 
-  liveSearchLoading = false;
-  liveCocktailResults: Cocktail[] = [];
-  liveIngredientResults: Ingredient[] = [];
-  liveArticleResults: Article[] = [];
-  //liveQuizResults: Quiz[] = [];
-
   isHome = true;
-
-  private searchTerms = new Subject<string>();
 
   private routerSubscription?: Subscription;
   private searchSubscription?: Subscription;
@@ -100,8 +100,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private cocktailService: CocktailService,
     private ingredientService: IngredientService,
-    private articleService: ArticleService,
-    private glossaryService: GlossaryService, // 👈 NUOVO
+    private glossaryService: GlossaryService,
     private renderer: Renderer2
   ) {}
 
@@ -109,7 +108,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const url0 = this.router.url.split('?')[0] || '/';
     this.isHome = url0 === '/';
 
-    // 👇 Fetch dinamico categorie Glossary
+    // categorie Glossary (dinamiche)
     this.glossaryService.getCategories().subscribe({
       next: (cats) => (this.glossaryCategories = cats || []),
       error: () => (this.glossaryCategories = []),
@@ -147,7 +146,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.activeArticleCategoryInUrl = '';
         }
 
-        // 👇 rileva categoria attiva in /glossary
         if (urlParts[0].includes('/glossary')) {
           this.selectedGlossaryCategory = urlParams.get('category') || '';
           this.activeGlossaryCategoryInUrl = this.selectedGlossaryCategory;
@@ -155,8 +153,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.selectedGlossaryCategory = '';
           this.activeGlossaryCategoryInUrl = '';
         }
+
+        // chiudi overlay quando cambi pagina
+        if (this.isMenuOpen) this.closeMenu();
+        if (this.isSearchOpen) this.closeSearch();
       });
 
+    // live search (SOLO cocktail/ingredienti)
     this.searchSubscription = this.searchTerms
       .pipe(
         debounceTime(300),
@@ -164,8 +167,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
         switchMap((term: string) => {
           this.liveCocktailResults = [];
           this.liveIngredientResults = [];
-          this.liveArticleResults = [];
-          //this.liveQuizResults = [];
           this.liveSearchLoading = false;
 
           if (term.length < 3 && !this.isSearchInputFocused) return of(null);
@@ -194,21 +195,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
                   })
                 )
               ),
-            articles: this.articleService.getArticles(1, 10, term).pipe(
-              catchError(() =>
-                of({
-                  data: [] as Article[],
-                  meta: {
-                    pagination: {
-                      page: 1,
-                      pageSize: 0,
-                      pageCount: 0,
-                      total: 0,
-                    },
-                  },
-                })
-              )
-            ),
           }).pipe(catchError(() => of(null)));
         })
       )
@@ -217,8 +203,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
         if (results) {
           this.liveCocktailResults = results.cocktails;
           this.liveIngredientResults = results.ingredients.data;
-          this.liveArticleResults = results.articles.data;
-          // this.liveQuizResults = results.quizzes.quizzes;
         }
       });
   }
@@ -246,15 +230,32 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   @HostListener('document:keydown', ['$event'])
   handleGlobalKeydown(e: KeyboardEvent) {
-    if (!this.isMenuOpen) return;
+    // "/" apre la ricerca se non stai scrivendo
+    if (e.key === '/' && !this.isMenuOpen && !this.isSearchOpen) {
+      const ae = document.activeElement as HTMLElement | null;
+      const isTyping =
+        ae &&
+        (ae.tagName === 'INPUT' ||
+          ae.tagName === 'TEXTAREA' ||
+          ae.isContentEditable);
+      if (!isTyping) {
+        e.preventDefault();
+        this.openSearch();
+        return;
+      }
+    }
+
+    if (!(this.isMenuOpen || this.isSearchOpen)) return;
 
     if (e.key === 'Escape') {
-      this.closeMenu();
+      if (this.isMenuOpen) this.closeMenu();
+      if (this.isSearchOpen) this.closeSearch();
       return;
     }
 
     if (e.key === 'Tab') {
-      const focusables = this.getFocusableInOverlay();
+      const root = this.getActiveOverlayRoot();
+      const focusables = this.getFocusableIn(root || null);
       if (!focusables.length) return;
 
       const first = focusables[0];
@@ -271,8 +272,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  private getFocusableInOverlay(): HTMLElement[] {
-    if (!this.overlayRoot) return [];
+  private getFocusableIn(
+    rootEl: HTMLElement | null | undefined
+  ): HTMLElement[] {
+    if (!rootEl) return [];
     const selectors = [
       'a[href]',
       'button:not([disabled])',
@@ -281,14 +284,87 @@ export class NavbarComponent implements OnInit, OnDestroy {
       'textarea:not([disabled])',
       '[tabindex]:not([tabindex="-1"])',
     ].join(',');
-    const root = this.overlayRoot.nativeElement;
-    return Array.from(root.querySelectorAll<HTMLElement>(selectors)).filter(
+    return Array.from(rootEl.querySelectorAll<HTMLElement>(selectors)).filter(
       (el) =>
         !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length)
     );
   }
 
-  toggleMenu(): void {
+  private getActiveOverlayRoot(): HTMLElement | null {
+    if (this.isMenuOpen && this.overlayRoot?.nativeElement)
+      return this.overlayRoot.nativeElement;
+    if (this.isSearchOpen && this.searchOverlayRoot?.nativeElement)
+      return this.searchOverlayRoot.nativeElement;
+    return null;
+  }
+
+  // in classe (se non li hai già)
+  private modifiedInertEls = new Set<HTMLElement>();
+  private inertContainerEl: HTMLElement | null = null;
+
+  private setBackgroundInert(
+    enable: boolean,
+    exceptEl?: HTMLElement | null
+  ): void {
+    if (!this.isBrowser) return;
+
+    const headerEl = document.querySelector(
+      'header.app-header'
+    ) as HTMLElement | null;
+
+    const clearInert = () => {
+      if (this.modifiedInertEls.size) {
+        this.modifiedInertEls.forEach((el) => {
+          this.renderer.removeAttribute(el, 'inert');
+          this.renderer.removeAttribute(el, 'aria-hidden');
+        });
+        this.modifiedInertEls.clear();
+      }
+      this.inertContainerEl = null;
+    };
+
+    if (!enable) {
+      clearInert();
+      return;
+    }
+
+    // enable === true
+    if (!exceptEl) {
+      // senza overlay di riferimento, non fare nulla
+      return;
+    }
+
+    // 1) pulisci eventuali residui precedenti
+    clearInert();
+
+    // 2) usa come container il PARENT dell’overlay (fratelli diretti)
+    const container = exceptEl.parentElement as HTMLElement | null;
+    if (!container) return;
+    this.inertContainerEl = container;
+
+    const children = Array.from(container.children) as HTMLElement[];
+
+    children.forEach((el) => {
+      // non toccare overlay attivo
+      if (el === exceptEl) return;
+
+      // non toccare il header né un blocco che lo contenga
+      if (headerEl && (el === headerEl || el.contains(headerEl))) return;
+
+      // applica inert solo agli altri fratelli
+      this.renderer.setAttribute(el, 'inert', '');
+      this.renderer.setAttribute(el, 'aria-hidden', 'true');
+      this.modifiedInertEls.add(el);
+    });
+  }
+
+  // MENU (hamburger)
+  async toggleMenu(): Promise<void> {
+    // se la Search è aperta, chiudila prima e mantieni inert durante lo switch
+    if (this.isSearchOpen) {
+      await this.closeSearch(true); // ← NON rimuove inert
+    }
+
     this.isMenuOpen = !this.isMenuOpen;
     if (this.isBrowser)
       document.body.style.overflow = this.isMenuOpen ? 'hidden' : '';
@@ -298,19 +374,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.clearSearchResults();
 
       this.lastFocused = document.activeElement as HTMLElement;
-      setTimeout(() => this.overlaySearchInput?.nativeElement?.focus(), 0);
 
-      this.setBackgroundInert(true);
+      // attiva inert puntando al nuovo overlay
+      this.setBackgroundInert(true, this.overlayRoot?.nativeElement || null);
+
+      // focus al primo focusable nel menu dopo il frame
+      setTimeout(() => {
+        const first = this.getFocusableIn(this.overlayRoot?.nativeElement)[0];
+        first?.focus?.();
+      }, 0);
     } else {
-      this.isSearchInputFocused = false;
-      this.searchTerms.next('');
-      this.setBackgroundInert(false);
-      (this.menuToggleBtn?.nativeElement ?? this.lastFocused)?.focus?.();
-      this.lastFocused = null;
+      await this.closeMenu(); // usa la versione che toglie inert
     }
   }
-
-  closeMenu(): void {
+  async closeMenu(preserveInert = false): Promise<void> {
     this.isMenuOpen = false;
     if (this.isBrowser) document.body.style.overflow = '';
     this.overlaySearchTerm = '';
@@ -318,34 +395,76 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.isSearchInputFocused = false;
     if (this.blurTimeout) clearTimeout(this.blurTimeout);
 
-    this.setBackgroundInert(false);
-    (this.menuToggleBtn?.nativeElement ?? this.lastFocused)?.focus?.();
-    this.lastFocused = null;
+    await this.waitAfterTransition();
+
+    if (!preserveInert) {
+      this.setBackgroundInert(false);
+      // 🔹 Ripristina focus SOLO se NON stai facendo switch
+      (this.menuToggleBtn?.nativeElement ?? this.lastFocused)?.focus?.();
+      this.lastFocused = null;
+    }
   }
 
-  private setBackgroundInert(enable: boolean): void {
-    if (!this.isBrowser) return;
-    const overlayEl = this.overlayRoot?.nativeElement;
-    const container = overlayEl?.parentElement || document.body;
+  // SEARCH (icona lente)
+  async toggleSearch(): Promise<void> {
+    if (this.isMenuOpen) {
+      await this.closeMenu(true); // niente ripristino focus
+    }
 
-    const headerEl = document.querySelector(
-      'header.app-header'
-    ) as HTMLElement | null;
+    this.isSearchOpen = !this.isSearchOpen;
+    if (this.isBrowser)
+      document.body.style.overflow = this.isSearchOpen ? 'hidden' : '';
 
-    const siblings = Array.from(container.children) as HTMLElement[];
-    siblings.forEach((el) => {
-      if (el === overlayEl || el === headerEl) return;
+    if (this.isSearchOpen) {
+      this.lastFocused = document.activeElement as HTMLElement;
+      this.isSearchInputFocused = true;
 
-      if (enable) {
-        this.renderer.setAttribute(el, 'inert', '');
-        this.renderer.setAttribute(el, 'aria-hidden', 'true');
-      } else {
-        this.renderer.removeAttribute(el, 'inert');
-        this.renderer.removeAttribute(el, 'aria-hidden');
-      }
-    });
+      this.setBackgroundInert(
+        true,
+        this.searchOverlayRoot?.nativeElement || null
+      );
+
+      // 🔹 Focus robusto (due RAF) dopo aver aggiornato inert
+      this.ngZone.runOutsideAngular(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const el = this.overlaySearchInput?.nativeElement;
+            if (el) {
+              el.focus({ preventScroll: true });
+              el.select?.();
+            }
+          });
+        });
+      });
+    } else {
+      await this.closeSearch(); // qui ripristina focus perché non è switch
+    }
   }
 
+  openSearch(): void {
+    if (!this.isSearchOpen) this.toggleSearch();
+  }
+
+  async closeSearch(preserveInert = false): Promise<void> {
+    if (!this.isSearchOpen) return;
+    this.isSearchOpen = false;
+    if (this.isBrowser) document.body.style.overflow = '';
+    this.isSearchInputFocused = false;
+    this.overlaySearchTerm = '';
+    this.searchTerms.next('');
+    this.clearSearchResults();
+
+    await this.waitAfterTransition();
+
+    if (!preserveInert) {
+      this.setBackgroundInert(false);
+      // 🔹 Ripristina focus SOLO se NON stai facendo switch
+      (this.menuToggleBtn?.nativeElement ?? this.lastFocused)?.focus?.();
+      this.lastFocused = null;
+    }
+  }
+
+  // input handlers ricerca
   onSearchTermChange(): void {
     this.searchTerms.next(this.overlaySearchTerm);
   }
@@ -376,11 +495,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private clearSearchResults(): void {
     this.liveCocktailResults = [];
     this.liveIngredientResults = [];
-    this.liveArticleResults = [];
-    //this.liveQuizResults = [];
     this.liveSearchLoading = false;
   }
 
+  // navigazione filtri
   goCocktailCategory(): void {
     const queryParams = this.selectedCocktailCategory
       ? { category: this.selectedCocktailCategory }
@@ -408,7 +526,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .then(() => this.closeMenu());
   }
 
-  // 👇 NUOVO
   goGlossaryCategory(): void {
     const queryParams = this.selectedGlossaryCategory
       ? { category: this.selectedGlossaryCategory }
