@@ -125,6 +125,11 @@
     width: 60px;
     height: 60px;
     min-width: 60px;
+    picture {
+      img {
+        height: 50px;
+      }
+    }
   }
   .alcoholic-icon {
     padding: 4px;
