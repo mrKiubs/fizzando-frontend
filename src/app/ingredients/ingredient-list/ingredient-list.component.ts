@@ -266,6 +266,13 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     } else if (this.isBrowser) {
       requestAnimationFrame(() => (this.fontsLoaded = true));
     }
+
+    if (this.isBrowser) {
+      const ric: (cb: () => void) => any =
+        (window as any).requestIdleCallback ||
+        ((cb: () => void) => setTimeout(cb, 1));
+      ric(() => this.ingredientService.prefetchAllIngredientsIndexSoft(120)); // pageSize “comodo”
+    }
   }
 
   ngOnDestroy(): void {
@@ -319,6 +326,16 @@ export class IngredientListComponent implements OnInit, OnDestroy {
           this.totalItems = res?.meta?.pagination?.total ?? 0;
           this.totalPages = res?.meta?.pagination?.pageCount ?? 0;
 
+          if (this.totalPages > 0 && this.currentPage > this.totalPages) {
+            this.router.navigate([], {
+              relativeTo: this.route,
+              queryParams: { page: this.totalPages },
+              queryParamsHandling: 'merge',
+              state: { suppressScroll: true },
+            });
+            return; // aspetta il prossimo giro con la pagina corretta
+          }
+
           this.loading = false;
           this.unlockListHeight(); // ✅ sblocca quando i nuovi item sono in pagina
 
@@ -330,6 +347,8 @@ export class IngredientListComponent implements OnInit, OnDestroy {
 
           this.setSeoTagsAndSchemaList();
           this.unlockAdsWhenStable();
+
+          this.prefetchHotPaths(isAlcoholic);
         },
         error: (err) => {
           this.error = 'Unable to load ingredients. Please try again later.';
@@ -1082,5 +1101,52 @@ export class IngredientListComponent implements OnInit, OnDestroy {
   /** Classe slot per width fisse (usa le regole CSS che hai già) */
   adSlotClass(type: string): string {
     return `ad-slot ${type}`;
+  }
+
+  private prefetchHotPaths(isAlcoholic?: boolean): void {
+    if (!this.isBrowser || !this.ingredients?.length) return;
+
+    // A) dettagli dei primi N (click istantanei)
+    const firstN = this.ingredients.slice(0, 12).map((i) => i.external_id);
+    this.ingredientService.prefetchIngredientsByExternalIds(firstN, 12);
+
+    // B) pagine vicine (page±1) — alimenta la listCache del service
+    const commonArgs = {
+      pageSize: this.pageSize,
+      searchTerm: this._searchTerm() || undefined,
+      isAlcoholic,
+      ingredientType: this._selectedType() || undefined,
+    };
+
+    const ric: (cb: () => void) => any =
+      (window as any).requestIdleCallback ||
+      ((cb: () => void) => setTimeout(cb, 1));
+
+    if (this.currentPage < this.totalPages) {
+      ric(() =>
+        this.ingredientService
+          .getIngredients(
+            this.currentPage + 1,
+            commonArgs.pageSize,
+            commonArgs.searchTerm,
+            commonArgs.isAlcoholic,
+            commonArgs.ingredientType
+          )
+          .subscribe({ next: () => {}, error: () => {} })
+      );
+    }
+    if (this.currentPage > 1) {
+      ric(() =>
+        this.ingredientService
+          .getIngredients(
+            this.currentPage - 1,
+            commonArgs.pageSize,
+            commonArgs.searchTerm,
+            commonArgs.isAlcoholic,
+            commonArgs.ingredientType
+          )
+          .subscribe({ next: () => {}, error: () => {} })
+      );
+    }
   }
 }

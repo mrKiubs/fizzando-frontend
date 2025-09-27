@@ -269,7 +269,7 @@
     </section>
     }
   </ng-container>
-
+  <div #relatedSentinel aria-hidden="true"></div>
   <!-- Related con ad in-loop -->
   <section class="related-cocktails-section" *ngIf="relatedWithAds.length > 0">
     <h2 class="section-title">
@@ -350,6 +350,9 @@
   <!-- Navigation -->
   <div
     class="navigation-bar"
+    *ngIf="
+      !loading && !error && (indexReady || previousCocktail || nextCocktail)
+    "
     role="navigation"
     aria-label="Cocktail navigation"
   >

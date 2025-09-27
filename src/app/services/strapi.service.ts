@@ -10,7 +10,13 @@ import {
   Subscription,
   forkJoin,
 } from 'rxjs';
-import { map, catchError, filter, shareReplay } from 'rxjs/operators';
+import {
+  map,
+  catchError,
+  filter,
+  shareReplay,
+  concatMap,
+} from 'rxjs/operators';
 import { env } from '../config/env';
 
 // --- Interfacce (immutate) ---
@@ -129,6 +135,11 @@ export interface StrapiSingleResponse<T> {
   meta: any;
 }
 
+export interface AdjacentPair {
+  prev: Cocktail | null;
+  next: Cocktail | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CocktailService {
   private apiUrl = env.apiUrl;
@@ -173,7 +184,11 @@ export class CocktailService {
   private activePrefetch = 0;
   private prefetchQueue: Array<() => Subscription> = [];
   private prefetchSubs = new Set<Subscription>();
-
+  private adjacentCache = new Map<
+    string,
+    { prev: Cocktail | null; next: Cocktail | null; ts: number }
+  >();
+  private adjacentTTLms = 5 * 60_000;
   constructor(private http: HttpClient) {}
 
   // --------- Helpers ----------
@@ -451,11 +466,15 @@ export class CocktailService {
     return stream$;
   }
 
+  private isFullCocktail(c: Cocktail | null | undefined): boolean {
+    return !!c && typeof (c as any).ingredients_list !== 'undefined';
+  }
+
   getCocktailBySlug(slug: string): Observable<Cocktail | null> {
     const norm = (slug || '').toLowerCase();
 
     const hit = this.bySlug.get(norm);
-    if (hit) return of(hit);
+    if (hit && this.isFullCocktail(hit)) return of(hit);
 
     if (this._allCocktailsLoadingSubject.getValue()) {
       return this._allCocktailsDataSubject.pipe(
@@ -805,16 +824,6 @@ export class CocktailService {
     unique.forEach((s) => this.prefetchCocktailBySlug(s));
   }
 
-  /** Pre-warm dell’indice “all cocktails” (solo se non in cache). Parte in idle. */
-  prefetchAllCocktailsIndexSoft(): void {
-    if (this._allCocktailsCache || this._allCocktailsLoadingSubject.getValue())
-      return;
-    if (!this.canPrefetch()) return;
-    this.enqueueIdle(() =>
-      this.getCocktails(1, 48, undefined, undefined, undefined, true, false)
-    );
-  }
-
   // ----- Prefetch runtime internals -----
 
   /** Pianifica una richiesta (Observable) in idle, instradata nella coda con cap. */
@@ -877,35 +886,135 @@ export class CocktailService {
     return !(saveData || slow);
   }
 
-  getAdjacentCocktailsBySlug(currentSlug: string) {
-    const norm = (currentSlug || '').toLowerCase();
-    const ingredientFields = ['name', 'external_id', 'ingredient_type'];
+  // Aggiungi nel CocktailService
+  warmAllCocktailsIndex(
+    pageSize = 100,
+    forceReload = false
+  ): Observable<Cocktail[]> {
+    if (this._allCocktailsCache && !forceReload)
+      return of(this._allCocktailsCache);
 
-    const populateAll = (params: HttpParams) => {
-      params = params.set('populate[image]', 'true');
-      ingredientFields.forEach((field, i) => {
-        params = params.set(
-          `populate[ingredients_list][populate][ingredient][fields][${i}]`,
-          field
-        );
-      });
-      params = params.set(
-        'populate[ingredients_list][populate][ingredient][populate][image]',
-        'true'
+    this._allCocktailsLoadingSubject.next(true);
+
+    const firstParams = new HttpParams()
+      .set('pagination[page]', '1')
+      .set('pagination[pageSize]', String(pageSize))
+      .set('populate[image]', 'true')
+      .set('sort', 'slug:asc');
+
+    return this.http
+      .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params: firstParams })
+      .pipe(
+        map((r): { first: Cocktail[]; pageCount: number } => ({
+          first: (r.data as any[]).map((it: any) => this.cleanCocktailData(it)),
+          pageCount: r.meta?.pagination?.pageCount || 1,
+        })),
+        concatMap(
+          ({ first, pageCount }: { first: Cocktail[]; pageCount: number }) => {
+            if (pageCount <= 1) return of(first);
+
+            let chain$ = of(first as Cocktail[]);
+            for (let p = 2; p <= pageCount; p++) {
+              const pParams = new HttpParams()
+                .set('pagination[page]', String(p))
+                .set('pagination[pageSize]', String(pageSize))
+                .set('populate[image]', 'true')
+                .set('sort', 'slug:asc');
+
+              chain$ = chain$.pipe(
+                concatMap((collected: Cocktail[]) =>
+                  this.http
+                    .get<StrapiResponse<any>>(this.cocktailsBaseUrl, {
+                      params: pParams,
+                    })
+                    .pipe(
+                      map((resp) =>
+                        collected.concat(
+                          (resp.data as any[]).map((it: any) =>
+                            this.cleanCocktailData(it)
+                          )
+                        )
+                      )
+                    )
+                )
+              );
+            }
+            return chain$;
+          }
+        ),
+        map((all: Cocktail[]) => {
+          this._allCocktailsCache = all
+            .slice()
+            .sort((a: Cocktail, b: Cocktail) =>
+              (a.slug || '').localeCompare(b.slug || '', undefined, {
+                sensitivity: 'base',
+              })
+            );
+
+          this._allCocktailsDataSubject.next(this._allCocktailsCache);
+          this._allCocktailsLoadingSubject.next(false);
+
+          this._allCocktailsCache?.forEach((c) =>
+            this.bySlug.set((c.slug || '').toLowerCase(), c)
+          );
+
+          return this._allCocktailsCache!;
+        }),
+        catchError((err) => {
+          this._allCocktailsLoadingSubject.next(false);
+          return throwError(() => err);
+        }),
+        shareReplay(1)
       );
-      return params;
+  }
+
+  // Sostituisci la tua prefetch soft:
+  prefetchAllCocktailsIndexSoft(pageSize = 100): void {
+    if (this._allCocktailsCache || this._allCocktailsLoadingSubject.getValue())
+      return;
+    if (!this.canPrefetch()) return;
+    this.enqueueIdle(() => this.warmAllCocktailsIndex(pageSize));
+  }
+
+  getAdjacentCocktailsBySlug(currentSlug: string): Observable<AdjacentPair> {
+    const norm = (currentSlug || '').toLowerCase();
+    const now = Date.now();
+
+    // 1) cache
+    const hit = this.adjacentCache.get(norm);
+    if (hit && now - hit.ts < this.adjacentTTLms) {
+      return of({ prev: hit.prev, next: hit.next });
+    }
+
+    // 2) indice caldo → nessuna HTTP
+    if (this._allCocktailsCache?.length) {
+      const arr = this._allCocktailsCache;
+      const idx = arr.findIndex((c) => (c.slug || '').toLowerCase() === norm);
+      const prev = idx > 0 ? arr[idx - 1] : null;
+      const next = idx >= 0 && idx < arr.length - 1 ? arr[idx + 1] : null;
+      this.adjacentCache.set(norm, { prev, next, ts: now });
+      return of({ prev, next });
+    }
+
+    // 3) fallback HTTP ultraleggero (solo name/slug/external_id + image)
+    const baseFields = ['name', 'slug', 'external_id'];
+    const project = (p: HttpParams) => {
+      baseFields.forEach((f, i) => (p = p.set(`fields[${i}]`, f)));
+      p = p.set('populate[image][fields][0]', 'url');
+      p = p.set('populate[image][fields][1]', 'formats');
+      return p; // niente ingredients_list
     };
 
-    const nextParams = populateAll(
+    const nextParams = project(
       new HttpParams()
-        .set('filters[slug][$gt]', norm) // slug successivo (A→Z)
+        .set('filters[slug][$gt]', norm)
         .set('sort', 'slug:asc')
         .set('pagination[pageSize]', '1')
     );
 
-    const prevParams = populateAll(
+    const prevParams = project(
       new HttpParams()
-        .set('filters[slug][$lt]', norm) // slug precedente (A→Z)
+        .set('filters[slug][$lt]', norm)
         .set('sort', 'slug:desc')
         .set('pagination[pageSize]', '1')
     );
@@ -924,6 +1033,15 @@ export class CocktailService {
         catchError(() => of(null))
       );
 
-    return forkJoin({ prev: prev$, next: next$ }); // { prev: Cocktail|null, next: Cocktail|null }
+    return forkJoin({ prev: prev$, next: next$ }).pipe(
+      map((res: AdjacentPair): AdjacentPair => {
+        this.adjacentCache.set(norm, {
+          prev: res.prev,
+          next: res.next,
+          ts: now,
+        });
+        return res; // ✅ IMPORTANTISSIMO: restituisci res
+      })
+    );
   }
 }

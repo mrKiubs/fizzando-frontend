@@ -75,6 +75,9 @@ export class CocktailDetailComponent
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly ngZone = inject(NgZone);
   private adjacentSub?: Subscription;
+
+  @ViewChild('relatedSentinel') relatedSentinel!: ElementRef;
+  private relatedLoaded = false;
   // ===== State =====
   cocktail: Cocktail | undefined;
   loading = true;
@@ -208,6 +211,19 @@ export class CocktailDetailComponent
       this.wheelListenerCleanup = () =>
         listElement.removeEventListener('wheel', handler as any);
     });
+
+    if (!this.isBrowser || !this.relatedSentinel) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!this.relatedLoaded && entries.some((e) => e.isIntersecting)) {
+          this.relatedLoaded = true;
+          this.loadSimilarCocktails();
+          io.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    io.observe(this.relatedSentinel.nativeElement);
   }
 
   ngOnDestroy(): void {
@@ -292,7 +308,7 @@ export class CocktailDetailComponent
             return;
           }
           this.cocktail = res;
-          this.fetchAllCocktailsIndex();
+          //this.fetchAllCocktailsIndex();
           this.setNavigationCocktails(this.cocktail.external_id);
           this.loading = false;
 
@@ -771,7 +787,7 @@ export class CocktailDetailComponent
     };
   }
 
-  /** Scarica tutto l’indice cocktail paginando lato client (rispetta il maxPageSize di Strapi) */
+  /** Scarica tutto l’indice cocktail paginando lato client (rispetta il maxPageSize di Strapi) 
   private fetchAllCocktailsIndex(): void {
     const PAGE_SIZE = 100;
     const collected: Cocktail[] = [];
@@ -849,7 +865,7 @@ export class CocktailDetailComponent
       },
     });
   }
-
+*/
   /** Tipi pubblicitari centralizzati */
   getTopAdType(): 'mobile-banner' | 'leaderboard' {
     return this.isMobile ? 'mobile-banner' : 'leaderboard';
@@ -875,7 +891,8 @@ export class CocktailDetailComponent
     this.adjacentSub = this.cocktailService
       .getAdjacentCocktailsBySlug(slug)
       .subscribe({
-        next: ({ prev, next }) => {
+        next: (res: { prev: Cocktail | null; next: Cocktail | null }) => {
+          const { prev, next } = res;
           this.previousCocktail = prev
             ? {
                 externalId: prev.external_id,
@@ -894,12 +911,12 @@ export class CocktailDetailComponent
               }
             : null;
 
-          this.indexReady = true; // sblocca la barra nav
+          this.indexReady = true;
         },
         error: () => {
           this.previousCocktail = null;
           this.nextCocktail = null;
-          this.indexReady = true; // sblocca comunque la UI
+          this.indexReady = true;
         },
       });
   }

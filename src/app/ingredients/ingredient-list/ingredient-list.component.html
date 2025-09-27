@@ -217,7 +217,9 @@
     ></app-ingredient-card>
 
     <!-- slot adv ogni adInterval card -->
-    <ng-container *ngIf="i > 0 && (i + 1) % adInterval === 0">
+    <ng-container
+      *ngIf="i > 0 && (i + 1) % adInterval === 0 && i < ingredients.length - 1"
+    >
       <ng-container *ngIf="contentReady">
         @defer (on viewport) {
         <section
