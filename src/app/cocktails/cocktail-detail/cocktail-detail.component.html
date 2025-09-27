@@ -350,7 +350,6 @@
   <!-- Navigation -->
   <div
     class="navigation-bar"
-    *ngIf="!loading && !error"
     role="navigation"
     aria-label="Cocktail navigation"
   >
@@ -361,7 +360,7 @@
         [routerLink]="['/cocktails', previousCocktail.slug]"
         class="glass-button secondary nav-button"
         [attr.aria-label]="
-          'Previous cocktail: ' + (previousCocktail?.name || '')
+          'Previous cocktail: ' + (previousCocktail.name || '')
         "
       >
         <mat-icon svgIcon="chevron_left" aria-hidden="true"></mat-icon>
@@ -393,7 +392,7 @@
         *ngIf="nextCocktail"
         [routerLink]="['/cocktails', nextCocktail.slug]"
         class="glass-button secondary nav-button"
-        [attr.aria-label]="'Next cocktail: ' + (nextCocktail?.name || '')"
+        [attr.aria-label]="'Next cocktail: ' + (nextCocktail.name || '')"
       >
         {{ nextCocktail.name }}
         <div class="cocktail-image-wrapper" aria-hidden="true">

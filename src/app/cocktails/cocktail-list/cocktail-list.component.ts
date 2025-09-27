@@ -322,12 +322,14 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         this.pageSize,
         this._searchTerm(),
         this._selectedCategory(),
-        this._selectedAlcoholic()
+        this._selectedAlcoholic(),
+        true
       )
       .subscribe({
         next: (res) => {
           if (res?.data?.length) {
-            this.cocktails = res.data.map((cocktail) => {
+            // 1. Mappa i dati per aggiungere le proprietà di layout (genera un NUOVO array)
+            let mappedCocktails = res.data.map((cocktail) => {
               const rnd = Math.random();
               const isTall = rnd < 0.2;
               const isWide = !isTall && rnd < 0.35;
@@ -338,6 +340,17 @@ export class CocktailListComponent implements OnInit, OnDestroy {
                 matchedIngredientCount: 0,
               } as CocktailWithLayoutAndMatch;
             });
+
+            // 2. ⭐ APPLICA L'ORDINAMENTO ALFABETICO SULLO SLUG NORMALIZZATO ⭐
+            // Se lo slug è già normalizzato, l'ordinamento sarà coerente (A-Z).
+            mappedCocktails.sort((a, b) => {
+              // Assumiamo che la proprietà 'slug' contenga lo slug normalizzato.
+              return a.slug.localeCompare(b.slug);
+            });
+
+            // 3. Assegna l'array ORDINATO alla proprietà del componente
+            this.cocktails = mappedCocktails;
+
             this.totalItems = res.meta.pagination.total;
             this.totalPages = res.meta.pagination.pageCount;
           } else {
