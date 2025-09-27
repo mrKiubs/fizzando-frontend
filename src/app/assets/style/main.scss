@@ -826,10 +826,13 @@ body {
   height: 46px;
 
   &.expanded {
-    height: 170px;
+    height: 280px;
 
     @media (max-width: 768px) {
-      height: 360px;
+      height: 480px;
+    }
+    @media (max-width: 600px) {
+      height: 385px;
     }
   }
 
@@ -889,13 +892,13 @@ body {
   .accordion-content {
     opacity: 1;
     overflow: hidden;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+    display: grid;
+    gap: 0 16px;
+    grid-template-columns: 1fr 1fr 1fr;
     padding: 0 16px;
 
-    @media (max-width: 768px) {
-      flex-direction: column;
+    .letter-filter {
+      grid-column: 1 / -1;
     }
   }
 
@@ -1204,5 +1207,13 @@ mat-icon {
     flex-direction: row;
     margin-top: 0;
     margin-bottom: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .accordion-content {
+    > div {
+      grid-column: 1 / -1 !important;
+    }
   }
 }
