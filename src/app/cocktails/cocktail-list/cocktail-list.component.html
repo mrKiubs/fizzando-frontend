@@ -42,8 +42,7 @@
   ></mat-icon>
 </div>
 
-<!-- FILTERS (fix: defer solo per primo load, chiusura con *ngIf) -->
-<!-- FILTERS con @defer funzionante e minimo codice -->
+<!-- FILTERS (accordion) -->
 <div class="filters-accordion" [class.expanded]="isExpanded()">
   <div class="accordion-header" #filtersToggle (click)="toggleExpansion()">
     <h3 class="accordion-title">
@@ -111,6 +110,8 @@
       </div>
     </div>
 
+    <!-- LETTER FILTER BAR (sempre visibile, subito sotto i filtri) -->
+
     <div class="filter-group filter-button-row">
       <button
         class="glass-button secondary"
@@ -120,6 +121,41 @@
         <mat-icon svgIcon="clear_all" aria-hidden="true"></mat-icon>
         Clear Filters
       </button>
+    </div>
+
+    <div class="letter-filter">
+      <div class="letter-filter__label">Browse by letter</div>
+
+      <div
+        class="letter-filter__chips"
+        role="group"
+        aria-label="Filter cocktails by first letter"
+      >
+        <!-- chip "All" -->
+        <a
+          [attr.href]="buildUrlWithParams({ letter: null, page: 1 })"
+          class="chip"
+          [class.active]="!selectedLetter()"
+          (click)="$event.preventDefault(); applyLetter(null)"
+        >
+          All
+        </a>
+
+        <!-- A–Z chips -->
+        <a
+          *ngFor="let letter of letters"
+          [attr.href]="
+            buildUrlWithParams({ letter: letter, search: null, page: 1 })
+          "
+          class="chip"
+          [class.active]="selectedLetter() === letter"
+          (click)="$event.preventDefault(); applyLetter(letter)"
+          [attr.aria-pressed]="selectedLetter() === letter"
+          [attr.aria-label]="'Filter by letter ' + letter"
+        >
+          {{ letter }}
+        </a>
+      </div>
     </div>
   </div>
   } @placeholder {
@@ -144,24 +180,26 @@
   </ng-container>
 
   <ng-template #countsLoadedCL>
-    <div class="arrows" aria-hidden="true">
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-    </div>
+    <div class="status-loaded">
+      <div class="arrows" aria-hidden="true">
+        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      </div>
 
-    <span class="status-text">
-      <b>{{ totalItems }}</b>
-      {{ totalItems === 1 ? "cocktail" : "cocktails" }} found
-      <ng-container *ngIf="getActiveFiltersText() !== 'No filters active'">
-        — filters: <b>{{ getActiveFiltersText() }}</b>
-      </ng-container>
-    </span>
+      <span class="status-text">
+        <b>{{ totalItems }}</b>
+        {{ totalItems === 1 ? "cocktail" : "cocktails" }} found
+        <ng-container *ngIf="getActiveFiltersText() !== 'No filters active'">
+          — filters: <b>{{ getActiveFiltersText() }}</b>
+        </ng-container>
+      </span>
 
-    <div class="arrows" aria-hidden="true">
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <div class="arrows" aria-hidden="true">
+        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      </div>
     </div>
   </ng-template>
 </div>
@@ -230,7 +268,6 @@
         ></app-dev-ads>
       </section>
       } @placeholder {
-      <!-- Placeholder identico: stesso wrapper + stesso componente -->
       <section
         class="ad-block"
         role="complementary"
@@ -253,7 +290,7 @@
 
 <div class="pagination-container" *ngIf="!loading && totalPages > 1">
   <div class="pagination-controls">
-    <!-- Prev: sempre visibile -->
+    <!-- Prev -->
     <ng-container *ngIf="currentPage > 1; else prevDisabled">
       <a
         [attr.href]="buildUrlWithParams({ page: currentPage - 1 })"
@@ -334,7 +371,7 @@
       </ng-container>
     </div>
 
-    <!-- Next: sempre visibile -->
+    <!-- Next -->
     <ng-container *ngIf="currentPage < totalPages; else nextDisabled">
       <a
         [attr.href]="buildUrlWithParams({ page: currentPage + 1 })"
@@ -358,41 +395,6 @@
   </div>
 </div>
 
-<!--
-<section class="glass-card">
-  <h2 class="section-title">🛒 Craft Cocktails with the Right Tools</h2>
-  @defer (on viewport) {
-  <div class="affiliate-card-list" #affiliateCardList>
-    <div class="scrollerdiv">
-      <ng-container *ngFor="let product of productList; let i = index">
-        <div class="aff-item">
-          <app-affiliate-product
-            [title]="product.title"
-            [imageUrl]="product.imageUrl"
-            [price]="product.price"
-            [link]="product.link"
-            [showPlaceholder]="product.showPlaceholder"
-          >
-          </app-affiliate-product>
-        </div>
-      </ng-container>
-    </div>
-  </div>
-  } @placeholder {
-  <div class="affiliate-card-list placeholder" aria-hidden="true">
-    <div class="scrollerdiv">
-      <div class="aff-item skeleton"></div>
-      <div class="aff-item skeleton"></div>
-      <div class="aff-item skeleton"></div>
-    </div>
-  </div>
-  }
-  <p class="affiliate-bottom">
-    We may receive a small commission if you purchase through these links — it
-    helps keep the shaker shaking! 🙌🍸
-  </p>
-</section>
--->
 <div class="key-features-section">
   <h3>Why use Fizzando to explore cocktails?</h3>
   <div class="feature-item">

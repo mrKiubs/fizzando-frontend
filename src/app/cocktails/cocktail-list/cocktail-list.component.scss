@@ -92,14 +92,12 @@ hr {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-
-@media (min-width: 900px) {
+@media (min-width: 768px) {
   .cocktail-list {
     grid-template-columns: repeat(3, 1fr);
   }
 }
-
-@media (min-width: 1200px) {
+@media (min-width: 900px) {
   .cocktail-list {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -141,12 +139,14 @@ hr {
 
   .filter-group {
     flex: 1 1 calc(33% - 16px);
-    min-width: 200px;
+    min-width: 100%;
     max-width: calc(33% - 16px);
     padding: 16px 0;
-  }
 
-  .filter-group.filter-button-row {
+    &.filter-button-row {
+      justify-content: flex-end;
+      align-items: flex-end;
+    }
   }
 }
 
@@ -159,5 +159,106 @@ hr {
   .filter-group.filter-button-row {
     align-self: center;
     width: auto;
+    margin-top: 0;
+  }
+}
+
+/* === LETTER FILTER (nuovo) === */
+.letter-filter {
+  text-align: center;
+
+  .letter-filter__label {
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 8px;
+
+    @media (max-width: 600px) {
+      text-align: left;
+    }
+  }
+
+  .letter-filter__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+
+    @media (max-width: 600px) {
+      justify-content: left;
+    }
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    min-width: 36px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.95rem;
+    line-height: 1;
+    transition: background 0.2s ease, border-color 0.2s ease,
+      transform 0.08s ease;
+    will-change: background, border-color;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
+    }
+
+    &.active,
+    &[aria-pressed="true"] {
+      background: rgba(0, 123, 255, 0.35);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+}
+
+/* Mobile: chips scrollabili in orizzontale */
+@media (max-width: 600px) {
+  .letter-filter {
+    .letter-filter__chips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 4px 4px 6px;
+      gap: 6px;
+
+      /* nasconde scrollbar su alcuni browser senza rompere l’accessibilità */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+      &::-webkit-scrollbar {
+        height: 6px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 9999px;
+      }
+    }
+
+    .chip {
+      padding: 0.45rem 0.65rem;
+      font-size: 0.9rem;
+      min-width: 34px;
+    }
   }
 }

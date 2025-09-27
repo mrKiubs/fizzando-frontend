@@ -70,27 +70,31 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   private itemListSchemaScript?: HTMLScriptElement;
   private collectionSchemaScript?: HTMLScriptElement;
   private breadcrumbsSchemaScript?: HTMLScriptElement;
+  private faqSchemaScript?: HTMLScriptElement;
 
   fontsLoaded = false;
 
-  // --- Stato (signals per evitare FormsModule) ---
+  // --- Stato (signals) ---
   private _searchTerm = signal<string>('');
   private _selectedCategory = signal<string>('');
   private _selectedAlcoholic = signal<string>('');
+  private _selectedLetter = signal<string>(''); // ⭐ nuovo
   private _isExpanded = signal<boolean>(false);
-  private frozenY = 0;
-  private isScrollFrozen = false;
 
-  // --- Fallback mobile: memorizzo la posizione senza freeze ---
-  private lastScrollYBeforeNav = 0;
-  // getter per template
+  // esposizione al template
   searchTerm = this._searchTerm;
   selectedCategory = this._selectedCategory;
   selectedAlcoholic = this._selectedAlcoholic;
+  selectedLetter = this._selectedLetter; // ⭐ nuovo
   isExpanded = this._isExpanded;
-  contentReady = false;
-  // --- Freeze/Unfreeze scroll viewport + lock altezza lista ---
 
+  // barra lettere
+  letters: string[] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''); // ⭐ nuovo
+
+  // freeze/scroll mgmt
+  private frozenY = 0;
+  private isScrollFrozen = false;
+  private lastScrollYBeforeNav = 0;
   private prevScrollBehavior = '';
   private listHeightLocked = false;
   private preventTouchMove = (e: TouchEvent) => e.preventDefault();
@@ -265,16 +269,18 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       'Cocktails Explorer: Recipes, Ingredients & Guides | Fizzando'
     );
 
-    // reagisci ai parametri di query
+    // reagisci ai parametri di query (aggiunta 'letter')
     this.route.queryParams.subscribe((params) => {
       const q = (params['search'] as string) || '';
       const cat = (params['category'] as string) || '';
       const alc = (params['alcoholic'] as string) || '';
       const page = parseInt(params['page'], 10) || 1;
+      const letterRaw = (params['letter'] as string) || '';
 
       this._searchTerm.set(q);
       this._selectedCategory.set(cat);
       this._selectedAlcoholic.set(alc);
+      this._selectedLetter.set(this.normalizeLetter(letterRaw)); // ⭐ nuovo
       this.currentPage = page;
 
       this.loadCocktails();
@@ -295,9 +301,16 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     this.cleanupSeo();
   }
 
-  // --- Handlers per template (evitano cast in HTML) ---
+  // --- Normalizza la lettera (A–Z) ---
+  private normalizeLetter(v: string): string {
+    const c = (v || '').trim().charAt(0).toUpperCase();
+    return /^[A-Z]$/.test(c) ? c : '';
+  }
+
+  // --- Handlers per template ---
   onSearchInput(e: Event) {
     const v = (e.target as HTMLInputElement).value ?? '';
+    // se l'utente digita, lascia che la search prevalga
     this.setSearch(v);
   }
   onCategoryChange(e: Event) {
@@ -311,16 +324,43 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
+  // ⭐ Nuovo: applica/azzera filtro lettera
+  applyLetter(letter: string | null): void {
+    const norm = this.normalizeLetter(letter || '');
+    const current = this._selectedLetter();
+
+    // toggle: se clicchi la stessa lettera → rimuovi
+    const nextVal = norm && norm === current ? '' : norm;
+
+    // quando scegli una lettera, azzera la search per evitare conflitti UX
+    this._searchTerm.set('');
+
+    this.pendingScroll = 'filter';
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        letter: nextVal || null,
+        search: null, // azzera search
+        page: 1,
+      },
+      queryParamsHandling: 'merge',
+      state: { suppressScroll: true },
+    });
+  }
+
   // --- Data/UI ---
   loadCocktails(): void {
     this.loading = true;
     this.error = null;
 
+    // ⭐ Search effettiva: prima search, altrimenti lettera
+    const effectiveSearch = this._searchTerm() || this._selectedLetter();
+
     this.cocktailService
       .getCocktails(
         this.currentPage,
         this.pageSize,
-        this._searchTerm(),
+        effectiveSearch, // ⭐ qui
         this._selectedCategory(),
         this._selectedAlcoholic(),
         true
@@ -328,7 +368,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           if (res?.data?.length) {
-            // 1. Mappa i dati per aggiungere le proprietà di layout (genera un NUOVO array)
             let mappedCocktails = res.data.map((cocktail) => {
               const rnd = Math.random();
               const isTall = rnd < 0.2;
@@ -341,16 +380,10 @@ export class CocktailListComponent implements OnInit, OnDestroy {
               } as CocktailWithLayoutAndMatch;
             });
 
-            // 2. ⭐ APPLICA L'ORDINAMENTO ALFABETICO SULLO SLUG NORMALIZZATO ⭐
-            // Se lo slug è già normalizzato, l'ordinamento sarà coerente (A-Z).
-            mappedCocktails.sort((a, b) => {
-              // Assumiamo che la proprietà 'slug' contenga lo slug normalizzato.
-              return a.slug.localeCompare(b.slug);
-            });
+            // Ordina per slug A→Z
+            mappedCocktails.sort((a, b) => a.slug.localeCompare(b.slug));
 
-            // 3. Assegna l'array ORDINATO alla proprietà del componente
             this.cocktails = mappedCocktails;
-
             this.totalItems = res.meta.pagination.total;
             this.totalPages = res.meta.pagination.pageCount;
           } else {
@@ -375,8 +408,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
           this.loading = false;
           this.totalItems = 0;
           this.totalPages = 0;
-          // evita collasso improvviso della lista in errore, ma se vuoi puoi svuotare:
-          // this.cocktails = [];
           this.unfreezeScroll(true);
           this.unlockListHeight();
           this.setSeoTagsAndSchemaList();
@@ -388,24 +419,32 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   private debounceNavigateForSearch(): void {
     if (this.searchDebounceHandle) clearTimeout(this.searchDebounceHandle);
     this.searchDebounceHandle = setTimeout(() => {
-      this.pendingScroll = 'search'; // niente scroll
+      this.pendingScroll = 'search';
       this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: { search: this._searchTerm() || null, page: 1 },
+        queryParams: {
+          search: this._searchTerm() || null,
+          page: 1,
+          // opzionale: se vuoi che digitando una search si rimuova la lettera dall'URL,
+          // decommenta la riga seguente:
+          // letter: this._searchTerm() ? null : this._selectedLetter() || null,
+        },
         queryParamsHandling: 'merge',
-        state: { suppressScroll: true }, // AppComponent rispetta questo
+        state: { suppressScroll: true },
       });
     }, 300);
   }
 
   applyFilters(): void {
-    this.pendingScroll = 'filter'; // niente scroll
+    this.pendingScroll = 'filter';
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
         category: this._selectedCategory() || null,
         alcoholic: this._selectedAlcoholic() || null,
         search: this._searchTerm() || null,
+        // mantieni la lettera così com’è
+        letter: this._selectedLetter() || null,
         page: 1,
       },
       queryParamsHandling: 'merge',
@@ -414,10 +453,11 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   }
 
   clearFilters(): void {
-    this.pendingScroll = 'filter'; // niente scroll
+    this.pendingScroll = 'filter';
     this._searchTerm.set('');
     this._selectedCategory.set('');
     this._selectedAlcoholic.set('');
+    this._selectedLetter.set(''); // ⭐ azzera lettera
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -425,6 +465,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         category: null,
         alcoholic: null,
         search: null,
+        letter: null,
         page: null,
       },
       queryParamsHandling: 'merge',
@@ -448,7 +489,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         state: { suppressScroll: true },
       });
 
-      // mobile: ripristina subito per evitare flash
       if (!this.freezeSafe && this.isBrowser) {
         requestAnimationFrame(() =>
           window.scrollTo({
@@ -469,9 +509,12 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     faqItem.isExpanded = !faqItem.isExpanded;
   }
 
+  // --- Summary filtri (aggiunge lettera se non c'è search) ---
   getActiveFiltersText(): string {
     const active: string[] = [];
     if (this._searchTerm()) active.push(`"${this._searchTerm()}"`);
+    if (!this._searchTerm() && this._selectedLetter())
+      active.push(`Letter: ${this._selectedLetter()}`); // ⭐ nuovo
     if (this._selectedCategory()) active.push(this._selectedCategory());
     if (this._selectedAlcoholic()) active.push(this._selectedAlcoholic());
     return active.length ? active.join(', ') : 'No filters active';
@@ -559,6 +602,9 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     const parts: string[] = [];
 
     if (this._searchTerm()) parts.push(`Search: "${this._searchTerm()}"`);
+    else if (this._selectedLetter())
+      parts.push(`Letter: ${this._selectedLetter()}`); // ⭐ nuovo
+
     if (this._selectedCategory()) parts.push(this._selectedCategory());
     if (this._selectedAlcoholic()) parts.push(this._selectedAlcoholic());
 
@@ -585,6 +631,8 @@ export class CocktailListComponent implements OnInit, OnDestroy {
 
     const filters: string[] = [];
     if (this._searchTerm()) filters.push(`search "${this._searchTerm()}"`);
+    else if (this._selectedLetter())
+      filters.push(`letter ${this._selectedLetter()}`); // ⭐ nuovo
     if (this._selectedCategory())
       filters.push(`category ${this._selectedCategory()}`);
     if (this._selectedAlcoholic()) filters.push(this._selectedAlcoholic());
@@ -645,7 +693,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   }
 
   // === SEO: JSON-LD ===
-  // === SEO: JSON-LD ===
   private addJsonLdItemList(): void {
     const head = this.doc?.head;
     if (!head) return;
@@ -669,7 +716,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       name: 'Cocktails Explorer',
       inLanguage: 'en',
       itemListOrder: 'https://schema.org/ItemListOrderAscending',
-      // totale risultati (non solo la pagina corrente)
       numberOfItems: this.totalItems,
       startIndex,
       url: pageAbsUrl,
@@ -677,11 +723,11 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         '@type': 'ListItem',
         position: startIndex + i,
         item: {
-          '@type': 'Recipe', // tipizzo l’item come Recipe (cocktail)
+          '@type': 'Recipe',
           '@id': this.getFullSiteUrl(`/cocktails/${c.slug}`),
           url: this.getFullSiteUrl(`/cocktails/${c.slug}`),
           name: c.name,
-          image: this.getCocktailImageUrl(c), // assoluta
+          image: this.getCocktailImageUrl(c),
         },
       })),
     };
@@ -765,15 +811,12 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     const title = this.buildDynamicTitle();
     const description = this.buildDynamicDescription();
 
-    // Titolo e meta standard
     this.titleService.setTitle(title);
     this.metaService.updateTag({ name: 'description', content: description });
 
-    // Canonical corrente
     const canonicalAbs = this.getFullSiteUrl(this.router.url);
     this.setCanonicalLink(canonicalAbs);
 
-    // Prev / Next
     const prevUrl =
       this.totalPages > 1 && this.currentPage > 1
         ? this.getFullSiteUrl(
@@ -788,7 +831,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         : null;
     this.setPrevNextLinks(prevUrl, nextUrl);
 
-    // OpenGraph / Twitter
     const ogImage =
       this.cocktails.length > 0
         ? this.getCocktailImageUrl(this.cocktails[0])
@@ -818,13 +860,10 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     });
     this.metaService.updateTag({ name: 'twitter:image', content: ogImage });
 
-    // JSON-LD
     this.addJsonLdItemList();
     this.addJsonLdCollectionPageAndBreadcrumbs(title, description);
     this.addJsonLdFaqPage();
   }
-
-  private faqSchemaScript?: HTMLScriptElement;
 
   private addJsonLdFaqPage(): void {
     const head = this.doc?.head;
@@ -924,12 +963,10 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     this.cleanupJsonLdScript(this.faqSchemaScript);
   }
 
-  // --- Offset per header sticky (se presente) ---
   // --- Offset per header/menu fixed ---
   private getScrollOffset(): number {
     if (!this.isBrowser) return 0;
 
-    // candidati comuni per header fixed/sticky
     const candidates = [
       document.querySelector('app-navbar'),
       document.querySelector('.site-header'),
@@ -938,7 +975,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       document.querySelector('header'),
     ].filter(Boolean) as HTMLElement[];
 
-    // prendi il PRIMO che è realmente fixed/sticky e visibile
     const header = candidates.find((el) => {
       const cs = getComputedStyle(el);
       const pos = cs.position;
@@ -946,7 +982,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       return (
         (pos === 'fixed' || pos === 'sticky') &&
         rect.height > 0 &&
-        // tocchi o quasi il top dello schermo
         Math.abs(rect.top) < 4
       );
     });
@@ -955,8 +990,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       ? Math.round(header.getBoundingClientRect().height)
       : 0;
 
-    // padding extra per stare un filo più sotto al menu
-    const extra = this.isMobile ? 130 : 130; // ↑ aumenta/diminuisci a gusto
+    const extra = this.isMobile ? 130 : 130;
 
     return headerH + extra;
   }
@@ -996,7 +1030,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     html.style.scrollBehavior = 'auto';
     html.style.overflow = 'hidden';
 
-    // Compensa la scomparsa scrollbar (evita salto orizzontale)
     const sbw = window.innerWidth - document.documentElement.clientWidth;
 
     const body = document.body as HTMLBodyElement;
@@ -1008,7 +1041,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     body.style.overflow = 'hidden';
     if (sbw > 0) body.style.paddingRight = `${sbw}px`;
 
-    // blocca gesture touch (iOS)
     window.addEventListener('touchmove', this.preventTouchMove, {
       passive: false,
     });
@@ -1044,7 +1076,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     this.ngZone.runOutsideAngular(() => {
       requestAnimationFrame(() => {
         setTimeout(() => {
-          // sblocca sempre prima di calcolare il target
           this.unfreezeScroll(true);
 
           const firstCard = document.querySelector(

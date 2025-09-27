@@ -10,7 +10,7 @@ import {
   concatMap,
 } from 'rxjs';
 
-import { map, filter, catchError, shareReplay } from 'rxjs/operators';
+import { map, filter, catchError, shareReplay, finalize } from 'rxjs/operators';
 import { env } from '../config/env';
 
 // --- NUOVA INTERFACCIA: Article (per la relazione) ---
@@ -393,12 +393,30 @@ export class IngredientService {
   /** Pianifica una richiesta (Observable) in idle, instradata nella coda con cap. */
   private enqueueIdle<T>(factory: () => Observable<T>): void {
     const job = () => {
-      const sub = factory().subscribe({
-        next: () => this.onPrefetchDone(sub),
-        error: () => this.onPrefetchDone(sub),
+      // crea un contenitore prima della subscribe, così esiste anche se l'Observable è sincrono
+      const sink = new Subscription();
+
+      // traccialo subito, così possiamo sempre rimuoverlo in onPrefetchDone
+      this.prefetchSubs.add(sink);
+
+      const obs$ = factory().pipe(
+        finalize(() => this.onPrefetchDone(sink)) // chiamato anche se completa/errore in modo sincrono
+      );
+
+      const innerSub = obs$.subscribe({
+        next: () => {
+          /* noop */
+        },
+        error: () => {
+          /* finalize gestisce la pulizia */
+        },
+        complete: () => {
+          /* finalize gestisce la pulizia */
+        },
       });
-      this.prefetchSubs.add(sub);
-      return sub;
+
+      sink.add(innerSub);
+      return sink;
     };
 
     this.scheduleIdle(() => this.enqueueJob(job));
