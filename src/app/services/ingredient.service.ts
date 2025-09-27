@@ -7,7 +7,9 @@ import {
   BehaviorSubject,
   throwError,
   Subscription,
+  concatMap,
 } from 'rxjs';
+
 import { map, filter, catchError, shareReplay } from 'rxjs/operators';
 import { env } from '../config/env';
 
@@ -211,7 +213,8 @@ export class IngredientService {
     let params = new HttpParams()
       .set('pagination[page]', page.toString())
       .set('pagination[pageSize]', pageSize.toString())
-      .set('populate', 'image');
+      .set('populate', 'image')
+      .set('sort', 'name:asc');
 
     if (searchTerm)
       params = params.set('filters[name][$startsWithi]', searchTerm);
@@ -370,15 +373,18 @@ export class IngredientService {
   }
 
   /** Pre-warm dell’indice “all ingredients” (solo se non in cache). Parte in idle. */
-  prefetchAllIngredientsIndexSoft(): void {
+  prefetchAllIngredientsIndexSoft(pageSize = 100): void {
     if (
       this._allIngredientsCache ||
       this._allIngredientsLoadingSubject.getValue()
     )
       return;
     if (!this.canPrefetch()) return;
-    this.enqueueIdle(() =>
-      this.getIngredients(1, 48, undefined, undefined, undefined, true, false)
+    this.scheduleIdle(() =>
+      this.warmAllIngredientsIndex(pageSize).subscribe({
+        next: () => {},
+        error: () => {},
+      })
     );
   }
 
@@ -441,5 +447,87 @@ export class IngredientService {
     const effectiveType = (nav?.connection?.effectiveType ?? '') as string;
     const slow = /2g|slow-2g/.test(effectiveType);
     return !(saveData || slow);
+  }
+
+  /** Scarica TUTTE le pagine e popola _allIngredientsCache (+ byExternalId). */
+  // Scarica TUTTE le pagine, normalizza le immagini e popola la cache globale
+  warmAllIngredientsIndex(
+    pageSize = 100,
+    forceReload = false
+  ): Observable<Ingredient[]> {
+    if (this._allIngredientsCache && !forceReload)
+      return of(this._allIngredientsCache);
+
+    const collected: Ingredient[] = [];
+    this._allIngredientsLoadingSubject.next(true);
+
+    // prima pagina per scoprire quante pagine totali ci sono
+    let params = new HttpParams()
+      .set('pagination[page]', '1')
+      .set('pagination[pageSize]', String(pageSize))
+      .set('populate', 'image');
+
+    const first$ = this.http
+      .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
+      .pipe(
+        map((resp) => {
+          resp.data.forEach(
+            (ing) => (ing.image = this.processIngredientImage(ing.image))
+          );
+          collected.push(...resp.data);
+          return resp.meta?.pagination?.pageCount || 1;
+        })
+      );
+
+    return first$.pipe(
+      concatMap((pageCount) => {
+        if (pageCount <= 1) return of(null);
+
+        // catena sequenziale 2..N per non saturare la rete
+        let chain$ = of(null as unknown);
+        for (let p = 2; p <= pageCount; p++) {
+          chain$ = chain$.pipe(
+            concatMap(() => {
+              const pParams = new HttpParams()
+                .set('pagination[page]', String(p))
+                .set('pagination[pageSize]', String(pageSize))
+                .set('populate', 'image');
+              return this.http
+                .get<StrapiResponse<Ingredient>>(this.baseUrl, {
+                  params: pParams,
+                })
+                .pipe(
+                  map((resp) => {
+                    resp.data.forEach(
+                      (ing) =>
+                        (ing.image = this.processIngredientImage(ing.image))
+                    );
+                    collected.push(...resp.data);
+                    return null;
+                  })
+                );
+            })
+          );
+        }
+        return chain$;
+      }),
+      map(() => {
+        // ordina + salva cache globale
+        this._allIngredientsCache = collected
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name));
+        this._allIngredientsDataSubject.next(this._allIngredientsCache);
+        this._allIngredientsLoadingSubject.next(false);
+        this._allIngredientsCache.forEach((i) =>
+          this.byExternalId.set(i.external_id.toLowerCase(), i)
+        );
+        return this._allIngredientsCache!;
+      }),
+      catchError((err) => {
+        this._allIngredientsLoadingSubject.next(false);
+        return throwError(() => err);
+      }),
+      shareReplay(1)
+    );
   }
 }
