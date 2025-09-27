@@ -74,7 +74,7 @@ export class CocktailDetailComponent
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly ngZone = inject(NgZone);
-
+  private adjacentSub?: Subscription;
   // ===== State =====
   cocktail: Cocktail | undefined;
   loading = true;
@@ -85,7 +85,7 @@ export class CocktailDetailComponent
 
   heroSrc = '';
   heroSrcset = '';
-
+  indexReady = false;
   previousCocktail: {
     externalId: string;
     name: string;
@@ -183,9 +183,7 @@ export class CocktailDetailComponent
       this.heroSrc = this.getPreferred(this.getCocktailHeroUrl(this.cocktail));
       this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
       this.setSeoTagsAndSchema();
-
-      // 2) ❗ Defer NON-critiche dopo il paint (SOLO browser)
-      this.runAfterFirstPaint(() => this.kickOffNonCritical());
+      this.loadPrevNextBySlug(this.cocktail.slug);
 
       // 3) routing reattivo per navigazioni client-side
       this.subscribeToRouteParams(false);
@@ -217,6 +215,7 @@ export class CocktailDetailComponent
     this.allCocktailsSubscription?.unsubscribe();
     this.similarCocktailsSubscription?.unsubscribe();
     this.cocktailDetailSubscription?.unsubscribe();
+    this.adjacentSub?.unsubscribe();
     if (this.wheelListenerCleanup) this.wheelListenerCleanup();
     this.cleanupSeo();
   }
@@ -246,8 +245,6 @@ export class CocktailDetailComponent
 
     // A) Prev/Next: indice ordinato (usa in-memory cache del service)
 
-    this.fetchAllCocktailsIndex();
-
     // B) Simili
     this.loadSimilarCocktails();
 
@@ -265,7 +262,6 @@ export class CocktailDetailComponent
     this.relatedWithAds = [];
     this.contentReady = false; // blocca ads tra una navigazione e l’altra
     this.cleanupSeo();
-
     // Se abbiamo già l’indice in memoria, prova cache rapida per UX
     const cached = this.allCocktails.find((c) => c.slug === slug);
     if (cached) {
@@ -277,7 +273,7 @@ export class CocktailDetailComponent
       this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
       this.setSeoTagsAndSchema();
 
-      this.setNavigationCocktails(this.cocktail.external_id);
+      this.loadPrevNextBySlug(this.cocktail.slug);
 
       // non critiche, ma sempre deferite (browser)
       this.runAfterFirstPaint(() => this.kickOffNonCritical());
@@ -296,6 +292,8 @@ export class CocktailDetailComponent
             return;
           }
           this.cocktail = res;
+          this.fetchAllCocktailsIndex();
+          this.setNavigationCocktails(this.cocktail.external_id);
           this.loading = false;
 
           // hero + SEO
@@ -307,7 +305,7 @@ export class CocktailDetailComponent
 
           // prev/next: se abbiamo già l’elenco lo aggiorniamo subito,
           // altrimenti lo calcoleremo quando l’indice arriva
-          this.setNavigationCocktails(this.cocktail.external_id);
+          this.loadPrevNextBySlug(this.cocktail.slug);
 
           // non critiche deferite
           this.runAfterFirstPaint(() => this.kickOffNonCritical());
@@ -360,15 +358,26 @@ export class CocktailDetailComponent
 
   setNavigationCocktails(currentExternalId: string): void {
     if (!this.allCocktails?.length) return;
-    this.currentCocktailIndex = this.allCocktails.findIndex(
-      (c) => c.external_id === currentExternalId
+
+    const curId = String(currentExternalId);
+    let idx = this.allCocktails.findIndex(
+      (c) => String(c.external_id) === curId
     );
 
+    if (idx === -1 && this.cocktail?.slug) {
+      const currentSlug = (this.cocktail.slug || '').toLowerCase();
+      idx = this.allCocktails.findIndex(
+        (c) => (c.slug || '').toLowerCase() === currentSlug
+      );
+    }
+
+    this.currentCocktailIndex = idx;
     this.previousCocktail = null;
     this.nextCocktail = null;
+    if (idx <= -1) return;
 
-    if (this.currentCocktailIndex > 0) {
-      const prev = this.allCocktails[this.currentCocktailIndex - 1];
+    if (idx > 0) {
+      const prev = this.allCocktails[idx - 1];
       this.previousCocktail = {
         externalId: prev.external_id,
         name: prev.name,
@@ -376,8 +385,8 @@ export class CocktailDetailComponent
         slug: prev.slug,
       };
     }
-    if (this.currentCocktailIndex < this.allCocktails.length - 1) {
-      const next = this.allCocktails[this.currentCocktailIndex + 1];
+    if (idx < this.allCocktails.length - 1) {
+      const next = this.allCocktails[idx + 1];
       this.nextCocktail = {
         externalId: next.external_id,
         name: next.name,
@@ -764,36 +773,38 @@ export class CocktailDetailComponent
 
   /** Scarica tutto l’indice cocktail paginando lato client (rispetta il maxPageSize di Strapi) */
   private fetchAllCocktailsIndex(): void {
-    const PAGE_SIZE = 100; // sicuro per Strapi (se il tuo max è 250 puoi alzarlo)
+    const PAGE_SIZE = 100;
     const collected: Cocktail[] = [];
 
-    // prima pagina per sapere quante pagine totali servono
+    this.indexReady = false;
+
     const first$ = this.cocktailService.getCocktails(
       1,
       PAGE_SIZE,
       undefined,
       undefined,
       undefined,
-      true,
+      true, // sort=slug:asc
       false
     );
 
     this.allCocktailsSubscription = first$.subscribe({
       next: (firstResp) => {
-        collected.push(...firstResp.data);
-        const totalPages = firstResp.meta?.pagination?.pageCount || 1;
+        const pageData: Cocktail[] = firstResp?.data || [];
+        collected.push(...pageData);
 
-        // se c'è solo 1 pagina siamo già a posto
+        const totalPages = firstResp?.meta?.pagination?.pageCount || 1;
+
+        // Caso 1 pagina: già pronto
         if (totalPages <= 1) {
-          this.allCocktails = collected
-            .slice()
-            .sort((a, b) => a.name.localeCompare(b.name));
+          this.allCocktails = collected.slice(); // già ordinati dal backend
+          this.indexReady = true;
           if (this.cocktail)
             this.setNavigationCocktails(this.cocktail.external_id);
           return;
         }
 
-        // concatena sequenzialmente le restanti pagine: 2..N
+        // Catena sequenziale 2..N
         let chain$ = of(null as unknown);
         for (let p = 2; p <= totalPages; p++) {
           chain$ = (chain$ as Observable<unknown>).pipe(
@@ -804,7 +815,7 @@ export class CocktailDetailComponent
                 undefined,
                 undefined,
                 undefined,
-                true,
+                true, // sort=slug:asc
                 false
               )
             )
@@ -817,17 +828,14 @@ export class CocktailDetailComponent
               if (resp?.data) collected.push(...(resp.data as Cocktail[]));
             },
             complete: () => {
-              this.allCocktails = collected
-                .slice()
-                .sort((a, b) => a.name.localeCompare(b.name));
+              this.allCocktails = collected; // già in ordine
+              this.indexReady = true;
               if (this.cocktail)
                 this.setNavigationCocktails(this.cocktail.external_id);
             },
             error: () => {
-              // anche se fallisce una pagina, usiamo quello che abbiamo
-              this.allCocktails = collected
-                .slice()
-                .sort((a, b) => a.name.localeCompare(b.name));
+              this.allCocktails = collected; // usa parziale ma sblocca
+              this.indexReady = true;
               if (this.cocktail)
                 this.setNavigationCocktails(this.cocktail.external_id);
             },
@@ -835,7 +843,9 @@ export class CocktailDetailComponent
         );
       },
       error: () => {
-        this.error = 'Could not load all cocktails for navigation.';
+        // Non bloccare la UI
+        this.indexReady = true;
+        // opz.: this.error = 'Could not load all cocktails for navigation.';
       },
     });
   }
@@ -855,5 +865,42 @@ export class CocktailDetailComponent
   /** Classe slot: aggiunge la classe specifica per width fissa in CSS */
   adSlotClass(type: string): string {
     return `ad-slot ${type}`;
+  }
+
+  private loadPrevNextBySlug(slug: string): void {
+    if (!slug) return;
+    this.indexReady = false; // usiamo lo stesso flag per sbloccare la UI quando pronto
+
+    this.adjacentSub?.unsubscribe();
+    this.adjacentSub = this.cocktailService
+      .getAdjacentCocktailsBySlug(slug)
+      .subscribe({
+        next: ({ prev, next }) => {
+          this.previousCocktail = prev
+            ? {
+                externalId: prev.external_id,
+                name: prev.name,
+                imageUrl: this.getPreferred(this.getCocktailImageUrl(prev)),
+                slug: prev.slug,
+              }
+            : null;
+
+          this.nextCocktail = next
+            ? {
+                externalId: next.external_id,
+                name: next.name,
+                imageUrl: this.getPreferred(this.getCocktailImageUrl(next)),
+                slug: next.slug,
+              }
+            : null;
+
+          this.indexReady = true; // sblocca la barra nav
+        },
+        error: () => {
+          this.previousCocktail = null;
+          this.nextCocktail = null;
+          this.indexReady = true; // sblocca comunque la UI
+        },
+      });
   }
 }

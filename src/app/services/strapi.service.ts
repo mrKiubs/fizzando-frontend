@@ -8,6 +8,7 @@ import {
   throwError,
   BehaviorSubject,
   Subscription,
+  forkJoin,
 } from 'rxjs';
 import { map, catchError, filter, shareReplay } from 'rxjs/operators';
 import { env } from '../config/env';
@@ -314,7 +315,7 @@ export class CocktailService {
       ai_sensory_description: raw.ai_sensory_description,
       ai_personality: raw.ai_personality,
       ai_variations: raw.ai_variations,
-      slug: raw.slug,
+      slug: (raw.slug || '').toLowerCase(),
     };
   }
 
@@ -326,6 +327,8 @@ export class CocktailService {
     searchTerm?: string,
     category?: string,
     alcoholic?: string,
+    forceAlphaSort: boolean = false,
+    includeIngredients: boolean = true,
     useCache: boolean = false,
     forceReload: boolean = false
   ): Observable<StrapiResponse<Cocktail>> {
@@ -374,7 +377,9 @@ export class CocktailService {
       .set('pagination[page]', page.toString())
       .set('pagination[pageSize]', pageSize.toString())
       .set('populate[image]', 'true'); // Popola l'immagine del cocktail
-
+    if (forceAlphaSort) {
+      params = params.set('sort', 'slug:asc');
+    }
     // Cicla sull'array e imposta i campi degli ingredienti in modo dinamico
     ingredientFields.forEach((field, index) => {
       params = params.set(
@@ -419,7 +424,11 @@ export class CocktailService {
           if (isAllCocktailsRequest) {
             this._allCocktailsCache = (response.data as Cocktail[])
               .slice()
-              .sort((a, b) => a.name.localeCompare(b.name));
+              .sort((a, b) =>
+                (a.slug || '').localeCompare(b.slug || '', undefined, {
+                  sensitivity: 'base',
+                })
+              );
             this._allCocktailsDataSubject.next(this._allCocktailsCache);
             this._allCocktailsLoadingSubject.next(false);
             this._allCocktailsCache.forEach((c) =>
@@ -866,5 +875,55 @@ export class CocktailService {
     const effectiveType = (nav?.connection?.effectiveType ?? '') as string;
     const slow = /2g|slow-2g/.test(effectiveType);
     return !(saveData || slow);
+  }
+
+  getAdjacentCocktailsBySlug(currentSlug: string) {
+    const norm = (currentSlug || '').toLowerCase();
+    const ingredientFields = ['name', 'external_id', 'ingredient_type'];
+
+    const populateAll = (params: HttpParams) => {
+      params = params.set('populate[image]', 'true');
+      ingredientFields.forEach((field, i) => {
+        params = params.set(
+          `populate[ingredients_list][populate][ingredient][fields][${i}]`,
+          field
+        );
+      });
+      params = params.set(
+        'populate[ingredients_list][populate][ingredient][populate][image]',
+        'true'
+      );
+      return params;
+    };
+
+    const nextParams = populateAll(
+      new HttpParams()
+        .set('filters[slug][$gt]', norm) // slug successivo (A→Z)
+        .set('sort', 'slug:asc')
+        .set('pagination[pageSize]', '1')
+    );
+
+    const prevParams = populateAll(
+      new HttpParams()
+        .set('filters[slug][$lt]', norm) // slug precedente (A→Z)
+        .set('sort', 'slug:desc')
+        .set('pagination[pageSize]', '1')
+    );
+
+    const next$ = this.http
+      .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params: nextParams })
+      .pipe(
+        map((r) => (r.data?.[0] ? this.cleanCocktailData(r.data[0]) : null)),
+        catchError(() => of(null))
+      );
+
+    const prev$ = this.http
+      .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params: prevParams })
+      .pipe(
+        map((r) => (r.data?.[0] ? this.cleanCocktailData(r.data[0]) : null)),
+        catchError(() => of(null))
+      );
+
+    return forkJoin({ prev: prev$, next: next$ }); // { prev: Cocktail|null, next: Cocktail|null }
   }
 }
