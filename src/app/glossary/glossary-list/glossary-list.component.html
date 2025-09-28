@@ -40,7 +40,7 @@
 </div>
 
 <!-- FILTERS -->
-<div class="filters-accordion" [class.expanded]="isExpanded">
+<div class="filters-accordion accordion-glossary" [class.expanded]="isExpanded">
   <div class="accordion-header" (click)="toggleExpansion()">
     <h3 class="accordion-title">
       <mat-icon class="accordion-icon" aria-hidden="true">filter_list</mat-icon>
@@ -52,7 +52,7 @@
   </div>
 
   <div
-    class="accordion-content"
+    class="accordion-content glossary-filter"
     [@accordionAnimation]="isExpanded ? 'open' : 'closed'"
   >
     <div class="accordion-content-wrapper">
