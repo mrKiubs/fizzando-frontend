@@ -23,9 +23,7 @@
         loading="eager"
         fetchpriority="high"
         decoding="async"
-        (error)="
-          onCardImgError($event, getCocktailCardImageUrl(cocktail.image))
-        "
+        (error)="onCardImgError($event)"
       />
     </picture>
 
@@ -62,17 +60,16 @@
           sizes="80px"
         />
 
-        <!-- DESKTOP: slot ~300px → preferisci ≤500w, quindi 320w -->
         <source
           media="(min-width: 701px)"
-          [srcset]="srcsetMaxWebp(cocktail.image, 500)"
+          [srcset]="srcsetMaxWebp(cocktail.image, 800)"
           type="image/webp"
-          sizes="300px"
+          sizes="(min-width:1200px) 320px, (min-width:900px) 33vw, 45vw"
         />
         <source
           media="(min-width: 701px)"
-          [srcset]="srcsetMaxJpg(cocktail.image, 500)"
-          sizes="300px"
+          [srcset]="srcsetMaxJpg(cocktail.image, 800)"
+          sizes="(min-width:1200px) 320px, (min-width:900px) 33vw, 45vw"
         />
 
         <img
@@ -86,9 +83,7 @@
           [attr.loading]="isLcp ? 'eager' : 'lazy'"
           [attr.fetchpriority]="isLcp ? 'high' : 'low'"
           decoding="async"
-          (error)="
-            onCardImgError($event, getCocktailCardImageUrl(cocktail.image))
-          "
+          (error)="onCardImgError($event)"
         />
       </picture>
 
@@ -182,12 +177,7 @@
                     fetchpriority="low"
                     decoding="async"
                     class="ingredient-icon"
-                    (error)="
-                      onCardImgError(
-                        $event,
-                        getIngredientIconUrlJpg(ingredient)
-                      )
-                    "
+                    (error)="onCardImgError($event)"
                   />
                 </picture>
 

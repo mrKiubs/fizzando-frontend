@@ -110,8 +110,6 @@
       </div>
     </div>
 
-    <!-- LETTER FILTER BAR (sempre visibile, subito sotto i filtri) -->
-
     <div class="filter-group filter-button-row">
       <button
         class="glass-button secondary"
@@ -122,7 +120,7 @@
         Clear Filters
       </button>
     </div>
-
+    <!-- LETTER FILTER BAR (sempre visibile, subito sotto i filtri) -->
     <div class="letter-filter">
       <div class="letter-filter__label">Browse by letter</div>
 
@@ -180,26 +178,24 @@
   </ng-container>
 
   <ng-template #countsLoadedCL>
-    <div class="status-loaded">
-      <div class="arrows" aria-hidden="true">
-        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      </div>
+    <div class="arrows" aria-hidden="true">
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+    </div>
 
-      <span class="status-text">
-        <b>{{ totalItems }}</b>
-        {{ totalItems === 1 ? "cocktail" : "cocktails" }} found
-        <ng-container *ngIf="getActiveFiltersText() !== 'No filters active'">
-          — filters: <b>{{ getActiveFiltersText() }}</b>
-        </ng-container>
-      </span>
+    <span class="status-text">
+      <b>{{ totalItems }}</b>
+      {{ totalItems === 1 ? "cocktail" : "cocktails" }} found<br />
+      <ng-container *ngIf="getActiveFiltersText() !== 'No filters active'">
+        filters: <b>{{ getActiveFiltersText() }}</b>
+      </ng-container>
+    </span>
 
-      <div class="arrows" aria-hidden="true">
-        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-        <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      </div>
+    <div class="arrows" aria-hidden="true">
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
     </div>
   </ng-template>
 </div>

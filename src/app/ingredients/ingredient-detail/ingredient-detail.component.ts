@@ -46,6 +46,15 @@ interface ProductItem {
   showPlaceholder: boolean;
 }
 
+/** Modello “slim” per la nav prev/next */
+type NavIngredient = {
+  id: number | string;
+  slug: string;
+  externalId?: string | number;
+  name: string;
+  imageUrl?: string | null;
+};
+
 @Component({
   selector: 'app-ingredient-detail',
   standalone: true,
@@ -74,19 +83,15 @@ export class IngredientDetailComponent
   loading = true;
   error: string | null = null;
   contentReady = false;
-  // --- navigazione prev/next
-  allIngredients: Ingredient[] = [];
-  currentIngredientIndex = -1;
-  previousIngredient: {
-    externalId: string;
-    name: string;
-    imageUrl: string;
-  } | null = null;
-  nextIngredient: {
-    externalId: string;
-    name: string;
-    imageUrl: string;
-  } | null = null;
+
+  // --- dataset completo (per nav & SEO)
+  private allIngredients: Ingredient[] = [];
+
+  // --- navigazione prev/next su lista ORDINATA PER SLUG
+  private allBySlug: NavIngredient[] = [];
+  public previousIngredient?: NavIngredient;
+  public nextIngredient?: NavIngredient;
+  private currentSlug = '';
 
   // --- responsive/seo
   isMobile = false;
@@ -167,16 +172,22 @@ export class IngredientDetailComponent
   // === lifecycle ============================================================
 
   ngOnInit(): void {
-    // carica elenco per prev/next (usa cache del servizio)
+    // 1) Carica elenco completo (cache del service consentita)
     this.allIngredientsSubscription = this.ingredientService
       .getIngredients(1, 1000, undefined, undefined, undefined, true)
       .subscribe({
         next: (response) => {
-          this.allIngredients = response.data;
+          this.allIngredients = response.data || [];
+          // costruisci indice ordinato per slug
+          this.allBySlug = this.sortBySlug(
+            this.allIngredients.map((it) => this.mapToNav(it))
+          );
+          // 2) poi sincronizza con la route
           this.subscribeToRouteParams();
         },
         error: (err) => {
           console.error('Error loading all ingredients:', err);
+          // anche se fallisce, proviamo comunque a leggere la route e caricare il singolo
           this.subscribeToRouteParams();
         },
       });
@@ -228,12 +239,13 @@ export class IngredientDetailComponent
 
     // prova cache allIngredients
     const cached = this.allIngredients.find(
-      (i) => i.external_id === externalId
+      (i) => String(i.external_id) === String(externalId)
     );
     if (cached) {
       this.ingredient = { ...(cached as IngredientDetail) };
-      this.setNavigationIngredients(externalId);
-      this.setSeoTagsAndSchema(); // ✅ SEO subito
+      this.currentSlug = this.safeSlugFromIngredient(cached);
+      this.computeNeighbors(); // ← calcolo prev/next su allBySlug
+      this.setSeoTagsAndSchema();
       this.unlockAdsWhenStable();
       this.loadRelatedCocktails(externalId);
       return;
@@ -248,8 +260,16 @@ export class IngredientDetailComponent
           return;
         }
         this.ingredient = { ...(res as IngredientDetail) };
-        this.setNavigationIngredients(externalId);
-        this.setSeoTagsAndSchema(); // ✅ SEO subito
+        this.currentSlug = this.safeSlugFromIngredient(res as Ingredient);
+
+        // se per qualsiasi motivo non avevamo l’indice, costruiscilo best-effort
+        if (!this.allBySlug.length) {
+          const single = this.mapToNav(res as Ingredient);
+          this.allBySlug = this.sortBySlug([single]);
+        }
+
+        this.computeNeighbors(); // ← calcolo prev/next
+        this.setSeoTagsAndSchema();
         this.unlockAdsWhenStable();
         this.loadRelatedCocktails(externalId);
       },
@@ -279,35 +299,57 @@ export class IngredientDetailComponent
       });
   }
 
-  // === navigation prev/next =================================================
+  // === NAV prev/next (ordinata per SLUG, stabile) ==========================
 
-  private setNavigationIngredients(currentExternalId: string): void {
-    if (!this.allIngredients?.length) return;
-
-    this.currentIngredientIndex = this.allIngredients.findIndex(
-      (i) => i.external_id === currentExternalId
-    );
-
-    this.previousIngredient = null;
-    this.nextIngredient = null;
-
-    if (this.currentIngredientIndex > 0) {
-      const prev = this.allIngredients[this.currentIngredientIndex - 1];
-      this.previousIngredient = {
-        externalId: prev.external_id,
-        name: prev.name,
-        imageUrl: this.getPreferred(this.getIngredientThumbUrl(prev)),
-      };
-    }
-    if (this.currentIngredientIndex < this.allIngredients.length - 1) {
-      const next = this.allIngredients[this.currentIngredientIndex + 1];
-      this.nextIngredient = {
-        externalId: next.external_id,
-        name: next.name,
-        imageUrl: this.getPreferred(this.getIngredientThumbUrl(next)),
-      };
-    }
+  /** Conversione Ingredient → NavIngredient */
+  private mapToNav(it: Ingredient): NavIngredient {
+    return {
+      id: (it as any).id ?? it.external_id ?? it.slug ?? it.name,
+      slug: this.safeSlugFromIngredient(it),
+      externalId: it.external_id ?? undefined,
+      name: it.name ?? '',
+      imageUrl: it.image?.url ?? null,
+    };
   }
+
+  /** Slug sicuro: preferisci .slug, poi external_id, poi name (slugificato) */
+  private safeSlugFromIngredient(it: Ingredient): string {
+    const raw =
+      (it as any).slug ||
+      (typeof it.external_id !== 'undefined' ? String(it.external_id) : '') ||
+      it.name ||
+      '';
+    return this.slugify(raw);
+  }
+
+  /** Sort stabile per slug (case-insensitive, numeric) */
+  private sortBySlug(arr: NavIngredient[]): NavIngredient[] {
+    return arr.slice().sort((a, b) =>
+      a.slug.localeCompare(b.slug, 'en', {
+        sensitivity: 'base',
+        numeric: true,
+      })
+    );
+  }
+
+  /** Calcola prev/next sulla lista globale ordinata per slug */
+  private computeNeighbors(): void {
+    this.previousIngredient = undefined;
+    this.nextIngredient = undefined;
+    if (!this.currentSlug || !this.allBySlug.length) return;
+
+    const idx = this.allBySlug.findIndex((x) => x.slug === this.currentSlug);
+    if (idx === -1) return;
+
+    const prevIdx = idx > 0 ? idx - 1 : -1;
+    const nextIdx = idx < this.allBySlug.length - 1 ? idx + 1 : -1;
+
+    this.previousIngredient =
+      prevIdx >= 0 ? this.allBySlug[prevIdx] : undefined;
+    this.nextIngredient = nextIdx >= 0 ? this.allBySlug[nextIdx] : undefined;
+  }
+
+  // === Navigazione UI =======================================================
 
   goBack(): void {
     if (this.isBrowser) window.history.back();
@@ -325,7 +367,7 @@ export class IngredientDetailComponent
     return 'assets/no-image.png';
   }
 
-  /** Preferisci medium/small/original per l’hero circolare (100x100) */
+  /** Preferisci thumbnail/small/medium per l’hero (≈100x100) con fallback all’originale */
   getIngredientHeroUrl(ing?: Ingredient | null): string {
     const img: any = ing?.image;
     if (!img) return 'assets/no-image.png';
@@ -333,7 +375,6 @@ export class IngredientDetailComponent
     const abs = (u?: string | null) =>
       u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
 
-    // Per 100px vanno bene thumbnail/small/medium in ordine
     if (img?.formats?.thumbnail?.url) return abs(img.formats.thumbnail.url);
     if (img?.formats?.small?.url) return abs(img.formats.small.url);
     if (img?.formats?.medium?.url) return abs(img.formats.medium.url);
@@ -631,7 +672,6 @@ export class IngredientDetailComponent
     return `ad-slot ${type}`;
   }
 
-  /** Tipi di formato, centralizzati */
   getTopBannerType(): 'mobile-banner' | 'leaderboard' {
     return this.isMobile ? 'mobile-banner' : 'leaderboard';
   }
@@ -640,5 +680,20 @@ export class IngredientDetailComponent
   }
   getBottomBannerType(): 'mobile-banner' | 'leaderboard' {
     return this.isMobile ? 'mobile-banner' : 'leaderboard';
+  }
+
+  // === utils ===============================================================
+
+  private slugify(s: string): string {
+    const base =
+      (s || '')
+        .toString()
+        .trim()
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '') || '';
+    return (
+      base.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'ingredient'
+    );
   }
 }

@@ -221,10 +221,10 @@
       <!-- PREVIOUS -->
       <a
         *ngIf="previousIngredient"
-        [routerLink]="['/ingredients', previousIngredient.externalId]"
+        [routerLink]="['/ingredients', previousIngredient.slug]"
         class="glass-button secondary nav-button"
         [attr.aria-label]="
-          'Previous ingredient: ' + (previousIngredient?.name || '')
+          'Previous ingredient: ' + (previousIngredient.name || '')
         "
       >
         <mat-icon svgIcon="chevron_left" aria-hidden="true"></mat-icon>
@@ -243,9 +243,7 @@
             (error)="
               onImgError(
                 $event,
-                getIngredientThumbUrl(
-                  allIngredients[currentIngredientIndex - 1]
-                )
+                previousIngredient.imageUrl || 'assets/no-image.png'
               )
             "
           />
@@ -258,9 +256,9 @@
       <!-- NEXT -->
       <a
         *ngIf="nextIngredient"
-        [routerLink]="['/ingredients', nextIngredient.externalId]"
+        [routerLink]="['/ingredients', nextIngredient.slug]"
         class="glass-button secondary nav-button"
-        [attr.aria-label]="'Next ingredient: ' + (nextIngredient?.name || '')"
+        [attr.aria-label]="'Next ingredient: ' + (nextIngredient.name || '')"
       >
         {{ nextIngredient.name }}
 
@@ -278,9 +276,7 @@
             (error)="
               onImgError(
                 $event,
-                getIngredientThumbUrl(
-                  allIngredients[currentIngredientIndex + 1]
-                )
+                previousIngredient?.imageUrl || 'assets/no-image.png'
               )
             "
           />
