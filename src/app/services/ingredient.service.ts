@@ -7,10 +7,15 @@ import {
   BehaviorSubject,
   throwError,
   Subscription,
-  concatMap,
 } from 'rxjs';
-
-import { map, filter, catchError, shareReplay, finalize } from 'rxjs/operators';
+import {
+  map,
+  filter,
+  catchError,
+  shareReplay,
+  finalize,
+  concatMap,
+} from 'rxjs/operators';
 import { env } from '../config/env';
 
 // --- NUOVA INTERFACCIA: Article (per la relazione) ---
@@ -74,7 +79,7 @@ export interface Ingredient {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
-  slug?: string;
+  slug?: string; // opzionale
 }
 
 export interface StrapiResponse<T> {
@@ -106,7 +111,7 @@ export class IngredientService {
     null
   );
 
-  /** Cache per external_id → ingrediente (hit istantanei nella stessa sessione) */
+  /** Cache per external_id → ingrediente (hit istantanei) */
   private byExternalId = new Map<string, Ingredient>();
   private byExternalInFlight = new Map<string, Observable<Ingredient | null>>();
 
@@ -117,7 +122,7 @@ export class IngredientService {
   >();
   private listTTLms = 60_000; // 60s
 
-  // ------- PREFETCH (nuovo) --------
+  // ------- PREFETCH --------
   private PREFETCH_MAX_CONCURRENCY = 2;
   private activePrefetch = 0;
   private prefetchQueue: Array<() => Subscription> = [];
@@ -150,12 +155,29 @@ export class IngredientService {
     return image;
   }
 
+  // ---------- Comparator per "safe slug" (slug || external_id || name) ----------
+  private compareBySlug(a: Ingredient, b: Ingredient): number {
+    const sa = (
+      a.slug ?? (a.external_id ? String(a.external_id) : a.name ?? '')
+    )
+      .toString()
+      .trim()
+      .toLowerCase();
+    const sb = (
+      b.slug ?? (b.external_id ? String(b.external_id) : b.name ?? '')
+    )
+      .toString()
+      .trim()
+      .toLowerCase();
+
+    return sa.localeCompare(sb, 'en', { numeric: true, sensitivity: 'base' });
+  }
+
   // =============== API PUBBLICHE ===============
 
   /**
    * Lista con paginazione/filtri.
-   * - `useCache: true` -> popola/usa cache "all ingredients" (non più legata a pageSize).
-   * - Memoization per combinazione parametri (TTL).
+   * NIENTE sort server-side su "slug" (Strapi lo rifiuta) → ordiniamo client-side.
    */
   getIngredients(
     page: number = 1,
@@ -172,7 +194,7 @@ export class IngredientService {
       isAlcoholic === undefined &&
       ingredientType === undefined;
 
-    // 1) Se "all" è già in cache
+    // 1) cache "all"
     if (isAllIngredientsRequest && !forceReload && this._allIngredientsCache) {
       return of({
         data: this._allIngredientsCache,
@@ -187,7 +209,7 @@ export class IngredientService {
       });
     }
 
-    // 2) Se "all" è in corso, attendi lo stream centralizzato
+    // 2) in corso
     if (
       isAllIngredientsRequest &&
       this._allIngredientsLoadingSubject.getValue() &&
@@ -209,12 +231,11 @@ export class IngredientService {
       );
     }
 
-    // 3) Params per HTTP
+    // 3) params Strapi (NO sort per slug!)
     let params = new HttpParams()
-      .set('pagination[page]', page.toString())
-      .set('pagination[pageSize]', pageSize.toString())
-      .set('populate', 'image')
-      .set('sort', 'name:asc');
+      .set('pagination[page]', String(page))
+      .set('pagination[pageSize]', String(pageSize))
+      .set('populate[image]', 'true');
 
     if (searchTerm)
       params = params.set('filters[name][$startsWithi]', searchTerm);
@@ -225,13 +246,14 @@ export class IngredientService {
 
     if (isAllIngredientsRequest) this._allIngredientsLoadingSubject.next(true);
 
-    // 4) Memoization liste
+    // 4) memoization
     const keyObj = {
       page,
       pageSize,
       searchTerm: searchTerm ?? '',
       isAlcoholic: isAlcoholic ?? null,
       ingredientType: ingredientType ?? '',
+      sort: 'client:slug', // solo per la chiave cache
     };
     const key = JSON.stringify(keyObj);
     const now = Date.now();
@@ -244,18 +266,21 @@ export class IngredientService {
       .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
       .pipe(
         map((response) => {
+          // normalizza immagini
           response.data.forEach(
             (ing) => (ing.image = this.processIngredientImage(ing.image))
           );
 
+          // ORDINE CLIENT-SIDE per "safe slug"
+          response.data = response.data
+            .slice()
+            .sort((a, b) => this.compareBySlug(a, b));
+
+          // gestisci cache "all"
           if (isAllIngredientsRequest) {
-            // Ordina e memorizza
-            this._allIngredientsCache = response.data
-              .slice()
-              .sort((a, b) => a.name.localeCompare(b.name));
+            this._allIngredientsCache = response.data.slice();
             this._allIngredientsDataSubject.next(this._allIngredientsCache);
             this._allIngredientsLoadingSubject.next(false);
-            // Riempie anche la cache per external_id
             this._allIngredientsCache.forEach((i) =>
               this.byExternalId.set(i.external_id.toLowerCase(), i)
             );
@@ -267,6 +292,11 @@ export class IngredientService {
             this._allIngredientsLoadingSubject.next(false);
             this._allIngredientsDataSubject.error(err);
           }
+          console.error(
+            '[IngredientService.getIngredients] HTTP error:',
+            err?.status,
+            err?.error || err
+          );
           return throwError(
             () =>
               new Error(
@@ -282,17 +312,14 @@ export class IngredientService {
   }
 
   /**
-   * Dettaglio per external_id.
-   * Ordine: cache per external_id → attesa "all" se in corso → HTTP con coalescing.
+   * Dettaglio per external_id (cache → “all” in corso → HTTP)
    */
   getIngredientByExternalId(externalId: string): Observable<Ingredient | null> {
     const key = (externalId || '').toLowerCase();
 
-    // 1) Cache per external_id
     const hit = this.byExternalId.get(key);
     if (hit) return of(hit);
 
-    // 2) Se "all" è in caricamento, attendi e risolvi da lì
     if (this._allIngredientsLoadingSubject.getValue()) {
       return this._allIngredientsDataSubject.pipe(
         filter((data) => data !== null),
@@ -306,7 +333,6 @@ export class IngredientService {
       );
     }
 
-    // 3) HTTP con memoization (coalescing richieste concorrenti)
     const inFlight = this.byExternalInFlight.get(key);
     if (inFlight) return inFlight;
 
@@ -327,19 +353,23 @@ export class IngredientService {
           }
           return null;
         }),
-        catchError(() =>
-          throwError(
+        catchError((err) => {
+          console.error(
+            '[IngredientService.getIngredientByExternalId] HTTP error:',
+            err?.status,
+            err?.error || err
+          );
+          return throwError(
             () =>
               new Error(
                 'Could not get ingredient details from API. Check Strapi permissions for article population.'
               )
-          )
-        ),
+          );
+        }),
         shareReplay(1)
       );
 
     this.byExternalInFlight.set(key, req$);
-    // ripulisci la entry in-flight quando completa
     req$.subscribe({
       next: () => this.byExternalInFlight.delete(key),
       error: () => this.byExternalInFlight.delete(key),
@@ -349,21 +379,19 @@ export class IngredientService {
   }
 
   // ================================
-  //        PREFETCH (nuovo)
+  //        PREFETCH
   // ================================
 
-  /** Prefetch (in idle) del dettaglio ingrediente, con coda e cap di concorrenza. */
   prefetchIngredientByExternalId(externalId: string): void {
     const key = (externalId || '').toLowerCase();
     if (!key) return;
-    if (this.byExternalId.get(key)) return; // già in cache
-    if (this.byExternalInFlight.get(key)) return; // già in volo
-    if (!this.canPrefetch()) return; // rispetta rete/SaveData
+    if (this.byExternalId.get(key)) return;
+    if (this.byExternalInFlight.get(key)) return;
+    if (!this.canPrefetch()) return;
 
     this.enqueueIdle(() => this.getIngredientByExternalId(key));
   }
 
-  /** Prefetch di più ingredienti (es. i primi N della lista del cocktail). */
   prefetchIngredientsByExternalIds(externalIds: string[], limit = 5): void {
     if (!Array.isArray(externalIds) || !externalIds.length) return;
     const unique = Array.from(
@@ -372,7 +400,6 @@ export class IngredientService {
     unique.forEach((id) => this.prefetchIngredientByExternalId(id));
   }
 
-  /** Pre-warm dell’indice “all ingredients” (solo se non in cache). Parte in idle. */
   prefetchAllIngredientsIndexSoft(pageSize = 100): void {
     if (
       this._allIngredientsCache ||
@@ -389,30 +416,18 @@ export class IngredientService {
   }
 
   // ----- Prefetch runtime internals -----
-
-  /** Pianifica una richiesta (Observable) in idle, instradata nella coda con cap. */
   private enqueueIdle<T>(factory: () => Observable<T>): void {
     const job = () => {
-      // crea un contenitore prima della subscribe, così esiste anche se l'Observable è sincrono
+      // contenitore per la subscribe
       const sink = new Subscription();
-
-      // traccialo subito, così possiamo sempre rimuoverlo in onPrefetchDone
       this.prefetchSubs.add(sink);
 
-      const obs$ = factory().pipe(
-        finalize(() => this.onPrefetchDone(sink)) // chiamato anche se completa/errore in modo sincrono
-      );
+      const obs$ = factory().pipe(finalize(() => this.onPrefetchDone(sink)));
 
       const innerSub = obs$.subscribe({
-        next: () => {
-          /* noop */
-        },
-        error: () => {
-          /* finalize gestisce la pulizia */
-        },
-        complete: () => {
-          /* finalize gestisce la pulizia */
-        },
+        next: () => {},
+        error: () => {},
+        complete: () => {},
       });
 
       sink.add(innerSub);
@@ -459,7 +474,6 @@ export class IngredientService {
   }
 
   private canPrefetch(): boolean {
-    // Evita prefetch su risparmio dati o reti molto lente
     const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
     const saveData = !!nav?.connection?.saveData;
     const effectiveType = (nav?.connection?.effectiveType ?? '') as string;
@@ -468,7 +482,6 @@ export class IngredientService {
   }
 
   /** Scarica TUTTE le pagine e popola _allIngredientsCache (+ byExternalId). */
-  // Scarica TUTTE le pagine, normalizza le immagini e popola la cache globale
   warmAllIngredientsIndex(
     pageSize = 100,
     forceReload = false
@@ -479,11 +492,11 @@ export class IngredientService {
     const collected: Ingredient[] = [];
     this._allIngredientsLoadingSubject.next(true);
 
-    // prima pagina per scoprire quante pagine totali ci sono
+    // Prima pagina (NO sort su slug lato server)
     let params = new HttpParams()
       .set('pagination[page]', '1')
       .set('pagination[pageSize]', String(pageSize))
-      .set('populate', 'image');
+      .set('populate[image]', 'true');
 
     const first$ = this.http
       .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
@@ -501,7 +514,7 @@ export class IngredientService {
       concatMap((pageCount) => {
         if (pageCount <= 1) return of(null);
 
-        // catena sequenziale 2..N per non saturare la rete
+        // 2..N
         let chain$ = of(null as unknown);
         for (let p = 2; p <= pageCount; p++) {
           chain$ = chain$.pipe(
@@ -509,7 +522,8 @@ export class IngredientService {
               const pParams = new HttpParams()
                 .set('pagination[page]', String(p))
                 .set('pagination[pageSize]', String(pageSize))
-                .set('populate', 'image');
+                .set('populate[image]', 'true');
+
               return this.http
                 .get<StrapiResponse<Ingredient>>(this.baseUrl, {
                   params: pParams,
@@ -530,10 +544,10 @@ export class IngredientService {
         return chain$;
       }),
       map(() => {
-        // ordina + salva cache globale
+        // Ordina TUTTO client-side per "safe slug"
         this._allIngredientsCache = collected
           .slice()
-          .sort((a, b) => a.name.localeCompare(b.name));
+          .sort((a, b) => this.compareBySlug(a, b));
         this._allIngredientsDataSubject.next(this._allIngredientsCache);
         this._allIngredientsLoadingSubject.next(false);
         this._allIngredientsCache.forEach((i) =>
@@ -543,6 +557,11 @@ export class IngredientService {
       }),
       catchError((err) => {
         this._allIngredientsLoadingSubject.next(false);
+        console.error(
+          '[IngredientService.warmAllIngredientsIndex] HTTP error:',
+          err?.status,
+          err?.error || err
+        );
         return throwError(() => err);
       }),
       shareReplay(1)

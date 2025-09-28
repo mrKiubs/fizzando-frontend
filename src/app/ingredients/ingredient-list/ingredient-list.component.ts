@@ -160,6 +160,28 @@ export class IngredientListComponent implements OnInit, OnDestroy {
     return !(this.isIOS || this.isAndroid);
   }
   private lastScrollYBeforeNav = 0;
+  private getSafeSlug(it: Ingredient): string {
+    const slug =
+      (it as any).slug ??
+      (typeof it.external_id !== 'undefined' ? String(it.external_id) : '') ??
+      it.name ??
+      '';
+    return slug
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  private compareBySlug = (a: Ingredient, b: Ingredient): number => {
+    return this.getSafeSlug(a).localeCompare(this.getSafeSlug(b), 'en', {
+      sensitivity: 'base',
+      numeric: true,
+    });
+  };
 
   // --- Dati statici (opzioni filtri) ---
   alcoholicOptions: string[] = ['Alcoholic', 'Non-Alcoholic']; // UI
@@ -322,7 +344,8 @@ export class IngredientListComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (res) => {
-          this.ingredients = res?.data ?? [];
+          const data = res?.data ?? [];
+          this.ingredients = data.slice().sort(this.compareBySlug);
           this.totalItems = res?.meta?.pagination?.total ?? 0;
           this.totalPages = res?.meta?.pagination?.pageCount ?? 0;
 
