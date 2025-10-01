@@ -118,7 +118,7 @@ a.ingredient-link {
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
   @media (max-width: 600px) {
     padding: 8px; /* Adjusted padding for smaller screens */
@@ -219,7 +219,7 @@ a.ingredient-link {
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  box-shadow: 0 3px 6cqh rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   text-align: center;
 
   @media (max-width: 600px) {
@@ -291,7 +291,7 @@ a.ingredient-link {
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 50%;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 
   @media (min-width: 600px) {
@@ -446,7 +446,7 @@ body {
   cursor: pointer;
   outline: none;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
   &:hover:not(.active) {
     //background: rgba(255, 255, 255, 0.7);
@@ -575,7 +575,7 @@ body {
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   padding: 16px;
   color: #fff;
   width: 100%;
@@ -593,7 +593,7 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -775,7 +775,7 @@ body {
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   border-radius: 8px;
 }
 
@@ -814,7 +814,7 @@ body {
   max-width: 800px;
   margin: 16px auto 32px auto; /* Adjusted margin to position it better after search bar */
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   background-color: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(8px);
@@ -972,7 +972,7 @@ body {
 
     &:focus {
       border-color: #fff;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     option {

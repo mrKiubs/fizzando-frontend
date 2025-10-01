@@ -72,19 +72,16 @@
   border-radius: 12px;
   padding: 16px;
   backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(
-    5px
-  ); // Per compatibilità con browser basati su WebKit
-  transition: box-shadow 0.2s ease;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
-
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s ease;
   @media (max-width: 600px) {
     padding: 8px;
   }
 
   // Stili opzionali per l'hover, comuni per le "glass card"
   &:hover {
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); // Ombra più pronunciata
+    // background-color: #ffffff15;
   }
 }
 
