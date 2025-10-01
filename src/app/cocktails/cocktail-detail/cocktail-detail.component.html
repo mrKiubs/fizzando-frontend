@@ -73,46 +73,47 @@
           <h2 class="section-title">Ingredients</h2>
           <ul class="ingredient-list">
             <li *ngFor="let item of cocktail.ingredients_list">
-              <div class="image-ingredient-wrapper">
-                <img
-                  [src]="getPreferred(getIngredientImageUrl(item))"
-                  [alt]="item.ingredient.name"
-                  width="50"
-                  height="50"
-                  loading="lazy"
-                  decoding="async"
-                  [attr.fetchpriority]="'low'"
-                  (error)="onImgError($event, getIngredientImageUrl(item))"
-                />
-              </div>
-
-              <span class="ingredient-measure">{{ item.measure }}</span>
-
-              <ng-container
-                *ngIf="
-                  item.ingredient.external_id &&
-                    item.ingredient.external_id !== 'unknown-ingredient';
-                  else unknownIngredient
-                "
+              <a
+                [routerLink]="['/ingredients', item.ingredient.external_id]"
+                class="ingredient-link"
               >
-                <div class="ing-cocktail">
-                  <a
-                    [routerLink]="['/ingredients', item.ingredient.external_id]"
-                    class="ingredient-link"
-                  >
-                    {{ item.ingredient.name }}
-                  </a>
-                  <span class="ing-type">{{
-                    item.ingredient.ingredient_type
-                  }}</span>
+                <div class="image-ingredient-wrapper">
+                  <img
+                    [src]="getPreferred(getIngredientImageUrl(item))"
+                    [alt]="item.ingredient.name"
+                    width="50"
+                    height="50"
+                    loading="lazy"
+                    decoding="async"
+                    [attr.fetchpriority]="'low'"
+                    (error)="onImgError($event, getIngredientImageUrl(item))"
+                  />
                 </div>
-              </ng-container>
 
-              <ng-template #unknownIngredient>
-                <div class="ing-cocktail">
-                  <span>{{ item.ingredient.name }}</span>
-                </div>
-              </ng-template>
+                <span class="ingredient-measure">{{ item.measure }}</span>
+
+                <ng-container
+                  *ngIf="
+                    item.ingredient.external_id &&
+                      item.ingredient.external_id !== 'unknown-ingredient';
+                    else unknownIngredient
+                  "
+                >
+                  <div class="ing-cocktail">
+                    {{ item.ingredient.name }}
+
+                    <span class="ing-type">{{
+                      item.ingredient.ingredient_type
+                    }}</span>
+                  </div>
+                </ng-container>
+
+                <ng-template #unknownIngredient>
+                  <div class="ing-cocktail">
+                    <span>{{ item.ingredient.name }}</span>
+                  </div>
+                </ng-template>
+              </a>
             </li>
           </ul>
         </section>
