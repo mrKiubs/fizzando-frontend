@@ -286,6 +286,9 @@ h4 {
 
 .cocktail-display {
   position: relative;
+  position: relative; // obbligatorio per l'overlay assoluto
+  overflow: hidden; // tiene i coriandoli dentro al box
+  min-height: 220px;
   img {
     max-width: 210px;
     opacity: 0.7;

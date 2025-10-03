@@ -20,6 +20,8 @@ import {
   DOCUMENT,
   NgOptimizedImage,
 } from '@angular/common';
+import { Router } from '@angular/router';
+
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { forkJoin, Subscription, of } from 'rxjs';
@@ -47,6 +49,7 @@ import { CocktailCardComponent } from '../cocktails/cocktail-card/cocktail-card.
 import { IngredientCardComponent } from '../ingredients/ingredient-card/ingredient-card.component';
 import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.component';
 import { LogoComponent } from '../assets/design-system/logo/logo.component';
+import { ConfettiBurstComponent } from '../assets/design-system/confetti-burst/confetti-burst.component';
 
 interface StrapiGlossaryResponse {
   data: Array<{
@@ -89,6 +92,7 @@ type DashboardPayload = {
     DevAdsComponent,
     NgOptimizedImage,
     LogoComponent,
+    ConfettiBurstComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
@@ -167,7 +171,11 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Mostra gli Ad solo quando i dati sono pronti e siamo nel browser */
   contentReady = false;
 
-  constructor() {
+  @ViewChild(ConfettiBurstComponent) confetti?: ConfettiBurstComponent;
+  @ViewChild('cotdBox', { static: false }) cotdBox?: ElementRef<HTMLElement>; // 👈 nuovo
+  private cotdIO?: IntersectionObserver; // 👈 nuovo
+  private cotdLastBurst = 0;
+  constructor(private router: Router) {
     if (this.isBrowser) this.checkScreenWidth();
   }
 
@@ -200,6 +208,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
       if (!this.isBrowser) return;
       this.setupCarouselVisibilityObserver();
       this.startAutoplay(); // parte fuori da Angular
+      this.setupCotdObserver();
     });
   }
 
@@ -209,6 +218,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.dataSubscription?.unsubscribe();
     this.cleanupSeo();
     //this.removeRandomImagePreload();
+    this.cotdIO?.disconnect();
   }
 
   // ======== helpers ========
@@ -790,5 +800,51 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
         image?.url ||
         ''
     );
+  }
+
+  burstConfetti(origin: 'center' | 'top' | 'bottom' = 'center') {
+    this.confetti?.burst(origin);
+  }
+
+  // === NEW: osserva l'entrata in scena del box (mobile/scroll) ===
+  private setupCotdObserver() {
+    if (!this.isBrowser || !this.cotdBox?.nativeElement) return;
+
+    // Evita doppi burst troppo ravvicinati
+    const COOLDOWN_MS = 1500;
+
+    this.cotdIO?.disconnect();
+    this.cotdIO = new IntersectionObserver(
+      (entries) => {
+        const e = entries[0];
+        if (!e) return;
+
+        const now = Date.now();
+        const visible = e.isIntersecting && e.intersectionRatio >= 0.6; // ~60% visibile
+        if (visible && now - this.cotdLastBurst > COOLDOWN_MS) {
+          this.cotdLastBurst = now;
+          this.burstConfetti('center');
+        }
+      },
+      { threshold: [0, 0.6] }
+    );
+
+    this.cotdIO.observe(this.cotdBox.nativeElement);
+  }
+
+  celebrateAndGo(ev: Event, to: any[], delay = 480) {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    // Accessibilità: rispetta prefers-reduced-motion
+    const prefersReduced =
+      typeof matchMedia !== 'undefined' &&
+      matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!prefersReduced) {
+      this.confetti?.burst('bottom'); // puoi regolare il punto
+    }
+
+    setTimeout(() => this.router.navigate(to), prefersReduced ? 0 : delay);
   }
 }
