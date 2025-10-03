@@ -171,8 +171,27 @@
       role="region"
       aria-label="Fizzando’s Cocktail of the Day"
     >
-      <div class="cocktail-display glass-card">
+      <div
+        class="cocktail-display glass-card"
+        #cotdBox
+        (mouseenter)="burstConfetti()"
+      >
         <h3>Fizzando’s Cocktail of the Day</h3>
+
+        @defer (on viewport; prefetch on idle) {
+        <app-confetti-burst
+          #confetti
+          [triggerOnInit]="false"
+          [particleCount]="200"
+          [duration]="2400"
+          [maxDpr]="2"
+          [highDprParticleScale]="0.7"
+          [reducedMotionParticleScale]="0.5"
+          [minParticleCount]="60"
+        ></app-confetti-burst>
+        } @placeholder {
+        <span aria-hidden="true"></span>
+        }
 
         <img
           [src]="getSmallestUrl(randomCocktail.image)"
@@ -184,11 +203,17 @@
           decoding="async"
           class="random-cocktail-image"
         />
+
         <div class="content-random">
           <h4>{{ randomCocktail.name }}</h4>
+
+          <!-- Sostituisci routerLink con click handler -->
           <button
             class="glass-button secondary"
-            [routerLink]="['/cocktails', randomCocktail.slug]"
+            type="button"
+            (click)="
+              celebrateAndGo($event, ['/cocktails', randomCocktail.slug])
+            "
           >
             View Recipe <mat-icon>visibility</mat-icon>
           </button>
