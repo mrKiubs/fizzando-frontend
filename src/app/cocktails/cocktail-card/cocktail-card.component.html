@@ -155,6 +155,7 @@
               ]"
               [queryParams]="{}"
               [stopClickPropagation]="true"
+              [showCountWhenUndefined]="false"
             >
               <span class="icon">{{
                 getPreparationIcon(cocktail.preparation_type)
@@ -174,6 +175,7 @@
               ]"
               [queryParams]="{}"
               [stopClickPropagation]="true"
+              [showCountWhenUndefined]="false"
             >
               <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
             </app-cocktail-chip>
@@ -278,6 +280,7 @@
               slugifySegment(cocktail.category)
             ]"
             [stopClickPropagation]="true"
+            [showCountWhenUndefined]="false"
           >
           </app-cocktail-chip>
 
@@ -292,7 +295,7 @@
               'alcoholic',
               slugifySegment(cocktail.alcoholic)
             ]"
-            [stopClickPropagation]="true"
+            [showCountWhenUndefined]="false"
           >
           </app-cocktail-chip>
         </div>
