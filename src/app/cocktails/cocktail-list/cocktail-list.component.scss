@@ -105,7 +105,7 @@ hr {
 
 @media (max-width: 600px) {
   .cocktail-list {
-    gap: 8px;
+    gap: 16px;
     grid-auto-rows: minmax(80px, auto);
   }
 }
@@ -165,8 +165,6 @@ hr {
 
 /* === LETTER FILTER (nuovo) === */
 .letter-filter {
-  text-align: center;
-
   .letter-filter__label {
     font-size: 0.95rem;
     letter-spacing: 0.02em;
@@ -265,4 +263,47 @@ hr {
 
 .status-text {
   text-align: center;
+}
+.letter-filter__chips {
+  /* Mantieni l'altezza stabile: evita layout shift */
+  min-height: 40px; // o l'altezza di una riga di chip
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.chip.disabled,
+.letter-filter__chips .chip[aria-disabled="true"] {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
+.chip.active {
+}
+.page-lead {
+  color: #fff;
+  max-width: 768px;
+  margin: 0 auto;
+  text-align: center;
+}
+.hub-crossnav {
+  color: #fff;
+  max-width: 768px;
+  margin: 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+.hub-switcher {
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
 }

@@ -21,7 +21,6 @@ import { PrivacyPolicyComponent } from './legal/privacy-policy/privacy-policy.co
 import { CookiePolicyComponent } from './legal/cookie-policy/cookie-policy.component';
 import { TermsConditionsComponent } from './legal/terms-conditions/terms-conditions.component';
 import { CreditsComponent } from './legal/credits-component/credits-component.component';
-
 export const routes: Routes = [
   {
     path: '',
@@ -31,16 +30,39 @@ export const routes: Routes = [
 
   {
     path: 'cocktails',
-
     children: [
       {
         path: '',
         component: CocktailListComponent,
       },
+
+      // HUB puliti (una sola definizione per ciascuno)
+      {
+        path: 'method/:methodSlug',
+        component: CocktailListComponent,
+        data: { hub: 'method', breadcrumb: 'Method' },
+      },
+      {
+        path: 'glass/:glassSlug',
+        component: CocktailListComponent,
+        data: { hub: 'glass', breadcrumb: 'Glass' },
+      },
+      {
+        path: 'category/:categorySlug',
+        component: CocktailListComponent,
+        data: { hub: 'category', breadcrumb: 'Category' },
+      },
+      {
+        path: 'alcoholic/:alcoholicSlug',
+        component: CocktailListComponent,
+        data: { hub: 'alcoholic', breadcrumb: 'Alcoholic' },
+      },
+
+      // Dettaglio cocktail — tenere per ultimo perché è generico
       {
         path: ':slug',
         component: CocktailDetailComponent,
-        data: { breadcrumb: 'Cocktail Details' }, // opzionale, puoi rimuoverlo se vuoi il nome slug nel breadcrumb
+        data: { breadcrumb: 'Cocktail Details' },
       },
     ],
   },
@@ -48,10 +70,7 @@ export const routes: Routes = [
   {
     path: 'ingredients',
     children: [
-      {
-        path: '',
-        component: IngredientListComponent,
-      },
+      { path: '', component: IngredientListComponent },
       {
         path: ':externalId',
         component: IngredientDetailComponent,
@@ -71,30 +90,11 @@ export const routes: Routes = [
     component: GlossaryListComponent,
     data: { breadcrumb: '📚 Glossary' },
   },
-  /*
-  {
-    path: 'quiz',
 
-    children: [
-      {
-        path: '',
-        component: QuizListComponent,
-      },
-      {
-        path: ':slug',
-        component: QuizDetailComponent,
-        data: { breadcrumb: 'Quiz Details' },
-      },
-    ],
-  },
-*/
   {
     path: 'articles',
     children: [
-      {
-        path: '',
-        component: ArticleListComponent,
-      },
+      { path: '', component: ArticleListComponent },
       {
         path: 'category/:slug',
         component: ArticleListComponent,
@@ -107,6 +107,7 @@ export const routes: Routes = [
       },
     ],
   },
+
   {
     path: 'privacy',
     component: PrivacyPolicyComponent,
@@ -127,10 +128,6 @@ export const routes: Routes = [
     component: CreditsComponent,
     data: { breadcrumb: '🙏 Credits' },
   },
-  // Wildcard fallback (non sempre serve breadcrumb)
-  {
-    path: '**',
-    redirectTo: '',
-    data: { breadcrumb: 'Home' },
-  },
+
+  { path: '**', redirectTo: '', data: { breadcrumb: 'Home' } },
 ];

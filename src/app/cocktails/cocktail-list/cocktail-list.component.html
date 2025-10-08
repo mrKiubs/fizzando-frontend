@@ -1,17 +1,111 @@
 <div class="page-header-container" [class.fonts-loaded]="fontsLoaded">
-  <h1>Cocktails Explorer</h1>
-  <h2>Your Ultimate Cocktail Guide: Search, Filter, and Discover New Drinks</h2>
-
-  <p class="page-subtitle">
-    Welcome to <b>Fizzando’s definitive cocktail archive</b>! Whether you're a
-    seasoned bartender or an enthusiast looking for new inspiration, here you’ll
-    find <b>hundreds of cocktail recipes</b>—from <b>timeless classics</b> to
-    <b>innovative creations</b> and <b>exotic drinks</b> from around the world.
-  </p>
+  <h1 class="page-title">{{ pageH1 }}</h1>
+  <h2 class="page-subtitle">{{ pageH2 }}</h2>
+  <!-- opzionale: piccola descrizione (non H3 per SEO, solo testo) -->
+  <p class="page-lead sr-only" *ngIf="pageDescription">{{ pageDescription }}</p>
 </div>
 
-<!-- SEARCH (senza FormsModule) -->
-<div class="custom-search-input-wrapper">
+<!-- HUB SWITCHER (link a sezioni) -->
+<section
+  class="hub-switcher cut"
+  role="navigation"
+  aria-label="Explore sections"
+>
+  <h3 class="hub-switcher__title">Explore sections</h3>
+
+  <app-facet-chips
+    label="By method"
+    kind="method"
+    [items]="[
+      'Built in Glass',
+      'Shaken',
+      'Stirred',
+      'Blended',
+      'Other',
+      'Layered',
+      'Muddled',
+      'Built in Punch Bowl',
+      'Heated',
+      'Infusion & Aging',
+      'Bomb Shot'
+    ]"
+    [activeKind]="hubKind"
+    [activeSlug]="hubSlug"
+  >
+  </app-facet-chips>
+
+  <app-facet-chips
+    label="By glass"
+    kind="glass"
+    [items]="[
+      'Cocktail Glass',
+      'Highball Glass',
+      'Collins Glass',
+      'Old Fashioned Glass',
+      'Shot Glass',
+      'Coffee Mug',
+      'Whiskey Sour Glass',
+      'Hurricane Glass',
+      'Punch Bowl',
+      'Wine Glass',
+      'Champagne Flute',
+      'Irish Coffee Glass',
+      'Pint Glass',
+      'Beer Glass',
+      'Pitcher',
+      'Beer Mug',
+      'Margarita Glass',
+      'Mason Jar',
+      'Balloon Glass',
+      'Coupe Glass',
+      'Cordial Glass',
+      'Brandy Snifter',
+      'Nick & Nora Glass',
+      'Julep Cup',
+      'Copper Mug'
+    ]"
+    [activeKind]="hubKind"
+    [activeSlug]="hubSlug"
+  >
+  </app-facet-chips>
+
+  <app-facet-chips
+    label="By category"
+    kind="category"
+    [items]="[
+      'Refreshing',
+      'After-Dinner',
+      'Sour',
+      'Tropical',
+      'Spirit-Forward',
+      'Classic',
+      'Hot',
+      'Aperitif',
+      'Sparkling',
+      'Flaming',
+      'Punch',
+      'Shot',
+      'Beer',
+      'Aromatic',
+      'Homemade Liqueur'
+    ]"
+    [activeKind]="hubKind"
+    [activeSlug]="hubSlug"
+  >
+  </app-facet-chips>
+
+  <app-facet-chips
+    label="By profile"
+    kind="alcoholic"
+    [items]="alcoholicOptions"
+    [activeKind]="hubKind"
+    [activeSlug]="hubSlug"
+  >
+  </app-facet-chips>
+</section>
+
+<!-- SEARCH (solo nel ROOT) -->
+<div class="custom-search-input-wrapper" *ngIf="isRootHubView()">
   <input
     type="search"
     class="custom-search-input"
@@ -42,7 +136,7 @@
   ></mat-icon>
 </div>
 
-<!-- FILTERS (accordion) -->
+<!-- FILTERS (accordion) — TUTTE LE PAGINE, SOLO LETTERE -->
 <div class="filters-accordion" [class.expanded]="isExpanded()">
   <div class="accordion-header" #filtersToggle (click)="toggleExpansion()">
     <h3 class="accordion-title">
@@ -51,7 +145,7 @@
         svgIcon="filter_list"
         aria-hidden="true"
       ></mat-icon>
-      Filters
+      Filter by letter
     </h3>
     <span class="active-filters-summary" *ngIf="!isExpanded()">
       ({{ getActiveFiltersText() }})
@@ -60,99 +154,71 @@
 
   @defer (on interaction(filtersToggle); prefetch on idle) {
   <div class="accordion-content" *ngIf="isExpanded()">
-    <div class="filter-group">
-      <label for="category-select" class="filter-label">Category</label>
-      <div class="custom-select-wrapper">
-        <select
-          id="category-select"
-          class="custom-select"
-          [value]="selectedCategory()"
-          (change)="onCategoryChange($event)"
-          (click)="$event.stopPropagation()"
-          aria-label="Filter by category"
-        >
-          <option value="">All Categories</option>
-          <option *ngFor="let category of categories" [value]="category">
-            {{ category }}
-          </option>
-        </select>
-        <mat-icon
-          class="select-arrow-icon"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </div>
-    </div>
-
-    <div class="filter-group">
-      <label for="alcoholic-select" class="filter-label"
-        >Alcoholic / Non-Alcoholic</label
-      >
-      <div class="custom-select-wrapper">
-        <select
-          id="alcoholic-select"
-          class="custom-select"
-          [value]="selectedAlcoholic()"
-          (change)="onAlcoholicChange($event)"
-          (click)="$event.stopPropagation()"
-          aria-label="Filter by alcoholic type"
-        >
-          <option value="">All</option>
-          <option *ngFor="let option of alcoholicOptions" [value]="option">
-            {{ option }}
-          </option>
-        </select>
-        <mat-icon
-          class="select-arrow-icon"
-          svgIcon="arrow_drop_down"
-          aria-hidden="true"
-        ></mat-icon>
-      </div>
-    </div>
-
-    <div class="filter-group filter-button-row">
-      <button
-        class="glass-button secondary"
-        (click)="clearFilters()"
-        aria-label="Clear all filters"
-      >
-        <mat-icon svgIcon="clear_all" aria-hidden="true"></mat-icon>
-        Clear Filters
-      </button>
-    </div>
-    <!-- LETTER FILTER BAR (sempre visibile, subito sotto i filtri) -->
     <div class="letter-filter">
-      <div class="letter-filter__label">Browse by letter</div>
-
       <div
         class="letter-filter__chips"
         role="group"
         aria-label="Filter cocktails by first letter"
       >
-        <!-- chip "All" -->
+        <!-- All -->
         <a
           [attr.href]="buildUrlWithParams({ letter: null, page: 1 })"
           class="chip"
           [class.active]="!selectedLetter()"
-          (click)="$event.preventDefault(); applyLetter(null)"
+          (click)="$event.preventDefault(); onLetterChipClick($event, null)"
         >
           All
         </a>
 
-        <!-- A–Z chips -->
+        <!-- 0–9 -->
         <a
-          *ngFor="let letter of letters"
-          [attr.href]="
-            buildUrlWithParams({ letter: letter, search: null, page: 1 })
-          "
+          [attr.href]="buildUrlWithParams({ letter: numberKey, page: 1 })"
           class="chip"
-          [class.active]="selectedLetter() === letter"
-          (click)="$event.preventDefault(); applyLetter(letter)"
-          [attr.aria-pressed]="selectedLetter() === letter"
-          [attr.aria-label]="'Filter by letter ' + letter"
+          [class.active]="selectedLetter() === numberKey"
+          [class.disabled]="
+            letterAvailabilityLoaded && !availableLetters.has(numberKey)
+          "
+          (click)="
+            $event.preventDefault(); onLetterChipClick($event, numberKey)
+          "
+          [attr.aria-pressed]="selectedLetter() === numberKey"
+          [attr.aria-disabled]="
+            letterAvailabilityLoaded && !availableLetters.has(numberKey)
+          "
+          [attr.tabindex]="
+            letterAvailabilityLoaded && !availableLetters.has(numberKey)
+              ? -1
+              : null
+          "
+          aria-label="Filter by number"
         >
-          {{ letter }}
+          0–9
         </a>
+
+        <!-- A–Z -->
+        <ng-container *ngFor="let letter of letters">
+          <a
+            [attr.href]="buildUrlWithParams({ letter: letter, page: 1 })"
+            class="chip"
+            [class.active]="selectedLetter() === letter"
+            [class.disabled]="
+              letterAvailabilityLoaded && !availableLetters.has(letter)
+            "
+            (click)="$event.preventDefault(); onLetterChipClick($event, letter)"
+            [attr.aria-pressed]="selectedLetter() === letter"
+            [attr.aria-disabled]="
+              letterAvailabilityLoaded && !availableLetters.has(letter)
+            "
+            [attr.tabindex]="
+              letterAvailabilityLoaded && !availableLetters.has(letter)
+                ? -1
+                : null
+            "
+            [attr.aria-label]="'Filter by letter ' + letter"
+          >
+            {{ letter }}
+          </a>
+        </ng-container>
       </div>
     </div>
   </div>
@@ -238,7 +304,7 @@
   <span class="skl w-48"></span>
 </div>
 
-<div class="cocktail-list" *ngIf="!error && cocktails.length > 0">
+<div class="glass-card cocktail-list" *ngIf="!error && cocktails.length > 0">
   <ng-container
     *ngFor="
       let cocktail of cocktails;

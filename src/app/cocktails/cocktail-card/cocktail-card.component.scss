@@ -64,6 +64,33 @@
   &:hover {
     border: 1px solid rgba(255, 255, 255, 0.5);
     background-color: rgba(255, 255, 255, 0.0823529412);
+
+    .cocktail-chip {
+      &.category-chip {
+        background-color: rgba(0, 123, 255, 0.45);
+      }
+
+      &.method-chip {
+        background-color: rgba(215, 73, 87, 0.75) !important;
+      }
+    }
+
+    .ingredient-item-link {
+      background-color: rgba(0, 0, 0, 0.05);
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+    }
+
+    /* Stato active solo su device touch */
+    @media (hover: none) {
+      .ingredient-item-link:active {
+        background-color: rgba(255, 255, 255, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+    }
   }
 }
 
@@ -90,8 +117,11 @@
   justify-content: space-between;
   .glassy-info {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
+    @media (min-width: 600px) {
+      flex-direction: column;
+    }
   }
 }
 
@@ -118,7 +148,9 @@
   -webkit-text-fill-color: initial;
   white-space: normal;
   word-break: break-word;
+  padding-right: 10px;
 
+  position: relative;
   /* riserva 2 righe finché il font non è pronto */
   min-height: calc(2 * 40px);
 }
@@ -126,55 +158,6 @@
 /* quando i font sono caricati, togli la riserva */
 .fonts-loaded {
   min-height: 0; /* torna naturale */
-}
-
-.cocktail-card-subtitle {
-  display: none;
-}
-
-.cocktail-chips-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.cocktail-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 50px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #ffffff8a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(5px);
-}
-
-.category-chip {
-  background-color: rgba(0, 123, 255, 0.1);
-  border-color: rgba(0, 123, 255, 0.2);
-}
-
-.alcoholic-chip {
-  background-color: rgba(255, 193, 7, 0.1);
-  border-color: rgba(255, 193, 7, 0.2);
-}
-
-.abv-chip {
-  background-color: rgba(220, 53, 69, 0.1);
-  border-color: rgba(220, 53, 69, 0.2);
-}
-
-.cocktail-key-info {
-  margin-top: 8px;
-}
-
-.info-label {
-  font-size: 12px;
-  color: #fff;
-  margin-bottom: 4px;
-  font-weight: 500;
 }
 
 .ingredients-list {
@@ -188,7 +171,8 @@
 .ingredient-item,
 .ingredient-item-link {
   z-index: 2;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 13px;
   color: #ffffff8a;
   background-color: rgba(255, 255, 255, 0.08);
   padding: 4px 6px 4px 2px;
@@ -210,16 +194,34 @@
 .ingredient-item-more {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.7);
-  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cocktail-extra-info {
   display: flex;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 8px;
+  /* margin-top: 8px; */
+  /* padding-top: 8px; */
+  /* border-top: 1px solid rgba(255, 255, 255, 0.1); */
+  justify-content: space-between;
+  flex-direction: column;
+  height: 100%;
+}
+
+.bottom-card-container {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 0px;
   padding-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   justify-content: space-between;
+
+  @media (main-width: 600px) {
+    margin-top: 8px;
+  }
 }
 
 .info-item {
@@ -291,6 +293,8 @@
   .cocktail-card-title {
     font-size: 24px;
     line-height: 24px;
+
+    position: static;
   }
   .cocktail-chips-container {
     overflow-x: auto;
@@ -302,16 +306,16 @@
   }
   .cocktail-chips-container .cocktail-chip {
     white-space: nowrap;
+    transition: all 250ms;
+    z-index: 2;
+    cursor: pointer;
   }
 
-  .cocktail-key-info,
-  .cocktail-extra-info {
-    display: none;
-  }
   .glassy-content-container {
     flex-grow: 1;
     gap: 4px;
     justify-content: flex-start;
+    width: 100%;
   }
   .variable-content-area {
     flex-grow: 0;
@@ -441,4 +445,156 @@
     align-items: center;
     justify-content: center;
   }
+}
+
+/* === ADD: mobile inline e pannello === */
+.ingredients-mobile-inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+.mobile-label {
+  opacity: 0.8;
+  margin-right: 4px;
+}
+.mobile-ing-link {
+  text-decoration: none;
+}
+.sep {
+  opacity: 0.5;
+}
+.mobile-toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0 4px;
+  margin-left: 6px;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mobile-ingredients-panel {
+  margin-top: 6px;
+}
+.mobile-panel-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 6px 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  content-visibility: auto;
+  contain-intrinsic-size: 80px;
+}
+.mobile-panel-link {
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+/* Stretched-link sul titolo */
+.cocktail-card {
+  position: relative; /* per ancorare l'area stirata */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stretched-link {
+  position: static;
+  z-index: 0; /* sotto agli altri link */
+  text-decoration: none;
+  color: inherit;
+}
+
+.stretched-link::after {
+  content: "";
+  position: absolute;
+  inset: 0; /* copre tutta la card */
+  z-index: 0;
+}
+
+/* I link degli ingredienti devono rimanere sopra */
+.ingredient-item-link,
+.ingredients-list .ingredient-item-link a,
+.mobile-ing-link,
+.mobile-panel-link {
+  position: relative;
+  z-index: 2; /* vincono sul tappeto dello stretched link */
+}
+
+/* Cues visivi chiari */
+.cocktail-card:hover {
+  cursor: pointer; /* l'intera card comunica click */
+}
+.stretched-link:focus-visible,
+.ingredient-item-link:focus-visible,
+.mobile-ing-link:focus-visible,
+.mobile-panel-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Desktop-only hover effetto (evita cambi su mobile) */
+@media (min-width: 769px) {
+  .cocktail-card:hover .glassy-image-container img.cocktail-card-image {
+    transform: scale(1.03);
+  }
+}
+
+/* Mobile: mostra una piccola freccia lato destro della card */
+@media (hover: none) {
+}
+
+.name-cocktail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+.cocktail-card::after {
+  content: "›";
+  position: absolute;
+  right: 8px;
+  top: calc(50% - 76px);
+  transform: translateY(-50%);
+  font-size: 18px;
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  color: white;
+
+  @media (min-width: 769px) {
+    display: none;
+  }
+}
+.cocktail-card-title::after {
+  content: "›";
+  position: absolute;
+  right: 0;
+  top: 3px;
+  font-size: 18px;
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  color: white;
+  display: none;
+
+  @media (min-width: 769px) {
+    display: block;
+  }
+}
+/* Feedback al press (insieme al tuo :active sui chip) */
+.cocktail-card:active::after {
+  opacity: 0.65;
+  transform: translateY(-50%) translateX(2px);
+}
+.cocktail-card::after,
+.cocktail-card-title::after {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-weight: 400; // evita il bold del titolo
+  line-height: 1;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }

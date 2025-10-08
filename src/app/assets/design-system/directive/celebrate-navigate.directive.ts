@@ -1,5 +1,14 @@
 // app/directives/celebrate-navigate.directive.ts
-import { Directive, HostListener, Input, NgZone } from '@angular/core';
+import {
+  Directive,
+  HostListener,
+  Input,
+  NgZone,
+  ElementRef,
+  Renderer2,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { ConfettiBurstComponent } from '../confetti-burst/confetti-burst.component';
 
@@ -7,53 +16,100 @@ import { ConfettiBurstComponent } from '../confetti-burst/confetti-burst.compone
   selector: '[appCelebrateNavigate]',
   standalone: true,
 })
-export class CelebrateNavigateDirective {
-  @Input('appCelebrateNavigate') to!: string | any[]; // rotta o UrlTree
-  @Input() celebrateDelay = 750; // ms
+export class CelebrateNavigateDirective implements OnInit, OnDestroy {
+  @Input('appCelebrateNavigate') to!: string | any[];
+  @Input() celebrateDelay = 10000; // ms
   @Input() celebrateOrigin: 'center' | 'top' | 'bottom' = 'bottom';
-  @Input() celebrateTarget?: ConfettiBurstComponent; // riferimento al componente confetti
-  @Input() skipIfReducedMotion = true;
+  @Input() celebrateTarget?: ConfettiBurstComponent;
+  @Input() skipIfReducedMotion = false; // vuoi sempre il delay
 
   private navigating = false;
+  private originalHref: string | null = null;
+  private isAnchor = false;
 
-  constructor(private router: Router, private zone: NgZone) {}
+  constructor(
+    private router: Router,
+    private zone: NgZone,
+    private el: ElementRef<HTMLElement>,
+    private renderer: Renderer2
+  ) {}
+
+  ngOnInit() {
+    const el = this.el.nativeElement;
+
+    // 1) Se è un <a>, neutralizza href per evitare navigazione nativa iOS
+    this.isAnchor = el.tagName === 'A';
+    if (this.isAnchor) {
+      this.originalHref = el.getAttribute('href');
+      if (this.originalHref) {
+        // togli href (lo ripristiniamo a ngOnDestroy)
+        this.renderer.removeAttribute(el, 'href');
+        // facoltativo: mantenere aspetto cliccabile
+        this.renderer.setStyle(el, 'cursor', 'pointer');
+        this.renderer.setAttribute(el, 'role', 'link');
+        this.renderer.setAttribute(el, 'tabindex', '0');
+      }
+    }
+
+    // 2) Se è un <button> dentro un form, forza type="button"
+    if (
+      el.tagName === 'BUTTON' &&
+      (el as HTMLButtonElement).type !== 'button'
+    ) {
+      this.renderer.setAttribute(el, 'type', 'button');
+    }
+  }
+
+  ngOnDestroy() {
+    // ripristina href se l’avevamo tolto
+    if (this.isAnchor && this.originalHref != null) {
+      this.renderer.setAttribute(
+        this.el.nativeElement,
+        'href',
+        this.originalHref
+      );
+    }
+  }
 
   @HostListener('click', ['$event'])
   onClick(ev: Event) {
-    // Evita doppie esecuzioni (click sintetico dopo touch, ecc.)
     if (this.navigating) return;
 
-    // Rispetta prefers-reduced-motion (accessibilità)
+    // *** blocca TUTTO subito ***
+    if (typeof (ev as any).stopImmediatePropagation === 'function') {
+      (ev as any).stopImmediatePropagation();
+    }
+    ev.stopPropagation();
+    ev.preventDefault();
+
     const prefersReduced =
       this.skipIfReducedMotion &&
       typeof matchMedia !== 'undefined' &&
       matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    // Avvia confetti se consentito
+    // Confetti (opzionale)
     if (!prefersReduced && this.celebrateTarget) {
       this.celebrateTarget.burst(this.celebrateOrigin);
     }
 
     this.navigating = true;
+
+    // Usa il setTimeout globale, fuori da Angular, poi rientra
     this.zone.runOutsideAngular(() => {
-      setTimeout(
-        () => {
-          this.zone.run(() => {
-            // Naviga manualmente
-            Array.isArray(this.to)
-              ? this.router
-                  .navigate(this.to)
-                  .finally(() => (this.navigating = false))
-              : this.router
-                  .navigateByUrl(this.to as string)
-                  .finally(() => (this.navigating = false));
-          });
-        },
-        prefersReduced ? 0 : this.celebrateDelay
-      );
+      const delay = prefersReduced ? 0 : this.celebrateDelay;
+      (window as any).setTimeout(() => {
+        this.zone.run(() => {
+          const nav = Array.isArray(this.to)
+            ? this.router.navigate(this.to)
+            : this.router.navigateByUrl(this.to as string);
+
+          // indipendentemente dal risultato, sblocca
+          Promise.resolve(nav).finally(() => (this.navigating = false));
+        });
+      }, delay);
     });
+
+    // return false per sicurezza extra con alcuni handler Angular
+    return false as unknown as void;
   }
 }

@@ -14,7 +14,7 @@ import { isPlatformBrowser } from '@angular/common';
 
 @Component({
   selector: 'app-confetti-burst',
-  standalone: true,
+  standalone: true, // 👈 OBBLIGATORIO
   template: `<canvas
     #canvas
     class="confetti-canvas"
@@ -42,6 +42,12 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
   @ViewChild('canvas', { static: true })
   canvasRef!: ElementRef<HTMLCanvasElement>;
 
+  @Input() restartIfRunning = false;
+  @Input() cooldownMs = 0;
+
+  private running = false;
+  private lastEndTime = 0;
+
   @Input() triggerOnInit = false;
   @Input() particleCount = 160;
   @Input() duration = 2000;
@@ -58,11 +64,10 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
     '#FFD93D',
   ];
 
-  // ➕ nuovi @Input per tuning
-  @Input() maxDpr = 2; // cap del devicePixelRatio
-  @Input() highDprParticleScale = 0.7; // moltiplicatore particelle su DPR > 1.5
-  @Input() reducedMotionParticleScale = 0.5; // moltiplicatore se reduced motion
-  @Input() minParticleCount = 60; // non scendere sotto questa soglia
+  @Input() maxDpr = 2;
+  @Input() highDprParticleScale = 0.7;
+  @Input() reducedMotionParticleScale = 0.5;
+  @Input() minParticleCount = 60;
 
   private isBrowser = false;
   private ctx!: CanvasRenderingContext2D;
@@ -80,7 +85,7 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
     this.dpr = Math.min(this.maxDpr, rawDpr);
 
     const ctx = this.canvasRef.nativeElement.getContext('2d');
-    if (!ctx) return; // guard extra
+    if (!ctx) return;
     this.ctx = ctx;
 
     const parent =
@@ -96,7 +101,6 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
       Math.floor(rect.height * this.dpr)
     );
 
-    // 🔹 ResizeObserver (opzionale, ma utile)
     if ('ResizeObserver' in window) {
       this.resizeObs = new ResizeObserver((entries) => {
         for (const entry of entries) {
@@ -119,46 +123,49 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.rafId != null && this.isBrowser) cancelAnimationFrame(this.rafId);
-    if (this.resizeObs) this.resizeObs.disconnect(); // opzionale
+    if (this.resizeObs) this.resizeObs.disconnect();
   }
 
   public burst(origin: 'center' | 'top' | 'bottom' = 'center') {
     if (!this.isBrowser) return;
+
+    const now = performance.now?.() ?? Date.now();
+    if (!this.restartIfRunning && this.running) return;
+    if (now - this.lastEndTime < this.cooldownMs) return;
+
     const c = this.canvasRef.nativeElement;
     const { width, height } = c;
     const x0 = width / 2;
-    // se vuoi fisso in basso, ok così; altrimenti ripristina la logica origin
     const y0 = height * 0.95;
+
     this.zone.runOutsideAngular(() => this.runAnimation(x0, y0));
   }
 
   private runAnimation(x0: number, y0: number) {
     const ctx = this.ctx;
     const c = this.canvasRef.nativeElement;
-    const end = (performance.now?.() ?? Date.now()) + this.duration;
+
+    const start = performance.now?.() ?? Date.now();
+    const end = start + this.duration;
+    this.running = true;
 
     const spread = (this.spreadDeg * Math.PI) / 180;
     const base = -Math.PI / 2;
 
-    // ✅ calcola UNA SOLA VOLTA fuori dall'Array.from
     const prefersReduced =
       typeof matchMedia !== 'undefined' &&
       matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     const highDpr = this.dpr > 1.5;
 
     let effectiveCount = this.particleCount;
-    if (highDpr) {
+    if (highDpr)
       effectiveCount = Math.floor(effectiveCount * this.highDprParticleScale);
-    }
-    if (prefersReduced) {
+    if (prefersReduced)
       effectiveCount = Math.floor(
         effectiveCount * this.reducedMotionParticleScale
       );
-    }
     effectiveCount = Math.max(this.minParticleCount, effectiveCount);
 
-    // ✅ usa effectiveCount come length
     const parts = Array.from({ length: effectiveCount }, () => {
       const a = base + (Math.random() - 0.5) * spread;
       const s = (Math.random() * 0.5 + 0.75) * this.startPower;
@@ -180,6 +187,7 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
     const step = () => {
       const now = performance.now?.() ?? Date.now();
       const progress = 1 - Math.max(0, end - now) / this.duration;
+
       ctx.clearRect(0, 0, c.width, c.height);
 
       for (const p of parts) {
@@ -190,10 +198,7 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
         p.tilt += p.tiltSpeed;
         if (progress > 0.7) p.alpha = Math.max(0, 1 - (progress - 0.7) / 0.3);
 
-        // 🔹 clipping leggero (opzionale) per ridurre overdraw
-        if (p.y < -40 * this.dpr || p.y > c.height + 80 * this.dpr) {
-          continue;
-        }
+        if (p.y < -40 * this.dpr || p.y > c.height + 80 * this.dpr) continue;
 
         ctx.save();
         ctx.globalAlpha = p.alpha;
@@ -214,6 +219,8 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
       } else {
         ctx.clearRect(0, 0, c.width, c.height);
         this.rafId = null;
+        this.running = false;
+        this.lastEndTime = now;
       }
     };
 

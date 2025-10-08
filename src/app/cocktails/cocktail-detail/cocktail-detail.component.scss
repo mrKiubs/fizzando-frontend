@@ -373,7 +373,7 @@
 }
 @media (max-width: 600px) {
   .related-cocktail-cards-grid {
-    gap: 8px;
+    gap: 16px 8px;
   }
 }
 @media (min-width: 600px) {
@@ -515,16 +515,6 @@ app-cocktail-card {
   margin: 16px 0;
 }
 
-.related-cocktails-section {
-  @media (max-width: 600px) {
-    padding: 0;
-    background-color: transparent;
-    border: none;
-    backdrop-filter: blur(0px);
-    box-shadow: none;
-    background-image: none;
-  }
-}
 .related-articles-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -543,4 +533,8 @@ app-cocktail-card {
 
 .ai-detail-block {
   justify-content: start;
+}
+.ai-placeholder {
+  content-visibility: auto;
+  contain-intrinsic-size: 96px;
 }
