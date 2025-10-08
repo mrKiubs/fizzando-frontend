@@ -123,13 +123,13 @@ section {
   line-height: 15px;
   font-size: 15px;
 }
-.quick-links-section .category-chips {
+.quick-links-section .cocktail-chips {
   margin-top: var(--gap);
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-.quick-links-section .category-chips .chip {
+.quick-links-section .cocktail-chips .chip {
   display: inline-block;
   max-width: 100%;
   white-space: normal;
@@ -217,7 +217,7 @@ section {
 /* Mobile */
 @media (max-width: 768px) {
   .dashboard-container {
-    padding: 0 var(--pad-sm);
+    padding: 0;
   }
   .dashboard-content {
     grid-template-columns: minmax(0, 1fr); /* stack hero + random */
@@ -322,9 +322,7 @@ h4 {
       opacity: 0.55;
     }
     button {
-      margin-bottom: 8px;
-      flex-direction: row;
-      padding: 8px 16px;
+      margin: 0 auto;
     }
   }
 }
@@ -530,9 +528,9 @@ h4 {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0.75rem;
+  bottom: 16px;
   display: flex;
-  gap: 0.5rem;
+  gap: 16px;
   justify-content: center;
   align-items: center;
   z-index: 2;

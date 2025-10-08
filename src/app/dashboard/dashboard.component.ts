@@ -142,6 +142,8 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('carouselRoot', { static: false })
   carouselRoot?: ElementRef<HTMLElement>;
 
+  @ViewChild('confetti') confetti?: ConfettiBurstComponent;
+
   // SEO helpers
   private websiteScript?: HTMLScriptElement;
   private webpageScript?: HTMLScriptElement;
@@ -171,9 +173,8 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Mostra gli Ad solo quando i dati sono pronti e siamo nel browser */
   contentReady = false;
 
-  @ViewChild(ConfettiBurstComponent) confetti?: ConfettiBurstComponent;
-  @ViewChild('cotdBox', { static: false }) cotdBox?: ElementRef<HTMLElement>; // 👈 nuovo
-  private cotdIO?: IntersectionObserver; // 👈 nuovo
+  @ViewChild('cotdBox', { static: false }) cotdBox?: ElementRef<HTMLElement>;
+  private cotdIO?: IntersectionObserver;
   private cotdLastBurst = 0;
   constructor(private router: Router) {
     if (this.isBrowser) this.checkScreenWidth();
@@ -803,7 +804,13 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   burstConfetti(origin: 'center' | 'top' | 'bottom' = 'center') {
-    this.confetti?.burst(origin);
+    const tryBurst = () => this.confetti?.burst(origin);
+    if (!this.confetti) {
+      // il deferrable view potrebbe montarsi proprio ora → riprova nel prossimo tick
+      setTimeout(tryBurst, 0);
+      return;
+    }
+    tryBurst();
   }
 
   // === NEW: osserva l'entrata in scena del box (mobile/scroll) ===

@@ -67,11 +67,10 @@
                 Find drinks by spirit, style, or occasion — with clear
                 instructions and pro techniques.
               </p>
-              <button
-                class="glass-button secondary"
-                [routerLink]="['/cocktails']"
-              >
-                Cocktails Explorer <mat-icon>visibility</mat-icon>
+
+              <button class="btn-shine" [routerLink]="['/cocktails']">
+                <span class="icon-button">🍹</span>
+                <span>Cocktails Explorer</span>
               </button>
             </div>
           </article>
@@ -93,11 +92,10 @@
                 Learn origins, flavor profiles, and smart substitutions for your
                 home bar
               </p>
-              <button
-                class="glass-button secondary"
-                [routerLink]="['/ingredients']"
-              >
-                Ingredients Explorer <mat-icon>visibility</mat-icon>
+
+              <button class="btn-shine" [routerLink]="['/ingredients']">
+                <span class="icon-button">🌿</span>
+                <span>Ingredients Explorer</span>
               </button>
             </div>
           </article>
@@ -175,6 +173,7 @@
         class="cocktail-display glass-card"
         #cotdBox
         (mouseenter)="burstConfetti()"
+        (focusin)="burstConfetti()"
       >
         <h3>Fizzando’s Cocktail of the Day</h3>
 
@@ -188,6 +187,8 @@
           [highDprParticleScale]="0.7"
           [reducedMotionParticleScale]="0.5"
           [minParticleCount]="60"
+          [restartIfRunning]="false"
+          [cooldownMs]="700"
         ></app-confetti-burst>
         } @placeholder {
         <span aria-hidden="true"></span>
@@ -207,15 +208,14 @@
         <div class="content-random">
           <h4>{{ randomCocktail.name }}</h4>
 
-          <!-- Sostituisci routerLink con click handler -->
           <button
-            class="glass-button secondary"
+            class="btn-shine"
             type="button"
             (click)="
               celebrateAndGo($event, ['/cocktails', randomCocktail.slug])
             "
           >
-            View Recipe <mat-icon>visibility</mat-icon>
+            <span>View Recipe</span>
           </button>
         </div>
       </div>
@@ -223,44 +223,32 @@
       <div class="glass-card cocktail-display-button">
         <h3>Quick links</h3>
         <div class="quick-link-home">
-          <button
-            class="hero-button glass-button secondary"
-            [routerLink]="['/cocktails']"
-          >
-            Cocktails Explorer
-          </button>
-          <button
-            class="hero-button glass-button secondary"
-            [routerLink]="['/ingredients']"
-          >
-            Ingredients Explorer
+          <button class="btn-shine" [routerLink]="['/cocktails']">
+            <span class="icon-button">🍹</span>
+            <span>Cocktails<br />Explorer</span>
           </button>
 
-          <button
-            class="hero-button glass-button secondary"
-            [routerLink]="['/find-cocktail']"
-          >
-            Find by Ingredients
+          <button class="btn-shine" [routerLink]="['/ingredients']">
+            <span class="icon-button">🌿</span>
+            <span>Ingredients<br />Explorer</span>
           </button>
-          <button
-            class="hero-button glass-button secondary"
-            [routerLink]="['/cocktails']"
-            [queryParams]="{ alcoholic: 'Alcoholic' }"
-          >
-            Alcoholic
+          <button class="btn-shine" [routerLink]="['/cocktails']">
+            <span class="icon-button">🍹</span>
+            <span>Cocktails<br />Explorer</span>
           </button>
-          <button
-            class="hero-button glass-button secondary"
-            [routerLink]="['/cocktails']"
-            [queryParams]="{ alcoholic: 'Non Alcoholic' }"
-          >
-            Non-Alcoholic
+
+          <button class="btn-shine" [routerLink]="['/ingredients']">
+            <span class="icon-button">🌿</span>
+            <span>Ingredients<br />Explorer</span>
           </button>
-          <button
-            class="hero-button glass-button secondary"
-            [routerLink]="['/glossary']"
-          >
-            Glossary
+          <button class="btn-shine" [routerLink]="['/cocktails']">
+            <span class="icon-button">🍹</span>
+            <span>Cocktails<br />Explorer</span>
+          </button>
+
+          <button class="btn-shine" [routerLink]="['/ingredients']">
+            <span class="icon-button">🌿</span>
+            <span>Ingredients<br />Explorer</span>
           </button>
         </div>
       </div>
@@ -407,7 +395,7 @@
         </button>
       </div>
 
-      <div class="category-chips" *ngIf="topCocktailCategories.length">
+      <div class="cocktail-chips" *ngIf="topCocktailCategories.length">
         <span class="chip-label">Popular categories:</span>
         <a
           class="chip"

@@ -12,7 +12,7 @@ import {
   HostListener,
   inject,
 } from '@angular/core';
-import { concatMap } from 'rxjs/operators';
+import { concatMap, map } from 'rxjs/operators';
 import {
   CommonModule,
   DOCUMENT,
@@ -20,6 +20,10 @@ import {
   Location,
 } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
+
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
+import {} from 'rxjs/operators';
 import {
   CocktailService,
   Cocktail,
@@ -130,6 +134,12 @@ export class CocktailDetailComponent
   private allCocktailsSubscription?: Subscription;
   private similarCocktailsSubscription?: Subscription;
   private cocktailDetailSubscription?: Subscription;
+
+  private _bo = inject(BreakpointObserver);
+  isHandset = toSignal(
+    this._bo.observe([Breakpoints.Handset]).pipe(map((r) => r.matches)),
+    { initialValue: false }
+  );
 
   constructor(
     private route: ActivatedRoute,

@@ -345,10 +345,12 @@ export class CocktailService {
     forceAlphaSort: boolean = false,
     includeIngredients: boolean = true,
     useCache: boolean = false,
-    forceReload: boolean = false
+    forceReload: boolean = false,
+    method?: string, // 👈 NEW
+    glass?: string // 👈 NEW
   ): Observable<StrapiResponse<Cocktail>> {
     const isAllCocktailsRequest =
-      !!useCache && !searchTerm && !category && !alcoholic;
+      !!useCache && !searchTerm && !category && !alcoholic && !method && !glass;
 
     if (isAllCocktailsRequest && !forceReload && this._allCocktailsCache) {
       return of({
@@ -409,17 +411,49 @@ export class CocktailService {
       'true'
     );
 
-    if (searchTerm)
-      params = params.set('filters[name][$startsWithi]', searchTerm);
+    // --- filtro ricerca/lettera ---
+    if (searchTerm) {
+      const isDigitGroup = searchTerm === '0-9';
+      const isSingleLetter = /^[A-Z]$/i.test(searchTerm);
+
+      if (isDigitGroup) {
+        // 🔢 0–9: OR su slug che iniziano con una cifra
+        // (slug è tutto lowercase → usiamo $startsWith, case-sensitive ma ok)
+        for (let d = 0; d <= 9; d++) {
+          params = params.set(
+            `filters[$or][${d}][slug][$startsWith]`,
+            String(d)
+          );
+        }
+      } else if (isSingleLetter) {
+        // 🔤 lettera singola: filtra per slug che inizia con quella lettera
+        // (più veloce e coerente con i tuoi url/ordinamenti)
+        const l = searchTerm.toLowerCase();
+        params = params.set('filters[slug][$startsWith]', l);
+
+        // Se vuoi estendere anche al "name" (fallback UI),
+        // decommenta questo OR al posto della riga sopra:
+        // params = params
+        //   .set('filters[$or][0][slug][$startsWith]', l)
+        //   .set('filters[$or][1][name][$startsWithi]', searchTerm);
+      } else {
+        // 📝 ricerca testuale: tieni lo startsWith sul name
+        params = params.set('filters[name][$startsWithi]', searchTerm);
+      }
+    }
+
     if (category) params = params.set('filters[category][$eq]', category);
     if (alcoholic) params = params.set('filters[alcoholic][$eq]', alcoholic);
-
+    if (method) params = params.set('filters[preparation_type][$eq]', method);
+    if (glass) params = params.set('filters[glass][$eq]', glass);
     const keyObj = {
       page,
       pageSize,
       searchTerm: searchTerm ?? '',
       category: category ?? '',
       alcoholic: alcoholic ?? '',
+      method: method ?? '',
+      glass: glass ?? '',
     };
     const key = JSON.stringify(keyObj);
     const cachedList = this.listCache.get(key);

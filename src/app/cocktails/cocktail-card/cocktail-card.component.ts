@@ -4,22 +4,27 @@ import {
   OnInit,
   HostListener,
   inject,
+  signal,
   PLATFORM_ID,
 } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { Router, RouterLink } from '@angular/router';
 import { trigger, style, animate, transition } from '@angular/animations';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs/operators';
 import { env } from '../../config/env';
 import {
   CocktailWithLayoutAndMatch,
   StrapiImage,
 } from '../../services/strapi.service';
+import { CocktailChipComponent } from '../../assets/design-system/chips/cocktail-chip.component';
 
 @Component({
   selector: 'app-cocktail-card',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterLink],
+  imports: [CommonModule, MatIconModule, RouterLink, CocktailChipComponent],
   templateUrl: './cocktail-card.component.html',
   styleUrls: ['./cocktail-card.component.scss'],
   animations: [
@@ -56,7 +61,7 @@ export class CocktailCardComponent implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
-  constructor(private router: Router) {}
+  constructor(public router: Router) {}
 
   ngOnInit(): void {
     if (this.cocktail?.ingredients_list) {
@@ -454,5 +459,56 @@ export class CocktailCardComponent implements OnInit {
 
     const list = pick.length ? pick : [all[0]];
     return list.map((c) => `${this.toWebp(c.url)} ${c.w}w`).join(', ');
+  }
+
+  // === ADD: breakpoint handset ===
+  private _bo = inject(BreakpointObserver);
+  isHandset = toSignal(
+    this._bo.observe([Breakpoints.Handset]).pipe(map((r) => r.matches)),
+    { initialValue: false }
+  );
+
+  // === ADD: stato pannello mobile ingredienti ===
+  mobileIngredientsPanelOpen = signal(false);
+  toggleMobileIngredientsPanel() {
+    this.mobileIngredientsPanelOpen.update((v) => !v);
+  }
+
+  // === ADD: due ingredienti sempre visibili (silo mobile-first)
+  get _mobileInlineIngredients(): string[] {
+    const list = (this.mainIngredientsFormatted ?? []) as string[];
+    return list.slice(0, 2);
+  }
+  get _mobileMoreCount(): number {
+    const list = (this.mainIngredientsFormatted ?? []) as string[];
+    return Math.max(0, list.length - 2);
+  }
+
+  // === TrackBy per gli ingredienti (aiuta le performance e risolve l’errore)
+  trackByIngredient(index: number, ingredient: string): string {
+    // Se hai già un metodo getIngredientId, riusalo per restituire l’id/slug.
+    try {
+      return this.getIngredientId(ingredient) || ingredient;
+    } catch {
+      return ingredient;
+    }
+  }
+
+  public slugifySegment(v?: string | null, fallback = 'all'): string {
+    const s = (v ?? '').trim();
+    if (!s) return fallback;
+    return s
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  methodSlug(v?: string) {
+    return (v || '').toLowerCase().replace(/\s+/g, '-');
+  }
+  glassSlug(v?: string) {
+    return (v || '').toLowerCase().replace(/\s+/g, '-');
   }
 }
