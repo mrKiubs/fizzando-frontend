@@ -49,6 +49,501 @@ interface ProductItem {
   showPlaceholder: boolean;
 }
 
+type ContentSegment =
+  | { kind: 'text'; value: string; emphasis?: 'strong' }
+  | {
+      kind: 'routerLink';
+      label: string;
+      commands: string | any[];
+      queryParams?: Record<string, unknown> | null;
+      fragment?: string | null;
+      emphasis?: 'strong';
+    }
+  | {
+      kind: 'externalLink';
+      label: string;
+      href: string;
+      target?: '_blank' | '_self';
+      rel?: string;
+      emphasis?: 'strong';
+    };
+
+interface KeyFeatureCopy {
+  icon: string;
+  title: string;
+  segments: ContentSegment[];
+}
+
+interface FaqEntryCopy {
+  question: string;
+  answer: ContentSegment[];
+}
+
+interface SupportingContentCopy {
+  heading: string;
+  features: KeyFeatureCopy[];
+  faqs: FaqEntryCopy[];
+  faqHeading?: string;
+}
+
+interface ContentExample {
+  name: string;
+  slug?: string;
+}
+
+const textSegment = (value: string, emphasis?: 'strong'): ContentSegment => ({
+  kind: 'text',
+  value,
+  emphasis,
+});
+
+const routerLinkSegment = (
+  label: string,
+  commands: string | any[],
+  options: {
+    queryParams?: Record<string, unknown> | null;
+    fragment?: string | null;
+    emphasis?: 'strong';
+  } = {}
+): ContentSegment => ({
+  kind: 'routerLink',
+  label,
+  commands,
+  queryParams: options.queryParams ?? null,
+  fragment: options.fragment ?? null,
+  emphasis: options.emphasis,
+});
+
+const externalLinkSegment = (
+  label: string,
+  href: string,
+  options: {
+    target?: '_blank' | '_self';
+    rel?: string;
+    emphasis?: 'strong';
+  } = {}
+): ContentSegment => ({
+  kind: 'externalLink',
+  label,
+  href,
+  target: options.target,
+  rel: options.rel,
+  emphasis: options.emphasis,
+});
+
+const DEFAULT_SUPPORTING_CONTENT: SupportingContentCopy = {
+  heading: 'Why use Fizzando to explore cocktails?',
+  faqHeading: 'Frequently Asked Questions about Cocktails',
+  features: [
+    {
+      icon: '📚',
+      title: 'Comprehensive Details:',
+      segments: [
+        textSegment(
+          ' Each cocktail includes step-by-step instructions, precise measurements, origin stories, sensory descriptions, food pairings, ideal occasions, and variations.'
+        ),
+      ],
+    },
+    {
+      icon: '📦',
+      title: 'Discover Ingredients:',
+      segments: [
+        textSegment(' Explore our '),
+        routerLinkSegment('Ingredients', ['/ingredients'], {
+          emphasis: 'strong',
+        }),
+        textSegment(' section to learn more about every component.'),
+      ],
+    },
+    {
+      icon: '🧑‍🍳',
+      title: 'Craft with What You Have:',
+      segments: [
+        textSegment(' Use our '),
+        routerLinkSegment('Find by Ingredients', ['/find-by-ingredients'], {
+          emphasis: 'strong',
+        }),
+        textSegment(
+          ' tool to discover cocktails you can make with your current stock.'
+        ),
+      ],
+    },
+    {
+      icon: '🎓',
+      title: 'Master Your Craft:',
+      segments: [
+        textSegment(' Deepen your cocktail knowledge with our '),
+        routerLinkSegment('Glossary', ['/glossary'], { emphasis: 'strong' }),
+        textSegment(' of terms and techniques.'),
+      ],
+    },
+  ],
+  faqs: [
+    {
+      question: 'What are the most popular classic cocktails?',
+      answer: [
+        textSegment(' Timeless '),
+        textSegment('classic cocktails', 'strong'),
+        textSegment(' include the '),
+        routerLinkSegment('Daiquiri', ['/cocktails', 'daiquiri'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', '),
+        routerLinkSegment('Manhattan', ['/cocktails', 'manhattan'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', '),
+        routerLinkSegment('Sidecar', ['/cocktails', 'sidecar'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', '),
+        routerLinkSegment('Boulevardier', ['/cocktails', 'boulevardier'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', and '),
+        routerLinkSegment('Pisco Sour', ['/cocktails', 'pisco-sour'], {
+          emphasis: 'strong',
+        }),
+        textSegment('.'),
+      ],
+    },
+    {
+      question: 'How can I choose the right glass for each cocktail?',
+      answer: [
+        textSegment(' Use a '),
+        textSegment('coupe', 'strong'),
+        textSegment(' for shaken, citrusy drinks like the '),
+        routerLinkSegment('Daiquiri', ['/cocktails', 'daiquiri'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', a '),
+        textSegment('Collins glass', 'strong'),
+        textSegment(' for tall, fizzy serves like the '),
+        routerLinkSegment('Tom Collins', ['/cocktails', 'tom-collins'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', and a '),
+        textSegment('rocks glass', 'strong'),
+        textSegment(' for stiff, spirit-forward classics like the '),
+        routerLinkSegment('Sazerac', ['/cocktails', 'sazerac'], {
+          emphasis: 'strong',
+        }),
+        textSegment('.'),
+      ],
+    },
+    {
+      question: 'Which cocktails are best for beginners?',
+      answer: [
+        textSegment(' Try simple, high-success mixes like the '),
+        routerLinkSegment('Aperol Spritz', ['/cocktails', 'aperol-spritz'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', '),
+        routerLinkSegment('Cuba Libre', ['/cocktails', 'cuba-libre'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', '),
+        routerLinkSegment('Bellini', ['/cocktails', 'bellini'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', or '),
+        routerLinkSegment('Paloma', ['/cocktails', 'paloma'], {
+          emphasis: 'strong',
+        }),
+        textSegment('.'),
+      ],
+    },
+    {
+      question: 'How do I calculate the alcohol content (ABV) of a cocktail?',
+      answer: [
+        textSegment(
+          ' ABV depends on the spirits’ strength, volumes, and dilution. Our cocktail cards include an '
+        ),
+        textSegment('estimated ABV', 'strong'),
+        textSegment(' so you can compare drink strength before mixing.'),
+      ],
+    },
+    {
+      question:
+        'Can I switch any classic cocktail to a non-alcoholic (mocktail) version?',
+      answer: [
+        textSegment(' Many cocktails can become '),
+        textSegment('mocktails', 'strong'),
+        textSegment(' by replacing spirits with '),
+        textSegment('zero-proof alternatives', 'strong'),
+        textSegment(' or rebalancing mixers. For example, a '),
+        routerLinkSegment('Mojito', ['/cocktails', 'mojito'], {
+          emphasis: 'strong',
+        }),
+        textSegment(' can turn into a Virgin Mojito by omitting rum, while a '),
+        routerLinkSegment('Piña Colada', ['/cocktails', 'pina-colada'], {
+          emphasis: 'strong',
+        }),
+        textSegment(' works great without alcohol.'),
+      ],
+    },
+    {
+      question: 'Where can I discover new cocktail ideas and trends?',
+      answer: [
+        textSegment(' Modern favorites include the '),
+        routerLinkSegment('French 75', ['/cocktails', 'french-75'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', '),
+        routerLinkSegment('Mai Tai', ['/cocktails', 'mai-tai'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', '),
+        routerLinkSegment('Caipirinha', ['/cocktails', 'caipirinha'], {
+          emphasis: 'strong',
+        }),
+        textSegment(', and '),
+        routerLinkSegment(
+          'Espresso Martini',
+          ['/cocktails', 'espresso-martini'],
+          {
+            emphasis: 'strong',
+          }
+        ),
+        textSegment(
+          '. We keep the archive updated with seasonal drinks and bartender-driven innovations.'
+        ),
+      ],
+    },
+  ],
+};
+
+const GLASS_EXAMPLES: Record<string, ContentExample[]> = {
+  'cocktail-glass': [
+    { name: 'Classic Martini', slug: 'martini' },
+    { name: 'Manhattan', slug: 'manhattan' },
+    { name: 'Cosmopolitan', slug: 'cosmopolitan' },
+  ],
+  'highball-glass': [
+    { name: 'Mojito', slug: 'mojito' },
+    { name: 'Tom Collins', slug: 'tom-collins' },
+    { name: 'Dark and Stormy', slug: 'dark-and-stormy' },
+  ],
+  'collins-glass': [
+    { name: 'Singapore Sling', slug: 'singapore-sling' },
+    { name: 'Paloma', slug: 'paloma' },
+    { name: 'Gin Fizz', slug: 'gin-fizz' },
+  ],
+  'old-fashioned-glass': [
+    { name: 'Old Fashioned', slug: 'old-fashioned' },
+    { name: 'Negroni', slug: 'negroni' },
+    { name: 'Sazerac', slug: 'sazerac' },
+  ],
+  'shot-glass': [
+    { name: 'B-52', slug: 'b-52' },
+    { name: 'Kamikaze', slug: 'kamikaze' },
+    { name: 'Lemon Drop', slug: 'lemon-drop-shot' },
+  ],
+  'coffee-mug': [
+    { name: 'Irish Coffee', slug: 'irish-coffee' },
+    { name: 'Hot Toddy', slug: 'hot-toddy' },
+    { name: 'Mexican Coffee', slug: 'mexican-coffee' },
+  ],
+  'whiskey-sour-glass': [
+    { name: 'Whiskey Sour', slug: 'whiskey-sour' },
+    { name: 'Pisco Sour', slug: 'pisco-sour' },
+    { name: 'Amaretto Sour', slug: 'amaretto-sour' },
+  ],
+  'brandy-snifter': [
+    { name: 'Sidecar', slug: 'sidecar' },
+    { name: 'Brandy Alexander', slug: 'brandy-alexander' },
+    { name: 'Vieux Carré', slug: 'vieux-carre' },
+  ],
+  'nick-nora-glass': [
+    { name: 'Last Word', slug: 'last-word' },
+    { name: 'Brooklyn', slug: 'brooklyn' },
+    { name: 'Bijou', slug: 'bijou' },
+  ],
+  'julep-cup': [
+    { name: 'Mint Julep', slug: 'mint-julep' },
+    { name: 'Gin Gin Mule', slug: 'gin-gin-mule' },
+    { name: 'Whiskey Smash', slug: 'whiskey-smash' },
+  ],
+  'copper-mug': [
+    { name: 'Moscow Mule', slug: 'moscow-mule' },
+    { name: 'Kentucky Mule', slug: 'kentucky-mule' },
+    { name: 'Mexican Mule', slug: 'mexican-mule' },
+  ],
+};
+
+const METHOD_EXAMPLES: Record<string, ContentExample[]> = {
+  'built-in-glass': [
+    { name: 'Negroni', slug: 'negroni' },
+    { name: 'Old Fashioned', slug: 'old-fashioned' },
+    { name: 'Americano', slug: 'americano' },
+  ],
+  shaken: [
+    { name: 'Margarita', slug: 'margarita' },
+    { name: 'Daiquiri', slug: 'daiquiri' },
+    { name: 'Whiskey Sour', slug: 'whiskey-sour' },
+  ],
+  stirred: [
+    { name: 'Martini', slug: 'martini' },
+    { name: 'Manhattan', slug: 'manhattan' },
+    { name: 'Vesper', slug: 'vesper' },
+  ],
+  blended: [
+    { name: 'Piña Colada', slug: 'pina-colada' },
+    { name: 'Frozen Margarita', slug: 'frozen-margarita' },
+    { name: 'Miami Vice', slug: 'miami-vice' },
+  ],
+  other: [
+    { name: 'Ramos Gin Fizz', slug: 'ramos-gin-fizz' },
+    { name: 'Michelada', slug: 'michelada' },
+    { name: 'Sangria', slug: 'sangria' },
+  ],
+  layered: [
+    { name: 'B-52', slug: 'b-52' },
+    { name: 'Pousse Café', slug: 'pousse-cafe' },
+    { name: 'Black and Tan', slug: 'black-and-tan' },
+  ],
+  muddled: [
+    { name: 'Mojito', slug: 'mojito' },
+    { name: 'Caipirinha', slug: 'caipirinha' },
+    { name: 'Mint Julep', slug: 'mint-julep' },
+  ],
+  'built-in-punch-bowl': [
+    { name: 'Fish House Punch', slug: 'fish-house-punch' },
+    { name: 'Planter’s Punch', slug: 'planters-punch' },
+    { name: 'Sangria', slug: 'sangria' },
+  ],
+  heated: [
+    { name: 'Hot Toddy', slug: 'hot-toddy' },
+    { name: 'Irish Coffee', slug: 'irish-coffee' },
+    { name: 'Tom and Jerry', slug: 'tom-and-jerry' },
+  ],
+  'infusion-aging': [
+    { name: 'Barrel-Aged Negroni', slug: 'barrel-aged-negroni' },
+    { name: 'Fat-Washed Old Fashioned', slug: 'fat-washed-old-fashioned' },
+    { name: 'Sous Vide Martinez', slug: 'sous-vide-martinez' },
+  ],
+  'bomb-shot': [
+    { name: 'Jägerbomb', slug: 'jagerbomb' },
+    { name: 'Irish Car Bomb', slug: 'irish-car-bomb' },
+    { name: 'Sake Bomb', slug: 'sake-bomb' },
+  ],
+};
+
+const CATEGORY_EXAMPLES: Record<string, ContentExample[]> = {
+  refreshing: [
+    { name: 'Mojito', slug: 'mojito' },
+    { name: 'Paloma', slug: 'paloma' },
+    { name: 'Gin Fizz', slug: 'gin-fizz' },
+  ],
+  'after-dinner': [
+    { name: 'Espresso Martini', slug: 'espresso-martini' },
+    { name: 'Brandy Alexander', slug: 'brandy-alexander' },
+    { name: 'Grasshopper', slug: 'grasshopper' },
+  ],
+  sour: [
+    { name: 'Whiskey Sour', slug: 'whiskey-sour' },
+    { name: 'Pisco Sour', slug: 'pisco-sour' },
+    { name: 'Clover Club', slug: 'clover-club' },
+  ],
+  tropical: [
+    { name: 'Mai Tai', slug: 'mai-tai' },
+    { name: 'Piña Colada', slug: 'pina-colada' },
+    { name: 'Zombie', slug: 'zombie' },
+  ],
+  'spirit-forward': [
+    { name: 'Old Fashioned', slug: 'old-fashioned' },
+    { name: 'Boulevardier', slug: 'boulevardier' },
+    { name: 'Vieux Carré', slug: 'vieux-carre' },
+  ],
+  classic: [
+    { name: 'Martini', slug: 'martini' },
+    { name: 'Negroni', slug: 'negroni' },
+    { name: 'Daiquiri', slug: 'daiquiri' },
+  ],
+  hot: [
+    { name: 'Hot Toddy', slug: 'hot-toddy' },
+    { name: 'Grog', slug: 'grog' },
+    { name: 'Hot Buttered Rum', slug: 'hot-buttered-rum' },
+  ],
+  aperitif: [
+    { name: 'Americano', slug: 'americano' },
+    { name: 'Aperol Spritz', slug: 'aperol-spritz' },
+    { name: 'Negroni Sbagliato', slug: 'negroni-sbagliato' },
+  ],
+  sparkling: [
+    { name: 'French 75', slug: 'french-75' },
+    { name: 'Bellini', slug: 'bellini' },
+    { name: 'Kir Royale', slug: 'kir-royale' },
+  ],
+  flaming: [
+    { name: 'Blue Blazer', slug: 'blue-blazer' },
+    { name: 'Scorpion', slug: 'scorpion' },
+    { name: 'Zombie', slug: 'zombie' },
+  ],
+  punch: [
+    { name: 'Fish House Punch', slug: 'fish-house-punch' },
+    { name: "Planter's Punch", slug: 'planters-punch' },
+    { name: 'Rum Punch', slug: 'rum-punch' },
+  ],
+  shot: [
+    { name: 'B-52', slug: 'b-52' },
+    { name: 'Kamikaze', slug: 'kamikaze' },
+    { name: 'Lemon Drop', slug: 'lemon-drop-shot' },
+  ],
+  beer: [
+    { name: 'Michelada', slug: 'michelada' },
+    { name: 'Black Velvet', slug: 'black-velvet' },
+    { name: 'Shandy', slug: 'shandy' },
+  ],
+  aromatic: [
+    { name: 'Negroni', slug: 'negroni' },
+    { name: 'Martinez', slug: 'martinez' },
+    { name: 'Hanky Panky', slug: 'hanky-panky' },
+  ],
+  'homemade-liqueur': [
+    { name: 'Homemade Irish Cream', slug: 'homemade-irish-cream' },
+    { name: 'Limoncello Spritz', slug: 'limoncello-spritz' },
+    { name: 'Nocino Manhattan', slug: 'nocino-manhattan' },
+  ],
+};
+
+const ALCOHOLIC_EXAMPLES: Record<string, ContentExample[]> = {
+  alcoholic: [
+    { name: 'Negroni', slug: 'negroni' },
+    { name: 'Martini', slug: 'martini' },
+    { name: 'Old Fashioned', slug: 'old-fashioned' },
+  ],
+  'non-alcoholic': [
+    { name: 'Virgin Mojito', slug: 'virgin-mojito' },
+    { name: 'Nojito', slug: 'nojito' },
+    { name: 'Espresso Tonic', slug: 'espresso-tonic' },
+  ],
+  'optional-alcohol': [
+    { name: 'Michelada', slug: 'michelada' },
+    { name: 'Bloody Mary', slug: 'bloody-mary' },
+    { name: 'Punch Romaine', slug: 'punch-romaine' },
+  ],
+};
+
+const cloneSegments = (segments: ContentSegment[]): ContentSegment[] =>
+  segments.map((segment) => ({ ...segment }));
+
+const cloneSupportingContent = (
+  content: SupportingContentCopy
+): SupportingContentCopy => ({
+  heading: content.heading,
+  faqHeading: content.faqHeading,
+  features: content.features.map((feature) => ({
+    icon: feature.icon,
+    title: feature.title,
+    segments: cloneSegments(feature.segments),
+  })),
+  faqs: content.faqs.map((faq) => ({
+    question: faq.question,
+    answer: cloneSegments(faq.answer),
+  })),
+});
+
 @Component({
   selector: 'app-cocktail-list',
   standalone: true,
@@ -386,16 +881,6 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     'Optional Alcohol',
   ];
 
-  faqs: FaqItemState[] = [
-    { isExpanded: false },
-    { isExpanded: false },
-    { isExpanded: false },
-    { isExpanded: false },
-    { isExpanded: false },
-    { isExpanded: false },
-    { isExpanded: false },
-  ];
-
   productList: ProductItem[] = [
     {
       title: 'Libbey Mixologist 9-Piece Cocktail Set',
@@ -481,6 +966,569 @@ export class CocktailListComponent implements OnInit, OnDestroy {
       showPlaceholder: true,
     },
   ];
+
+  private updateSupportingContent(): void {
+    const content = cloneSupportingContent(
+      this.buildSupportingContent(this.hubKind, this.hubLabel, this.hubSlug)
+    );
+    this.keyFeaturesHeading = content.heading;
+    this.keyFeatures = content.features;
+    this.faqEntries = content.faqs;
+    this.faqHeading =
+      content.faqHeading ||
+      (this.hubKind !== 'root' && this.hubTitle
+        ? `Frequently Asked Questions about ${this.hubTitle}`
+        : 'Frequently Asked Questions about Cocktails');
+    this.faqStates = content.faqs.map(() => ({ isExpanded: false }));
+  }
+
+  private buildSupportingContent(
+    kind: typeof this.hubKind,
+    label: string,
+    slug: string
+  ): SupportingContentCopy {
+    if (!label || !slug || kind === 'root') {
+      return cloneSupportingContent(DEFAULT_SUPPORTING_CONTENT);
+    }
+
+    const normalizedSlug = slug.toLowerCase();
+
+    switch (kind) {
+      case 'glass':
+        return this.buildGlassSupportingContent(label, normalizedSlug);
+      case 'method':
+        return this.buildMethodSupportingContent(label, normalizedSlug);
+      case 'category':
+        return this.buildCategorySupportingContent(label, normalizedSlug);
+      case 'alcoholic':
+        return this.buildAlcoholicSupportingContent(label, normalizedSlug);
+      default:
+        return cloneSupportingContent(DEFAULT_SUPPORTING_CONTENT);
+    }
+  }
+
+  private buildGlassSupportingContent(
+    label: string,
+    slug: string
+  ): SupportingContentCopy {
+    const article = this.getIndefiniteArticle(label);
+    const labelLower = this.lowercaseLabel(label);
+    const examples = GLASS_EXAMPLES[slug] ?? [];
+    const exampleSegments = this.buildExampleListSegments(examples);
+
+    const features: KeyFeatureCopy[] = [
+      {
+        icon: '🥂',
+        title: `${label} Glass Essentials:`,
+        segments: [
+          textSegment(
+            ` Serving cocktails in ${article} ${labelLower} keeps dilution, aroma, and garnish aligned with the recipe's intent.`
+          ),
+        ],
+      },
+      {
+        icon: '🧊',
+        title: 'Ice & Texture Control:',
+        segments: [
+          textSegment(' Master chilling and dilution by consulting the '),
+          routerLinkSegment('Glossary', ['/glossary'], { emphasis: 'strong' }),
+          textSegment(
+            ` for building, stirring, and rolling techniques tailored to ${labelLower} serves.`
+          ),
+        ],
+      },
+      {
+        icon: '🥗',
+        title: 'Ingredient Pairings:',
+        segments: [
+          textSegment(' Use '),
+          routerLinkSegment('Find by Ingredients', ['/find-by-ingredients'], {
+            emphasis: 'strong',
+          }),
+          textSegment(
+            ` to surface carbonated mixers, fresh citrus, and modifiers that shine in ${labelLower} cocktails.`
+          ),
+        ],
+      },
+      {
+        icon: '🛒',
+        title: 'Stock Your Bar:',
+        segments: [
+          textSegment(' Browse the '),
+          routerLinkSegment('Ingredients', ['/ingredients'], {
+            emphasis: 'strong',
+          }),
+          textSegment(
+            ` directory to confirm you have the spirits, syrups, and garnishes that suit ${labelLower} recipes.`
+          ),
+        ],
+      },
+    ];
+
+    const faqs: FaqEntryCopy[] = [
+      {
+        question: `What defines a ${label} cocktail?`,
+        answer: [
+          textSegment(
+            ` Serving cocktails in ${article} ${labelLower} balances volume, bubbles, and aromatics so every sip feels intentional.`
+          ),
+          ...(exampleSegments.length
+            ? [
+                textSegment(' Signature serves include '),
+                ...exampleSegments,
+                textSegment('.'),
+              ]
+            : [
+                textSegment(
+                  ' Explore our cocktail library to discover recipes that highlight this glass style.'
+                ),
+              ]),
+        ],
+      },
+      {
+        question: `How should I chill a ${label} drink?`,
+        answer: [
+          textSegment(
+            ` Fill the ${labelLower} with quality ice or pre-chill it in the freezer to manage dilution without muting flavor.`
+          ),
+          textSegment(
+            ' Our step-by-step cards specify shaking, building, or rolling instructions for each recipe.'
+          ),
+        ],
+      },
+      {
+        question: `Which ingredients pair well with ${labelLower} cocktails?`,
+        answer: [
+          textSegment(' Use '),
+          routerLinkSegment('Find by Ingredients', ['/find-by-ingredients'], {
+            emphasis: 'strong',
+          }),
+          textSegment(
+            ` to mix tall, effervescent drinks with soda, tonic, or ginger beer alongside seasonal fruits and herbs.`
+          ),
+        ],
+      },
+      {
+        question: `Can I batch ${labelLower} recipes for service?`,
+        answer: [
+          textSegment(
+            ' Absolutely—pre-dilute, chill, and store the mix cold, then top with fresh ice and bubbles directly in the glass when serving.'
+          ),
+        ],
+      },
+      {
+        question: `How do I finish a ${labelLower} cocktail?`,
+        answer: [
+          textSegment(' Reference the '),
+          routerLinkSegment('Glossary', ['/glossary'], { emphasis: 'strong' }),
+          textSegment(
+            ` for guidance on garnishes, peels, and aromatics that complement ${labelLower} presentations.`
+          ),
+        ],
+      },
+    ];
+
+    return {
+      heading: `Explore cocktails served in the ${label}`,
+      faqHeading: `Frequently Asked Questions about ${label} cocktails`,
+      features,
+      faqs,
+    };
+  }
+
+  private buildMethodSupportingContent(
+    label: string,
+    slug: string
+  ): SupportingContentCopy {
+    const examples = METHOD_EXAMPLES[slug] ?? [];
+    const exampleSegments = this.buildExampleListSegments(examples);
+
+    const features: KeyFeatureCopy[] = [
+      {
+        icon: '⚙️',
+        title: `${label} Technique Breakdown:`,
+        segments: [
+          textSegment(
+            ` Follow detailed timing, shaking patterns, and dilution cues tailored to the ${label.toLowerCase()} method.`
+          ),
+        ],
+      },
+      {
+        icon: '🧪',
+        title: 'Practice with Guided Cards:',
+        segments: [
+          textSegment(
+            ' Each cocktail page outlines equipment, steps, and sensory checkpoints so you can perfect the process at home.'
+          ),
+        ],
+      },
+      {
+        icon: '🥄',
+        title: 'Dial in Ingredients:',
+        segments: [
+          textSegment(' Combine flavors confidently using '),
+          routerLinkSegment('Find by Ingredients', ['/find-by-ingredients'], {
+            emphasis: 'strong',
+          }),
+          textSegment(
+            ' to match spirits, modifiers, and garnishes suited to this technique.'
+          ),
+        ],
+      },
+      {
+        icon: '📘',
+        title: 'Technique Glossary:',
+        segments: [
+          textSegment(' Review the '),
+          routerLinkSegment('Glossary', ['/glossary'], { emphasis: 'strong' }),
+          textSegment(
+            ' for definitions of shakes, stirs, rolls, throws, and specialized moves connected to the method.'
+          ),
+        ],
+      },
+    ];
+
+    const faqs: FaqEntryCopy[] = [
+      {
+        question: `What defines the ${label} method?`,
+        answer: [
+          textSegment(
+            ` The ${label.toLowerCase()} approach specifies how you combine ingredients, control dilution, and manage temperature to achieve a balanced drink.`
+          ),
+        ],
+      },
+      {
+        question: `Which cocktails showcase ${label.toLowerCase()} drinks?`,
+        answer: [
+          ...(exampleSegments.length
+            ? [
+                textSegment(' Standout recipes include '),
+                ...exampleSegments,
+                textSegment('.'),
+              ]
+            : [
+                textSegment(
+                  ' Browse our cocktail index to find classics and modern serves that rely on this preparation style.'
+                ),
+              ]),
+        ],
+      },
+      {
+        question: `What equipment do I need for ${label.toLowerCase()} cocktails?`,
+        answer: [
+          textSegment(
+            ' Check each recipe card for shakers, mixing glasses, strainers, and specialty tools before you start.'
+          ),
+        ],
+      },
+      {
+        question: `Can I adapt ${label.toLowerCase()} recipes for home service?`,
+        answer: [
+          textSegment(
+            ' Absolutely—scale portions carefully, chill glassware, and follow our timing cues to recreate bar-quality results without commercial gear.'
+          ),
+        ],
+      },
+      {
+        question: `What mistakes should I avoid when using the ${label.toLowerCase()} method?`,
+        answer: [
+          textSegment(
+            ' Avoid over-dilution, incorrect ice, or skipping aromatics. Our notes and the '
+          ),
+          routerLinkSegment('Glossary', ['/glossary'], { emphasis: 'strong' }),
+          textSegment(' highlight technique-specific pitfalls and fixes.'),
+        ],
+      },
+    ];
+
+    return {
+      heading: `Master the ${label} method`,
+      faqHeading: `Frequently Asked Questions about the ${label} method`,
+      features,
+      faqs,
+    };
+  }
+
+  private buildCategorySupportingContent(
+    label: string,
+    slug: string
+  ): SupportingContentCopy {
+    const labelLower = this.lowercaseLabel(label);
+    const examples = CATEGORY_EXAMPLES[slug] ?? [];
+    const exampleSegments = this.buildExampleListSegments(examples);
+
+    const features: KeyFeatureCopy[] = [
+      {
+        icon: '🌈',
+        title: `${label} Flavor Guide:`,
+        segments: [
+          textSegment(
+            ` Discover the hallmark aromas, textures, and balance points that define ${labelLower} cocktails.`
+          ),
+        ],
+      },
+      {
+        icon: '🥂',
+        title: 'Perfect Pairings:',
+        segments: [
+          textSegment(
+            ' Match recipes with meals, moods, and occasions using our tasting notes and serving suggestions.'
+          ),
+        ],
+      },
+      {
+        icon: '🧑‍🍳',
+        title: 'Mix with Confidence:',
+        segments: [
+          textSegment(' Use '),
+          routerLinkSegment('Find by Ingredients', ['/find-by-ingredients'], {
+            emphasis: 'strong',
+          }),
+          textSegment(
+            ` to build a shopping list that supports ${labelLower} flavors, from base spirits to fresh produce.`
+          ),
+        ],
+      },
+      {
+        icon: '📚',
+        title: 'Level Up Knowledge:',
+        segments: [
+          textSegment(' The '),
+          routerLinkSegment('Glossary', ['/glossary'], { emphasis: 'strong' }),
+          textSegment(
+            ` explains category-specific techniques, historical context, and garnish styles.`
+          ),
+        ],
+      },
+    ];
+
+    const faqs: FaqEntryCopy[] = [
+      {
+        question: `What defines ${labelLower} cocktails?`,
+        answer: [
+          textSegment(
+            ` Expect signature flavors, ingredients, and textures that align with the ${labelLower} style—our cards outline why each recipe fits the category.`
+          ),
+        ],
+      },
+      {
+        question: `Which recipes should I try first?`,
+        answer: [
+          ...(exampleSegments.length
+            ? [
+                textSegment(' Start with '),
+                ...exampleSegments,
+                textSegment(' to understand the core profile.'),
+              ]
+            : [
+                textSegment(
+                  ' Explore our curated list of cocktails to sample foundational and modern takes in this style.'
+                ),
+              ]),
+        ],
+      },
+      {
+        question: `How can I personalize ${labelLower} drinks?`,
+        answer: [
+          textSegment(
+            ' Adjust sweetness, acidity, or strength while keeping the core balance intact—each recipe suggests variations and swaps.'
+          ),
+        ],
+      },
+      {
+        question: `What food pairs well with ${labelLower} cocktails?`,
+        answer: [
+          textSegment(
+            ' Use our pairing notes to match dishes, snacks, or desserts that amplify the category’s flavor profile.'
+          ),
+        ],
+      },
+      {
+        question: `How do I stock my bar for ${labelLower} serves?`,
+        answer: [
+          textSegment(' Visit the '),
+          routerLinkSegment('Ingredients', ['/ingredients'], {
+            emphasis: 'strong',
+          }),
+          textSegment(
+            ' hub to source base spirits, modifiers, and garnishes aligned with this category.'
+          ),
+        ],
+      },
+    ];
+
+    return {
+      heading: `Discover ${label} cocktails`,
+      faqHeading: `Frequently Asked Questions about ${label} cocktails`,
+      features,
+      faqs,
+    };
+  }
+
+  private buildAlcoholicSupportingContent(
+    label: string,
+    slug: string
+  ): SupportingContentCopy {
+    const labelLower = this.lowercaseLabel(label);
+    const examples = ALCOHOLIC_EXAMPLES[slug] ?? [];
+    const exampleSegments = this.buildExampleListSegments(examples);
+
+    const features: KeyFeatureCopy[] = [
+      {
+        icon: '🍸',
+        title: `${label} Highlights:`,
+        segments: [
+          textSegment(
+            ` Understand the expected strength, mouthfeel, and balance when crafting ${labelLower} drinks.`
+          ),
+        ],
+      },
+      {
+        icon: '🧾',
+        title: 'Plan Your Menu:',
+        segments: [
+          textSegment(' Filter recipes by '),
+          routerLinkSegment('Find by Ingredients', ['/find-by-ingredients'], {
+            emphasis: 'strong',
+          }),
+          textSegment(
+            ` to curate ${labelLower} options for every guest and occasion.`
+          ),
+        ],
+      },
+      {
+        icon: '🥤',
+        title: 'Balance and Alternatives:',
+        segments: [
+          textSegment(
+            ' Explore swaps and low-ABV variations detailed on each cocktail card to tailor intensity.'
+          ),
+        ],
+      },
+      {
+        icon: '📘',
+        title: 'Stay Informed:',
+        segments: [
+          textSegment(
+            ' Review responsible-service tips and production terms in the '
+          ),
+          routerLinkSegment('Glossary', ['/glossary'], { emphasis: 'strong' }),
+          textSegment(' to serve confidently.'),
+        ],
+      },
+    ];
+
+    const faqs: FaqEntryCopy[] = [
+      {
+        question: `What does ${labelLower} mean for cocktails?`,
+        answer: [
+          textSegment(
+            ` It indicates the expected alcohol content and whether spirits, fortified wines, or zero-proof bases drive the recipe.`
+          ),
+        ],
+      },
+      {
+        question: `Which drinks fit the ${labelLower} profile?`,
+        answer: [
+          ...(exampleSegments.length
+            ? [
+                textSegment(' Try '),
+                ...exampleSegments,
+                textSegment(' to experience benchmark serves.'),
+              ]
+            : [
+                textSegment(
+                  ' Browse our listings to compare classics and modern signatures in this strength range.'
+                ),
+              ]),
+        ],
+      },
+      {
+        question: `How can I adjust strength while keeping balance?`,
+        answer: [
+          textSegment(
+            ' Use our tasting notes to tweak dilution, modifiers, or spirit-free alternatives without losing structure.'
+          ),
+        ],
+      },
+      {
+        question: `What should I consider for guests with different preferences?`,
+        answer: [
+          textSegment(
+            ' Offer a mix of spirit-forward, low-ABV, and zero-proof options—each cocktail card suggests swaps to suit any crowd.'
+          ),
+        ],
+      },
+      {
+        question: `Where can I learn more about production styles?`,
+        answer: [
+          textSegment(' Dive into the '),
+          routerLinkSegment('Glossary', ['/glossary'], { emphasis: 'strong' }),
+          textSegment(
+            ' for definitions of distillation, fermentation, and zero-proof techniques relevant to this category.'
+          ),
+        ],
+      },
+    ];
+
+    return {
+      heading: `Explore ${label} cocktails`,
+      faqHeading: `Frequently Asked Questions about ${labelLower} cocktails`,
+      features,
+      faqs,
+    };
+  }
+
+  private buildExampleListSegments(
+    examples: ContentExample[]
+  ): ContentSegment[] {
+    const segments: ContentSegment[] = [];
+    examples.forEach((example, index) => {
+      if (index > 0) {
+        const isLast = index === examples.length - 1;
+        if (examples.length === 2) {
+          segments.push(textSegment(' and '));
+        } else if (isLast) {
+          segments.push(textSegment(', and '));
+        } else {
+          segments.push(textSegment(', '));
+        }
+      }
+
+      if (example.slug) {
+        segments.push(
+          routerLinkSegment(example.name, ['/cocktails', example.slug], {
+            emphasis: 'strong',
+          })
+        );
+      } else {
+        segments.push(textSegment(example.name, 'strong'));
+      }
+    });
+
+    return segments;
+  }
+
+  private getIndefiniteArticle(label: string): string {
+    const trimmed = (label || '').trim();
+    if (!trimmed) return 'a';
+    const first = trimmed.charAt(0).toLowerCase();
+    return 'aeiou'.includes(first) ? 'an' : 'a';
+  }
+
+  private lowercaseLabel(label: string): string {
+    return (label || '').toLowerCase();
+  }
+
+  private segmentsToPlainText(segments: ContentSegment[]): string {
+    return segments
+      .map((segment) =>
+        segment.kind === 'text' ? segment.value : segment.label
+      )
+      .join('')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 
   // --- debounce senza RxJS ---
   private searchDebounceHandle: any = null;
@@ -620,7 +1668,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
           });
           return;
         }
-
+        this.updateSupportingContent();
         this.setSeoTagsAndSchemaHeaders();
 
         this.loadCocktails();

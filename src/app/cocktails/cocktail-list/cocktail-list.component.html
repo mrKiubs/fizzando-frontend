@@ -457,246 +457,127 @@
   </div>
 </div>
 
-<div class="key-features-section">
-  <h3>Why use Fizzando to explore cocktails?</h3>
-  <div class="feature-item">
-    <span class="feature-icon">📚</span>
-    <p>
-      <b>Comprehensive Details:</b> Each cocktail includes step-by-step
-      instructions, precise measurements, origin stories, sensory descriptions,
-      food pairings, ideal occasions, and variations.
-    </p>
-  </div>
-  <div class="feature-item">
-    <span class="feature-icon">📦</span>
-    <p>
-      <b>Discover Ingredients:</b> Explore our
-      <a href="/ingredients"><b>Ingredients</b></a> section to learn more about
-      every component.
-    </p>
-  </div>
-  <div class="feature-item">
-    <span class="feature-icon">🧑‍🍳</span>
-    <p>
-      <b>Craft with What You Have:</b> Use our
-      <a href="/find-by-ingredients"><b>Find by Ingredients</b></a>
-      tool to discover cocktails you can make with your current stock.
-    </p>
-  </div>
-  <div class="feature-item">
-    <span class="feature-icon">🎓</span>
-    <p>
-      <b>Master Your Craft:</b> Deepen your cocktail knowledge with our
-      <a href="/glossary"><b>Glossary</b></a> of terms and techniques.
-    </p>
-  </div>
-</div>
-
-@defer (on viewport) {
-<div class="bottom-container">
-  <div class="faq-section">
-    <h2>Frequently Asked Questions about Cocktails</h2>
-
-    <!-- CLASSICI -->
-    <div class="faq-item" [class.expanded]="faqs[0].isExpanded">
-      <button
-        class="faq-question"
-        type="button"
-        (click)="toggleFaq(faqs[0])"
-        [attr.aria-expanded]="faqs[0].isExpanded"
-      >
-        <span>What are the most popular classic cocktails?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
-      </button>
-      <div
-        #c0
-        class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[0].isExpanded ? c0.scrollHeight : 0"
-      >
-        <p class="faq-answer">
-          Timeless <b>classic cocktails</b> include the
-          <a [routerLink]="['/cocktails', 'daiquiri']"><b>Daiquiri</b></a
-          >, <a [routerLink]="['/cocktails', 'manhattan']"><b>Manhattan</b></a
-          >, <a [routerLink]="['/cocktails', 'sidecar']"><b>Sidecar</b></a
-          >,
-          <a [routerLink]="['/cocktails', 'boulevardier']"
-            ><b>Boulevardier</b></a
-          >, and
-          <a [routerLink]="['/cocktails', 'pisco-sour']"><b>Pisco Sour</b></a
-          >.
-        </p>
-      </div>
-    </div>
-
-    <!-- BICCHIERI -->
-    <div class="faq-item" [class.expanded]="faqs[1].isExpanded">
-      <button
-        class="faq-question"
-        type="button"
-        (click)="toggleFaq(faqs[1])"
-        [attr.aria-expanded]="faqs[1].isExpanded"
-      >
-        <span>How can I choose the right glass for each cocktail?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
-      </button>
-      <div
-        #c1
-        class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[1].isExpanded ? c1.scrollHeight : 0"
-      >
-        <p class="faq-answer">
-          Use a <b>coupe</b> for shaken, citrusy drinks like the
-          <a [routerLink]="['/cocktails', 'daiquiri']">Daiquiri</a>, a
-          <b>Collins</b> glass for tall, fizzy serves like the
-          <a [routerLink]="['/cocktails', 'tom-collins']">Tom Collins</a>, and a
-          <b>rocks glass</b> for stiff, spirit-forward classics like the
-          <a [routerLink]="['/cocktails', 'sazerac']"><b>Sazerac</b></a> or a
-          <b>julep cup</b> for the
-          <a [routerLink]="['/cocktails', 'mint-julep']">Mint Julep</a>.
-        </p>
-      </div>
-    </div>
-
-    <!-- FACILI -->
-    <div class="faq-item" [class.expanded]="faqs[2].isExpanded">
-      <button
-        class="faq-question"
-        type="button"
-        (click)="toggleFaq(faqs[2])"
-        [attr.aria-expanded]="faqs[2].isExpanded"
-      >
-        <span>Which cocktails are best for beginners?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
-      </button>
-      <div
-        #c2
-        class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[2].isExpanded ? c2.scrollHeight : 0"
-      >
-        <p class="faq-answer">
-          Try simple, high-success mixes like the
-          <a [routerLink]="['/cocktails', 'aperol-spritz']"
-            ><b>Aperol Spritz</b></a
-          >, <a [routerLink]="['/cocktails', 'cuba-libre']"><b>Cuba Libre</b></a
-          >, <a [routerLink]="['/cocktails', 'bellini']"><b>Bellini</b></a
-          >, or <a [routerLink]="['/cocktails', 'paloma']"><b>Paloma</b></a
-          >.
-        </p>
-      </div>
-    </div>
-
-    <!-- ABV -->
-    <div class="faq-item" [class.expanded]="faqs[3].isExpanded">
-      <button
-        class="faq-question"
-        type="button"
-        (click)="toggleFaq(faqs[3])"
-        [attr.aria-expanded]="faqs[3].isExpanded"
-      >
-        <span>How do I calculate the alcohol content (ABV) of a cocktail?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
-      </button>
-      <div
-        #c3
-        class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[3].isExpanded ? c3.scrollHeight : 0"
-      >
-        <p class="faq-answer">
-          ABV depends on the spirits’ strength, volumes, and dilution. Our
-          cocktail cards include an <b>estimated ABV</b> so you can compare
-          drink strength before mixing.
-        </p>
-      </div>
-    </div>
-
-    <!-- MOCKTAILS / SWITCH -->
-    <div class="faq-item" [class.expanded]="faqs[4].isExpanded">
-      <button
-        class="faq-question"
-        type="button"
-        (click)="toggleFaq(faqs[4])"
-        [attr.aria-expanded]="faqs[4].isExpanded"
-      >
-        <span
-          >Can I switch any classic cocktail to a non-alcoholic (mocktail)
-          version?</span
-        >
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
-      </button>
-      <div
-        #c4
-        class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[4].isExpanded ? c4.scrollHeight : 0"
-      >
-        <p class="faq-answer">
-          Many cocktails can become <b>mocktails</b> by replacing spirits with
-          <b>zero-proof alternatives</b> or rebalancing mixers. For example, a
-          <a [routerLink]="['/cocktails', 'mojito']">Mojito</a> can turn into a
-          Virgin Mojito by omitting rum, while a
-          <a [routerLink]="['/cocktails', 'pina-colada']">Piña Colada</a> works
-          great without alcohol. Explore
-          <a
-            [routerLink]="['/cocktails']"
-            [queryParams]="{ alcoholic: 'Non Alcoholic' }"
-          >
-            <b>Non-Alcoholic Cocktails</b>
-          </a>
-          for ready-to-mix ideas.
-        </p>
-      </div>
-    </div>
-
-    <!-- TENDENZE / MODERNI -->
-    <div class="faq-item" [class.expanded]="faqs[5].isExpanded">
-      <button
-        class="faq-question"
-        type="button"
-        (click)="toggleFaq(faqs[5])"
-        [attr.aria-expanded]="faqs[5].isExpanded"
-      >
-        <span>Where can I discover new cocktail ideas and trends?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
-      </button>
-      <div
-        #c5
-        class="faq-answer-wrapper"
-        [style.maxHeight.px]="faqs[5].isExpanded ? c5.scrollHeight : 0"
-      >
-        <p class="faq-answer">
-          Modern favorites include the
-          <a [routerLink]="['/cocktails', 'french-75']"><b>French 75</b></a
-          >, <a [routerLink]="['/cocktails', 'mai-tai']"><b>Mai Tai</b></a
-          >, <a [routerLink]="['/cocktails', 'caipirinha']"><b>Caipirinha</b></a
-          >, and
-          <a [routerLink]="['/cocktails', 'espresso-martini']"
-            ><b>Espresso Martini</b></a
-          >. We keep the archive updated with seasonal drinks and
-          bartender-driven innovations.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  @defer (on viewport) {
-  <section class="ad-block" role="complementary" aria-label="Sponsored content">
-    <span class="ad-badge">Ad</span>
-
-    <app-dev-ads [type]="isMobile ? 'responsive' : 'half-page'"></app-dev-ads>
-  </section>
-  } @placeholder {
-  <section
-    class="ad-block"
-    role="complementary"
-    aria-label="Sponsored content"
-    aria-hidden="true"
+<div class="key-features-section" *ngIf="keyFeatures.length">
+  <h3>{{ keyFeaturesHeading }}</h3>
+  <div
+    class="feature-item"
+    *ngFor="let feature of keyFeatures; trackBy: trackByIndex"
   >
-    <span class="ad-badge">Ad</span>
-    <app-dev-ads [type]="isMobile ? 'responsive' : 'half-page'"></app-dev-ads>
-  </section>
-  }
+    <span class="feature-icon">{{ feature.icon }}</span>
+    <p></p>
+    <div class="key-features-section" *ngIf="keyFeatures.length">
+      <h3>{{ keyFeaturesHeading }}</h3>
+      <div
+        class="feature-item"
+        *ngFor="let feature of keyFeatures; trackBy: trackByIndex"
+      >
+        <span class="feature-icon">{{ feature.icon }}</span>
+      </div>
+    </div>
+
+    @defer (on viewport) {
+    <div class="bottom-container">
+      <div class="faq-section" *ngIf="faqEntries.length">
+        <h2>{{ faqHeading }}</h2>
+
+        <div
+          class="faq-item"
+          *ngFor="let faq of faqEntries; let i = index; trackBy: trackByIndex"
+          [class.expanded]="faqStates[i]?.isExpanded"
+        >
+          <button
+            class="faq-question"
+            type="button"
+            (click)="toggleFaq(i)"
+            [attr.aria-expanded]="faqStates[i]?.isExpanded"
+          >
+            <span>{{ faq.question }}</span>
+            <mat-icon
+              class="faq-toggle-icon"
+              svgIcon="arrow_drop_down"
+            ></mat-icon>
+          </button>
+          <div
+            #answer
+            class="faq-answer-wrapper"
+            [style.maxHeight.px]="
+              faqStates[i]?.isExpanded ? answer.scrollHeight : 0
+            "
+          >
+            <p class="faq-answer">
+              <ng-container *ngFor="let segment of faq.answer">
+                <ng-container *ngIf="segment.kind === 'text'">
+                  <span
+                    [style.font-weight]="
+                      segment.emphasis === 'strong' ? '600' : null
+                    "
+                    >{{ segment.value }}</span
+                  >
+                </ng-container>
+                <ng-container *ngIf="segment.kind === 'routerLink'">
+                  <a
+                    [routerLink]="segment.commands"
+                    [queryParams]="segment.queryParams || undefined"
+                    [fragment]="segment.fragment || undefined"
+                  >
+                    <span
+                      [style.font-weight]="
+                        segment.emphasis === 'strong' ? '600' : null
+                      "
+                      >{{ segment.label }}</span
+                    >
+                  </a>
+                </ng-container>
+                <ng-container *ngIf="segment.kind === 'externalLink'">
+                  <a
+                    [href]="segment.href"
+                    [attr.target]="segment.target || '_blank'"
+                    [attr.rel]="segment.rel || 'noopener noreferrer'"
+                  >
+                    <span
+                      [style.font-weight]="
+                        segment.emphasis === 'strong' ? '600' : null
+                      "
+                      >{{ segment.label }}</span
+                    >
+                  </a>
+                </ng-container>
+              </ng-container>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      @defer (on viewport) {
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
+
+        <app-dev-ads
+          [type]="isMobile ? 'responsive' : 'half-page'"
+        ></app-dev-ads>
+      </section>
+      } @placeholder {
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+        aria-hidden="true"
+      >
+        <span class="ad-badge">Ad</span>
+        <app-dev-ads
+          [type]="isMobile ? 'responsive' : 'half-page'"
+        ></app-dev-ads>
+      </section>
+      }
+    </div>
+    } @placeholder {
+    <div class="bottom-container placeholder" aria-hidden="true">
+      <div class="faq-section skeleton"></div>
+    </div>
+    }
+  </div>
 </div>
-} @placeholder {
-<div class="bottom-container placeholder" aria-hidden="true">
-  <div class="faq-section skeleton"></div>
-</div>
-}
