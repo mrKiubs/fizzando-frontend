@@ -628,6 +628,20 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   public pageH2 = '';
   public pageDescription = '';
 
+  private readonly defaultSupportingContent = cloneSupportingContent(
+    DEFAULT_SUPPORTING_CONTENT
+  );
+
+  keyFeaturesHeading: string = this.defaultSupportingContent.heading;
+  keyFeatures: KeyFeatureCopy[] = this.defaultSupportingContent.features;
+  faqEntries: FaqEntryCopy[] = this.defaultSupportingContent.faqs;
+  faqHeading: string =
+    this.defaultSupportingContent.faqHeading ??
+    'Frequently Asked Questions about Cocktails';
+  faqStates: FaqItemState[] = this.defaultSupportingContent.faqs.map(() => ({
+    isExpanded: false,
+  }));
+
   // Barra lettere
   letters: string[] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   readonly numberKey = '0-9';
@@ -1988,8 +2002,14 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     return cocktail.id;
   }
 
-  toggleFaq(faqItem: FaqItemState): void {
-    faqItem.isExpanded = !faqItem.isExpanded;
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  toggleFaq(index: number): void {
+    const state = this.faqStates[index];
+    if (!state) return;
+    state.isExpanded = !state.isExpanded;
   }
 
   get accordionTitle(): string {
