@@ -30,6 +30,7 @@ import {
 import { CocktailCardComponent } from '../cocktail-card/cocktail-card.component';
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
 import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
+import { FacetChipsComponent } from '../../assets/design-system/chips/facet-chips.component';
 import { env } from '../../config/env';
 
 // --- Interfacce ---

@@ -30,7 +30,11 @@ import { RouterLink } from '@angular/router';
     >
       <ng-content></ng-content>
       {{ label }}
-      <span class="chip-count" [class.is-loading]="count === undefined">
+      <span
+        *ngIf="count !== undefined || showCountWhenUndefined"
+        class="chip-count"
+        [class.is-loading]="count === undefined"
+      >
         {{ count === undefined ? '…' : count }}
       </span>
     </a>
@@ -53,7 +57,11 @@ import { RouterLink } from '@angular/router';
       >
         <ng-content></ng-content>
         {{ label }}
-        <span class="chip-count" [class.is-loading]="count === undefined">
+        <span
+          *ngIf="count !== undefined || showCountWhenUndefined"
+          class="chip-count"
+          [class.is-loading]="count === undefined"
+        >
           {{ count === undefined ? '…' : count }}
         </span>
       </a>
@@ -78,7 +86,11 @@ import { RouterLink } from '@angular/router';
         >
           <ng-content></ng-content>
           {{ label }}
-          <span class="chip-count" [class.is-loading]="count === undefined">
+          <span
+            *ngIf="count !== undefined || showCountWhenUndefined"
+            class="chip-count"
+            [class.is-loading]="count === undefined"
+          >
             {{ count === undefined ? '…' : count }}
           </span>
         </button>
@@ -159,6 +171,8 @@ export class CocktailChipComponent {
   @Input() variant: 'default' | 'category' | 'method' | 'glass' | 'alcoholic' =
     'default';
   @Input() slug?: string;
+
+  @Input() showCountWhenUndefined = true;
 
   // Link modes
   @Input() routerLink: any[] | string | null = null;
