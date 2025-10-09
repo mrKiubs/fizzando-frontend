@@ -103,7 +103,7 @@ import { RouterLink } from '@angular/router';
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 4px 4px 4px 8px;
+        padding: 4px 4px 4px 32px;
         border-radius: 50px;
         font-size: 0.8rem;
         font-weight: 500;
@@ -113,6 +113,14 @@ import { RouterLink } from '@angular/router';
         -webkit-backdrop-filter: blur(5px);
         transition: all 0.2s ease-in-out;
         text-decoration: none;
+
+        &::after {
+          content: '☆';
+          position: absolute;
+          left: 8px;
+          top: 2px;
+          font-size: 18px;
+        }
       }
       .cocktail-chip:hover {
         background: #00000019;
