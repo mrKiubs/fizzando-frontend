@@ -199,3 +199,29 @@ h1 {
   height: auto;
   aspect-ratio: 1 / 1;
 }
+
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  background-color: currentColor; /* colore dinamico */
+  -webkit-mask: var(--icon) no-repeat center / contain;
+  mask: var(--icon) no-repeat center / contain;
+}
+
+/* Dimensioni standard */
+.icon-16 {
+  width: 16px;
+  height: 16px;
+}
+.icon-24 {
+  width: 24px;
+  height: 24px;
+}
+.icon-32 {
+  width: 32px;
+  height: 32px;
+}
+.icon-48 {
+  width: 48px;
+  height: 48px;
+}

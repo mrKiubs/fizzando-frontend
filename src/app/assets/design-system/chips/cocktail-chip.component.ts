@@ -28,6 +28,11 @@ import { RouterLink } from '@angular/router';
       [attr.aria-label]="ariaLabel"
       (click)="stopClickPropagation ? $event.stopPropagation() : null"
     >
+      <span
+        class="icon icon-24"
+        style="--icon: url('/assets/icons/png/cocktail_icon_01.png'); color:#0ea5e9"
+      >
+      </span>
       <ng-content></ng-content>
       {{ label }}
       <span
