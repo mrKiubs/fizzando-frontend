@@ -2,12 +2,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   Input,
-  OnInit,
+  OnChanges,
+  OnDestroy,
+  SimpleChanges,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CocktailService } from '../../../services/strapi.service';
 import { CocktailChipComponent } from './cocktail-chip.component';
+import { Subscription } from 'rxjs';
 
 type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
 
@@ -121,7 +125,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FacetChipsComponent implements OnInit {
+export class FacetChipsComponent implements OnChanges, OnDestroy {
   @Input() label = '';
   @Input() kind: Kind = 'method';
   @Input() items: string[] = [];
@@ -141,10 +145,27 @@ export class FacetChipsComponent implements OnInit {
     alcoholic: {},
   };
   private local: Record<string, number | undefined> = {};
+  private subscriptions: Subscription[] = [];
 
-  constructor(private api: CocktailService) {}
+  constructor(private api: CocktailService, private cdr: ChangeDetectorRef) {}
 
-  ngOnInit(): void {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['items'] || changes['countsInput'] || changes['kind']) {
+      this.refreshCounts();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.clearSubscriptions();
+  }
+
+  private refreshCounts(): void {
+    this.clearSubscriptions();
+
+    if (!this.items?.length) {
+      this.local = {};
+      return;
+    }
     // 1) Se hai passato countsInput, usiamo quelli e stop
     if (this.countsInput) {
       this.local = { ...this.countsInput };
@@ -153,10 +174,14 @@ export class FacetChipsComponent implements OnInit {
 
     // 2) Altrimenti: riempi da cache + fetcha solo i mancanti
     const cache = FacetChipsComponent.memo[this.kind];
+    const prevLocal = this.local;
+    const nextLocal: Record<string, number | undefined> = {};
     this.items.forEach((lbl) => {
       const s = this.slug(lbl);
-      if (cache[s] !== undefined) this.local[s] = cache[s];
+      const cached = cache[s];
+      nextLocal[s] = cached !== undefined ? cached : prevLocal[s];
     });
+    this.local = nextLocal;
 
     const missing = this.items
       .map((lbl) => this.slug(lbl))
@@ -232,19 +257,47 @@ export class FacetChipsComponent implements OnInit {
     const next = () => {
       const slug = queue.shift();
       if (!slug) return;
-      const label = this.items.find((l) => this.slug(l) === slug)!;
-      ask(label).subscribe({
+      const label = this.items.find((l) => this.slug(l) === slug);
+      if (!label) {
+        next();
+        return;
+      }
+
+      let sub: Subscription;
+
+      sub = ask(label).subscribe({
         next: (res: any) => this.set(slug, res?.meta?.pagination?.total ?? 0),
-        error: () => this.set(slug, 0),
-        complete: () => next(),
+        error: () => {
+          this.set(slug, 0);
+          // Ora 'sub' è accessibile qui
+          this.removeSubscription(sub);
+          next();
+        },
+        complete: () => {
+          // E anche qui!
+          this.removeSubscription(sub);
+          next();
+        },
       });
+      this.subscriptions.push(sub);
     };
     next();
   }
 
   private set(slug: string, n: number) {
     this.local[slug] = n;
-    FacetChipsComponent.memo[this.kind][slug] = n; // salva in cache globale
+    FacetChipsComponent.memo[this.kind][slug] = n;
+
+    this.cdr.detectChanges();
+  }
+
+  private clearSubscriptions(): void {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+    this.subscriptions = [];
+  }
+
+  private removeSubscription(sub: Subscription) {
+    this.subscriptions = this.subscriptions.filter((s) => s !== sub);
   }
 
   count(slug: string) {
