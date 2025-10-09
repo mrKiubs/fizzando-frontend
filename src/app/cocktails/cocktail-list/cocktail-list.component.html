@@ -464,7 +464,48 @@
     class="feature-item"
     *ngFor="let feature of keyFeatures; trackBy: trackByIndex"
   >
-    <span class="feature-icon">{{ feature.icon }}</span>
+    <span class="feature-icon" aria-hidden="true">{{ feature.icon }}</span>
+    <div class="feature-copy">
+      <h4 class="feature-title">{{ feature.title }}</h4>
+      <p class="feature-description">
+        <ng-container *ngFor="let segment of feature.segments">
+          <ng-container *ngIf="segment.kind === 'text'">
+            <span
+              [style.font-weight]="segment.emphasis === 'strong' ? '600' : null"
+              >{{ segment.value }}</span
+            >
+          </ng-container>
+          <ng-container *ngIf="segment.kind === 'routerLink'">
+            <a
+              [routerLink]="segment.commands"
+              [queryParams]="segment.queryParams || undefined"
+              [fragment]="segment.fragment || undefined"
+            >
+              <span
+                [style.font-weight]="
+                  segment.emphasis === 'strong' ? '600' : null
+                "
+                >{{ segment.label }}</span
+              >
+            </a>
+          </ng-container>
+          <ng-container *ngIf="segment.kind === 'externalLink'">
+            <a
+              [attr.href]="segment.href"
+              [attr.target]="segment.target || null"
+              [attr.rel]="segment.rel || null"
+            >
+              <span
+                [style.font-weight]="
+                  segment.emphasis === 'strong' ? '600' : null
+                "
+                >{{ segment.label }}</span
+              >
+            </a>
+          </ng-container>
+        </ng-container>
+      </p>
+    </div>
   </div>
 </div>
 
