@@ -177,7 +177,7 @@ export class CocktailService {
     string,
     { ts: number; stream$: Observable<StrapiResponse<Cocktail>> }
   >();
-  private listTTLms = 60_000; // 60s
+  private listTTLms = 600_000; // 60s
 
   // ------- PREFETCH (nuovo) --------
   private PREFETCH_MAX_CONCURRENCY = 2;

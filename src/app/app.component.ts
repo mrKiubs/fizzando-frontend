@@ -142,6 +142,7 @@ export class AppComponent {
 
         if (!pathChanged) return;
         const nav = this.router.getCurrentNavigation();
+
         const state =
           (nav?.extras?.state as any) ||
           (this.isBrowser ? window.history.state : {}) ||
@@ -149,6 +150,7 @@ export class AppComponent {
         if (state.suppressScroll) return;
 
         this.viewportScroller.scrollToPosition([0, 0]);
+
       });
   }
 
