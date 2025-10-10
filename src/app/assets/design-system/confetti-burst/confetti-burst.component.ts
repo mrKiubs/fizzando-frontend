@@ -155,15 +155,15 @@ export class ConfettiBurstComponent implements AfterViewInit, OnDestroy {
     const prefersReduced =
       typeof matchMedia !== 'undefined' &&
       matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const highDpr = this.dpr > 1.5;
+    //const highDpr = this.dpr > 1.5;
 
     let effectiveCount = this.particleCount;
-    if (highDpr)
-      effectiveCount = Math.floor(effectiveCount * this.highDprParticleScale);
-    if (prefersReduced)
-      effectiveCount = Math.floor(
-        effectiveCount * this.reducedMotionParticleScale
-      );
+    //if (highDpr)
+    // effectiveCount = Math.floor(effectiveCount * this.highDprParticleScale);
+    // if (prefersReduced)
+    //    effectiveCount = Math.floor(
+    //   effectiveCount * this.reducedMotionParticleScale
+    //  );
     effectiveCount = Math.max(this.minParticleCount, effectiveCount);
 
     const parts = Array.from({ length: effectiveCount }, () => {
