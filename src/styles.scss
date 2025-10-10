@@ -19,9 +19,10 @@ body {
 }
 
 body {
+  margin: 0;
   min-height: 100svh;
   min-height: var(--app-vh);
-  padding-top: calc(var(--header-height) + var(--safe-top));
+  padding-top: 0;
   scroll-padding-top: calc(var(--header-height) + var(--safe-top));
   overscroll-behavior: contain;
 }
