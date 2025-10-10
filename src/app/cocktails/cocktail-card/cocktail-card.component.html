@@ -143,54 +143,54 @@
               {{ cocktail.name }}
             </ng-template>
           </h3>
-
-          <div
-            class="cocktail-chips-container"
-            role="group"
-            aria-label="Category and method"
-          >
-            <!-- METHOD hub -->
-            <app-cocktail-chip
-              *ngIf="cocktail.preparation_type"
-              [label]="cocktail.preparation_type"
-              [variant]="'method'"
-              [slug]="slugifySegment(cocktail.preparation_type)"
-              [routerLink]="[
-                '/cocktails',
-                'method',
-                slugifySegment(cocktail.preparation_type)
-              ]"
-              [queryParams]="{}"
-              [stopClickPropagation]="true"
-              [showCountWhenUndefined]="false"
-            >
-              <span class="icon">{{
-                getPreparationIcon(cocktail.preparation_type)
-              }}</span>
-            </app-cocktail-chip>
-
-            <!-- GLASS hub -->
-            <app-cocktail-chip
-              *ngIf="cocktail.glass"
-              [label]="cocktail.glass"
-              [variant]="'glass'"
-              [slug]="slugifySegment(cocktail.glass)"
-              [routerLink]="[
-                '/cocktails',
-                'glass',
-                slugifySegment(cocktail.glass)
-              ]"
-              [queryParams]="{}"
-              [stopClickPropagation]="true"
-              [showCountWhenUndefined]="false"
-            >
-              <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
-            </app-cocktail-chip>
-          </div>
         </div>
       </div>
 
       <div class="cocktail-extra-info">
+        <div
+          class="cocktail-chips-container"
+          role="group"
+          aria-label="Category and method"
+        >
+          <p class="info-method">Method and glass:</p>
+          <!-- METHOD hub -->
+          <app-cocktail-chip
+            *ngIf="cocktail.preparation_type"
+            [label]="cocktail.preparation_type"
+            [variant]="'method'"
+            [slug]="slugifySegment(cocktail.preparation_type)"
+            [routerLink]="[
+              '/cocktails',
+              'method',
+              slugifySegment(cocktail.preparation_type)
+            ]"
+            [queryParams]="{}"
+            [stopClickPropagation]="true"
+            [showCountWhenUndefined]="false"
+          >
+            <span class="icon">{{
+              getPreparationIcon(cocktail.preparation_type)
+            }}</span>
+          </app-cocktail-chip>
+
+          <!-- GLASS hub -->
+          <app-cocktail-chip
+            *ngIf="cocktail.glass"
+            [label]="cocktail.glass"
+            [variant]="'glass'"
+            [slug]="slugifySegment(cocktail.glass)"
+            [routerLink]="[
+              '/cocktails',
+              'glass',
+              slugifySegment(cocktail.glass)
+            ]"
+            [queryParams]="{}"
+            [stopClickPropagation]="true"
+            [showCountWhenUndefined]="false"
+          >
+            <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
+          </app-cocktail-chip>
+        </div>
         <div
           class="cocktail-key-info"
           *ngIf="mainIngredientsFormatted.length > 0"
