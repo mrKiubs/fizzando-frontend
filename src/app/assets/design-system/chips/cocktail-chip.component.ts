@@ -140,6 +140,7 @@ import { RouterLink } from '@angular/router';
         -webkit-backdrop-filter: blur(5px);
         transition: all 0.2s ease-in-out;
         text-decoration: none;
+        width: max-content;
       }
       .cocktail-chip:hover {
         background: #00000019;
