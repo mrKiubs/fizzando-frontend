@@ -34,6 +34,7 @@ import { IngredientService, Ingredient } from '../services/ingredient.service';
 import { GlossaryService } from '../services/glossary.service';
 import { BreadcrumbsComponent } from '../assets/design-system/breadcrumbs/breadcrumbs.component';
 import { LogoComponent } from '../assets/design-system/logo/logo.component';
+import { StickyHeaderDirective } from '../directives/sticky-header.directive';
 
 @Component({
   selector: 'app-navbar',
@@ -46,6 +47,7 @@ import { LogoComponent } from '../assets/design-system/logo/logo.component';
     RouterModule,
     BreadcrumbsComponent,
     LogoComponent,
+    StickyHeaderDirective,
   ],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],

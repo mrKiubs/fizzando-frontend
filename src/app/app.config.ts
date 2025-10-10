@@ -20,7 +20,7 @@ export const appConfig: ApplicationConfig = {
       routes,
       withInMemoryScrolling({
         scrollPositionRestoration: 'disabled',
-        anchorScrolling: 'disabled',
+        anchorScrolling: 'enabled',
       })
     ),
     provideHttpClient(withFetch()),

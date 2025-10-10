@@ -1,7 +1,7 @@
 /* Header base */
 .app-header {
   color: #fff;
-  padding: 7px 20px;
+  padding: calc(7px + var(--safe-top)) 20px 7px;
   position: sticky;
   top: 0;
   z-index: 1200;
@@ -15,6 +15,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  min-height: calc(var(--header-height) + var(--safe-top));
 }
 
 .header-content {
@@ -144,14 +145,16 @@
 /* MENU OVERLAY (hamburger) */
 .full-screen-menu-overlay {
   position: fixed;
-  top: 65px;
+  top: calc(var(--header-height) + var(--safe-top));
   left: 0;
   width: 100%;
-  height: calc(100dvh - 65px);
+  height: calc(
+    var(--app-vh) - var(--header-height) - var(--safe-top) - var(--safe-bottom)
+  );
   z-index: 1000;
   box-sizing: border-box;
   padding: 16px;
-
+  padding-bottom: calc(16px + var(--safe-bottom));
   background-image: linear-gradient(
     120deg,
     rgba(210, 252, 195, 0.0823529412) 0%,
