@@ -5,13 +5,13 @@ import {
   Input,
   Output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-cocktail-chip',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NgOptimizedImage],
   template: `
     <a
       *ngIf="routerLink != null; else extOrBtn"
@@ -28,6 +28,15 @@ import { RouterLink } from '@angular/router';
       [attr.aria-label]="ariaLabel"
       (click)="stopClickPropagation ? $event.stopPropagation() : null"
     >
+      <img
+        class="cocktail-chip__icon"
+        [ngSrc]="iconSrc"
+        [attr.alt]="iconAlt"
+        width="24"
+        height="24"
+        loading="lazy"
+        decoding="async"
+      />
       <ng-content></ng-content>
       {{ label }}
       <span
@@ -55,6 +64,15 @@ import { RouterLink } from '@angular/router';
         [attr.aria-label]="ariaLabel"
         (click)="stopClickPropagation ? $event.stopPropagation() : null"
       >
+        <img
+          class="cocktail-chip__icon"
+          [ngSrc]="iconSrc"
+          [attr.alt]="iconAlt"
+          width="24"
+          height="24"
+          loading="lazy"
+          decoding="async"
+        />
         <ng-content></ng-content>
         {{ label }}
         <span
@@ -84,6 +102,15 @@ import { RouterLink } from '@angular/router';
             chipClick.emit()
           "
         >
+          <img
+            class="cocktail-chip__icon"
+            [ngSrc]="iconSrc"
+            [attr.alt]="iconAlt"
+            width="24"
+            height="24"
+            loading="lazy"
+            decoding="async"
+          />
           <ng-content></ng-content>
           {{ label }}
           <span
@@ -103,7 +130,7 @@ import { RouterLink } from '@angular/router';
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 4px 4px 4px 32px;
+        padding: 4px 4px 4px 8;
         border-radius: 50px;
         font-size: 0.8rem;
         font-weight: 500;
@@ -113,14 +140,6 @@ import { RouterLink } from '@angular/router';
         -webkit-backdrop-filter: blur(5px);
         transition: all 0.2s ease-in-out;
         text-decoration: none;
-
-        &::after {
-          content: '☆';
-          position: absolute;
-          left: 8px;
-          top: 2px;
-          font-size: 18px;
-        }
       }
       .cocktail-chip:hover {
         background: #00000019;
@@ -168,11 +187,18 @@ import { RouterLink } from '@angular/router';
       .chip-count.is-loading {
         opacity: 0.45;
       }
+      .cocktail-chip__icon {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CocktailChipComponent {
+  readonly iconSrc = 'assets/icons/png/cocktail_icon_01.png';
+
   @Input({ required: true }) label!: string;
   @Input() count?: number; // undefined => "…"
   @Input() active = false;
@@ -191,6 +217,10 @@ export class CocktailChipComponent {
   @Input() stopClickPropagation = false;
 
   @Output() chipClick = new EventEmitter<void>();
+
+  get iconAlt(): string {
+    return this.label ? `${this.label} icon` : 'Cocktail icon';
+  }
 
   get slugVal(): string {
     return this.slug ?? this.slugify(this.label);
