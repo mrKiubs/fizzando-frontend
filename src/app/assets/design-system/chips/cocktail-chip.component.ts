@@ -129,7 +129,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
       .cocktail-chip {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
         padding: 4px 4px 4px 8px;
         border-radius: 50px;
         font-size: 0.8rem;
@@ -190,15 +190,12 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
       }
 
       .chip-ico {
-        width: 24px;
-        height: 24px;
+        width: 18px;
+        height: 18px;
         display: inline-block;
         background-color: currentColor;
         mask: no-repeat center / contain;
         -webkit-mask: no-repeat center / contain;
-        opacity: 0.9;
-        flex: 0 0 auto;
-        vertical-align: -2px;
       }
     `,
   ],
@@ -206,7 +203,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
 })
 export class CocktailChipComponent {
   /** Usa path relativo: compatibile con SSR/sub-path */
-  private static readonly ICONS_BASE = '/assets/cips';
+  private static readonly ICONS_BASE = 'assets/cips';
 
   constructor(private sanitizer: DomSanitizer) {}
 

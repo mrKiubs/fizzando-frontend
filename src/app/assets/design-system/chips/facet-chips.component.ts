@@ -162,7 +162,9 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
       }
 
       .chips-scroll-wrapper--overflow .cocktail-chips-container {
-        margin: 0px 36px;
+        @media (min-width: 768px) {
+          margin: 0px 38px;
+        }
       }
 
       .cocktail-chip {
