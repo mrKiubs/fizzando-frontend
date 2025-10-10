@@ -34,8 +34,10 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
           type="button"
           class="scroll-button scroll-button--prev"
           (click)="onScrollButtonClick('left')"
-          [disabled]="!canScrollLeft"
-          *ngIf="showScrollControls"
+          [class.scroll-button--visible]="showScrollControls"
+          [disabled]="!canScrollLeft || !showScrollControls"
+          [attr.tabindex]="showScrollControls ? null : '-1'"
+          [attr.aria-hidden]="showScrollControls ? null : 'true'"
           [attr.aria-label]="'Scroll ' + label + ' chips left'"
         >
           <span aria-hidden="true">‹</span>
@@ -59,7 +61,10 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
           class="scroll-button scroll-button--next"
           (click)="onScrollButtonClick('right')"
           [disabled]="!canScrollRight"
-          *ngIf="showScrollControls"
+          [class.scroll-button--visible]="showScrollControls"
+          [disabled]="!canScrollRight || !showScrollControls"
+          [attr.tabindex]="showScrollControls ? null : '-1'"
+          [attr.aria-hidden]="showScrollControls ? null : 'true'"
           [attr.aria-label]="'Scroll ' + label + ' chips right'"
         >
           <span aria-hidden="true">›</span>
@@ -88,6 +93,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
         gap: 8px;
         flex: 1 1 auto;
         min-width: 0;
+        position: relative;
       }
       .cocktail-chips-container {
         display: flex;
@@ -156,7 +162,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
       }
 
       .chips-scroll-wrapper--overflow .cocktail-chips-container {
-        padding-inline: 4px;
+        margin: 0px 36px;
       }
 
       .cocktail-chip {
@@ -215,7 +221,9 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
         }
       }
       .scroll-button {
-        position: relative;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -229,6 +237,22 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
         transition: background 0.2s ease, border-color 0.2s ease,
           opacity 0.2s ease;
         flex: 0 0 auto;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .scroll-button--prev {
+        left: 0;
+      }
+
+      .scroll-button--next {
+        right: 0;
+      }
+
+      .scroll-button--visible {
+        opacity: 1;
+        pointer-events: auto;
       }
 
       .scroll-button:hover:not(:disabled) {
@@ -263,6 +287,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
           padding: 0;
           gap: 6px;
           padding: 0 0 8px 0;
+          margin: 0 0;
         }
 
         .scroll-button {
@@ -524,6 +549,7 @@ export class FacetChipsComponent
       left: direction === 'left' ? -scrollDistance : scrollDistance,
       behavior: 'smooth',
     });
+    this.scheduleScrollStateUpdate();
   }
 
   private clearSubscriptions(): void {
@@ -591,13 +617,15 @@ export class FacetChipsComponent
       return;
     }
 
-    const hasOverflow = el.scrollWidth - el.clientWidth > 2;
-    const maxScrollLeft = el.scrollWidth - el.clientWidth;
+    const threshold = 8;
+    const maxScrollLeft = Math.max(el.scrollWidth - el.clientWidth, 0);
+    const hasOverflow = maxScrollLeft > threshold;
     const currentScroll = el.scrollLeft;
 
     this.showScrollControls = hasOverflow;
-    this.canScrollLeft = hasOverflow && currentScroll > 1;
-    this.canScrollRight = hasOverflow && currentScroll < maxScrollLeft - 1;
+    this.canScrollLeft = hasOverflow && currentScroll > threshold;
+    this.canScrollRight =
+      hasOverflow && currentScroll < maxScrollLeft - threshold;
     this.cdr.markForCheck();
   }
 
