@@ -57,46 +57,53 @@
     <div class="glassy-content-container">
       <div class="glassy-info">
         <div class="glassy-image-container">
-          <picture>
-            <!-- MOBILE: max 80px di slot → cap a 160w (DPR 2), ma forziamo il più piccolo disponibile -->
-            <source
-              media="(max-width: 700px)"
-              [srcset]="srcsetMaxWebp(cocktail.image, 160)"
-              type="image/webp"
-              sizes="80px"
-            />
-            <source
-              media="(max-width: 700px)"
-              [srcset]="srcsetMaxJpg(cocktail.image, 160)"
-              sizes="80px"
-            />
+          <a
+            class="cocktail-card-image-link"
+            [routerLink]="['/cocktails', cocktail.slug]"
+            [attr.href]="'/cocktails/' + cocktail.slug"
+            [attr.aria-label]="'Open ' + cocktail.name"
+          >
+            <picture>
+              <!-- MOBILE: max 80px di slot → cap a 160w (DPR 2), ma forziamo il più piccolo disponibile -->
+              <source
+                media="(max-width: 700px)"
+                [srcset]="srcsetMaxWebp(cocktail.image, 160)"
+                type="image/webp"
+                sizes="80px"
+              />
+              <source
+                media="(max-width: 700px)"
+                [srcset]="srcsetMaxJpg(cocktail.image, 160)"
+                sizes="80px"
+              />
 
-            <source
-              media="(min-width: 701px)"
-              [srcset]="srcsetMaxWebp(cocktail.image, 800)"
-              type="image/webp"
-              sizes="(min-width:1200px) 320px, (min-width:900px) 33vw, 45vw"
-            />
-            <source
-              media="(min-width: 701px)"
-              [srcset]="srcsetMaxJpg(cocktail.image, 800)"
-              sizes="(min-width:1200px) 320px, (min-width:900px) 33vw, 45vw"
-            />
+              <source
+                media="(min-width: 701px)"
+                [srcset]="srcsetMaxWebp(cocktail.image, 800)"
+                type="image/webp"
+                sizes="(min-width:1200px) 320px, (min-width:900px) 33vw, 45vw"
+              />
+              <source
+                media="(min-width: 701px)"
+                [srcset]="srcsetMaxJpg(cocktail.image, 800)"
+                sizes="(min-width:1200px) 320px, (min-width:900px) 33vw, 45vw"
+              />
 
-            <img
-              [src]="getCocktailCardImageUrl(cocktail.image)"
-              [alt]="
-                cocktail.name
-                  ? 'Photo of ' + cocktail.name + ' cocktail'
-                  : 'Cocktail photo'
-              "
-              class="cocktail-card-image"
-              [attr.loading]="isLcp ? 'eager' : 'lazy'"
-              [attr.fetchpriority]="isLcp ? 'high' : 'low'"
-              decoding="async"
-              (error)="onCardImgError($event)"
-            />
-          </picture>
+              <img
+                [src]="getCocktailCardImageUrl(cocktail.image)"
+                [alt]="
+                  cocktail.name
+                    ? 'Photo of ' + cocktail.name + ' cocktail'
+                    : 'Cocktail photo'
+                "
+                class="cocktail-card-image"
+                [attr.loading]="isLcp ? 'eager' : 'lazy'"
+                [attr.fetchpriority]="isLcp ? 'high' : 'low'"
+                decoding="async"
+                (error)="onCardImgError($event)"
+              />
+            </picture>
+          </a>
 
           <span
             class="matched-ingredients-badge"

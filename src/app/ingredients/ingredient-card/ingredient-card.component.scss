@@ -23,7 +23,7 @@
 
 /* Specifico per il layout della card ingrediente */
 .ingredient-layout {
-  padding: 8px;
+  padding: 8px 8px 8px 0;
   border: 1px solid rgba(255, 255, 255, 0.25);
   transition: all 0.2s ease;
   background-image: linear-gradient(
@@ -39,6 +39,25 @@
     .ingredient-name {
       color: white;
     }
+  }
+
+  &::after {
+    content: "›";
+    position: absolute;
+    right: 8px;
+    top: calc(50% - 2px);
+    transform: translateY(-50%);
+    font-size: 18px;
+    opacity: 0.35;
+    pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+    color: white;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
   }
 }
 
@@ -98,6 +117,7 @@
 .ingredient-details {
   flex-grow: 1;
   min-width: 0;
+  padding-right: 10px;
 }
 
 .ingredient-name {

@@ -101,6 +101,19 @@
   position: relative; /* Necessario per il posizionamento del badge */
 }
 
+.cocktail-card-image-link {
+  display: block;
+  height: 100%;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+
+  &:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+  }
+}
+
 .glassy-image-container img {
   width: 100%;
   height: auto;
@@ -556,7 +569,7 @@
   content: "›";
   position: absolute;
   right: 8px;
-  top: calc(50% - 76px);
+  top: 28px;
   transform: translateY(-50%);
   font-size: 18px;
   opacity: 0.35;

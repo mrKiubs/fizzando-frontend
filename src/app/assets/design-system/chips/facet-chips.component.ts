@@ -1,11 +1,19 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
+  ElementRef,
   Input,
-  OnInit,
+  OnChanges,
+  OnDestroy,
+  SimpleChanges,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { Subscription, fromEvent } from 'rxjs';
+import { auditTime } from 'rxjs/operators';
 import { CocktailService } from '../../../services/strapi.service';
 import { CocktailChipComponent } from './cocktail-chip.component';
 
@@ -18,26 +26,145 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
   template: `
     <div class="hub-switcher__row">
       <span class="hub-switcher__label">{{ label }}</span>
-      <div class="cocktail-chips-container">
-        <app-cocktail-chip
-          *ngFor="let lbl of items; trackBy: trackByLabel"
-          [label]="lbl"
-          [count]="count(slug(lbl))"
-          [active]="activeKind === kind && activeSlug === slug(lbl)"
-          [variant]="kind"
-          [slug]="slug(lbl)"
-          [routerLink]="['/cocktails', kind, slug(lbl)]"
+      <div
+        class="chips-scroll-wrapper"
+        [class.chips-scroll-wrapper--overflow]="showScrollControls"
+      >
+        <button
+          type="button"
+          class="scroll-button scroll-button--prev"
+          (click)="onScrollButtonClick('left')"
+          [class.scroll-button--visible]="showScrollControls"
+          [disabled]="!canScrollLeft || !showScrollControls"
+          [attr.tabindex]="showScrollControls ? null : '-1'"
+          [attr.aria-hidden]="showScrollControls ? null : 'true'"
+          [attr.aria-label]="'Scroll ' + label + ' chips left'"
         >
-        </app-cocktail-chip>
+          <span aria-hidden="true">‹</span>
+        </button>
+
+        <div #chipsContainer class="cocktail-chips-container chips-scroll">
+          <app-cocktail-chip
+            *ngFor="let lbl of items; trackBy: trackByLabel"
+            [label]="lbl"
+            [count]="count(slug(lbl))"
+            [active]="activeKind === kind && activeSlug === slug(lbl)"
+            [variant]="kind"
+            [slug]="slug(lbl)"
+            [routerLink]="['/cocktails', kind, slug(lbl)]"
+          >
+          </app-cocktail-chip>
+        </div>
+
+        <button
+          type="button"
+          class="scroll-button scroll-button--next"
+          (click)="onScrollButtonClick('right')"
+          [disabled]="!canScrollRight"
+          [class.scroll-button--visible]="showScrollControls"
+          [disabled]="!canScrollRight || !showScrollControls"
+          [attr.tabindex]="showScrollControls ? null : '-1'"
+          [attr.aria-hidden]="showScrollControls ? null : 'true'"
+          [attr.aria-label]="'Scroll ' + label + ' chips right'"
+        >
+          <span aria-hidden="true">›</span>
+        </button>
       </div>
     </div>
   `,
   styles: [
     `
+      .hub-switcher__row {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .hub-switcher__label {
+        lex: 0 0 auto;
+        color: #fff;
+        font-size: 12px;
+        min-width: 70px;
+      }
+
+      .chips-scroll-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1 1 auto;
+        min-width: 0;
+        position: relative;
+      }
       .cocktail-chips-container {
         display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 4px 0;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        flex: 1 1 auto;
+        min-width: 0;
+
+        // Default per Firefox
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+        // WebKit (mobile)
+        &::-webkit-scrollbar {
+          height: 4px; // 🔹 più fine (prima era 6–8px)
+        }
+
+        &::-webkit-scrollbar-track {
+          background: transparent; // 🔹 invisibile
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2); // 🔹 bianco trasparente
+          border-radius: 50px;
+        }
+
+        &::-webkit-scrollbar-thumb:hover {
+          background: rgba(
+            255,
+            255,
+            255,
+            0.35
+          ); // 🔹 leggera reazione all’hover (solo desktop)
+        }
+      }
+
+      // Nascondi del tutto su desktop
+      @media (min-width: 1024px) {
+        .cocktail-chips-container {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+
+          &::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
+          }
+        }
+      }
+
+      .cocktail-chips-container::-webkit-scrollbar {
+        height: 6px;
+      }
+
+      .cocktail-chips-container::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 50px;
+      }
+
+      .cocktail-chips-container::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .chips-scroll-wrapper--overflow .cocktail-chips-container {
+        @media (min-width: 768px) {
+          margin: 0px 38px;
+        }
       }
 
       .cocktail-chip {
@@ -95,6 +222,80 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
           border-color: rgba(220, 53, 69, 0.2);
         }
       }
+      .scroll-button {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(0, 0, 0, 0.35);
+        color: #fff;
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease,
+          opacity 0.2s ease;
+        flex: 0 0 auto;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .scroll-button--prev {
+        left: 0;
+      }
+
+      .scroll-button--next {
+        right: 0;
+      }
+
+      .scroll-button--visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .scroll-button:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.6);
+      }
+
+      .scroll-button:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+
+      .scroll-button span[aria-hidden='true'] {
+        font-size: 20px;
+        line-height: 1;
+      }
+
+      @media (max-width: 768px) {
+        .hub-switcher__row {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }
+
+        .chips-scroll-wrapper {
+          width: 100%;
+          gap: 0;
+        }
+
+        .cocktail-chips-container {
+          width: 100%;
+          padding: 0;
+          gap: 6px;
+          padding: 0 0 8px 0;
+          margin: 0 0;
+        }
+
+        .scroll-button {
+          display: none;
+        }
+      }
 
       .cocktail-key-info {
         margin-top: 8px;
@@ -106,6 +307,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
         margin-bottom: 4px;
         font-weight: 500;
       }
+
       .sr-only {
         position: absolute;
         width: 1px;
@@ -117,11 +319,44 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
         white-space: nowrap;
         border-width: 0;
       }
+
+      @mixin hide-scrollbar {
+        // Firefox
+        scrollbar-width: none;
+        // IE/Edge legacy
+        -ms-overflow-style: none;
+        // WebKit (Chrome, Safari)
+        &::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+          display: none;
+          background: transparent;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .cocktail-chips-container,
+        .chips-scroll {
+          // (in caso tu la riusi altrove)
+          @include hide-scrollbar;
+        }
+      }
+      .chips-scroll {
+        overflow: auto;
+        -webkit-overflow-scrolling: touch; // non fa male anche su desktop Apple
+
+        // Desktop: nasconde completamente la scrollbar
+        @media (min-width: 1024px) {
+          @include hide-scrollbar;
+        }
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FacetChipsComponent implements OnInit {
+export class FacetChipsComponent
+  implements OnChanges, OnDestroy, AfterViewInit
+{
   @Input() label = '';
   @Input() kind: Kind = 'method';
   @Input() items: string[] = [];
@@ -133,6 +368,13 @@ export class FacetChipsComponent implements OnInit {
   /** Se passi una mappa, NIENTE chiamate; altrimenti calcola lui i contatori. */
   @Input() countsInput: Record<string, number | undefined> | null = null;
 
+  @ViewChild('chipsContainer', { static: false })
+  private chipsContainer?: ElementRef<HTMLDivElement>;
+
+  showScrollControls = false;
+  canScrollLeft = false;
+  canScrollRight = false;
+
   // cache condivisa tra tutte le istanze (home/nav/footer)
   private static memo: Record<Kind, Record<string, number>> = {
     method: {},
@@ -141,10 +383,39 @@ export class FacetChipsComponent implements OnInit {
     alcoholic: {},
   };
   private local: Record<string, number | undefined> = {};
+  private subscriptions: Subscription[] = [];
 
-  constructor(private api: CocktailService) {}
+  private uiSubscriptions: Subscription[] = [];
+  private scrollStateScheduled = false;
+  private scrollObserversReady = false;
+  private readonly isBrowser = typeof window !== 'undefined';
 
-  ngOnInit(): void {
+  constructor(private api: CocktailService, private cdr: ChangeDetectorRef) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['items'] || changes['countsInput'] || changes['kind']) {
+      this.refreshCounts();
+      this.scheduleScrollStateUpdate();
+    }
+  }
+
+  ngAfterViewInit(): void {
+    this.initScrollObservers();
+    this.scheduleScrollStateUpdate();
+  }
+
+  ngOnDestroy(): void {
+    this.clearSubscriptions();
+    this.clearUiSubscriptions();
+  }
+
+  private refreshCounts(): void {
+    this.clearSubscriptions();
+
+    if (!this.items?.length) {
+      this.local = {};
+      return;
+    }
     // 1) Se hai passato countsInput, usiamo quelli e stop
     if (this.countsInput) {
       this.local = { ...this.countsInput };
@@ -153,10 +424,14 @@ export class FacetChipsComponent implements OnInit {
 
     // 2) Altrimenti: riempi da cache + fetcha solo i mancanti
     const cache = FacetChipsComponent.memo[this.kind];
+    const prevLocal = this.local;
+    const nextLocal: Record<string, number | undefined> = {};
     this.items.forEach((lbl) => {
       const s = this.slug(lbl);
-      if (cache[s] !== undefined) this.local[s] = cache[s];
+      const cached = cache[s];
+      nextLocal[s] = cached !== undefined ? cached : prevLocal[s];
     });
+    this.local = nextLocal;
 
     const missing = this.items
       .map((lbl) => this.slug(lbl))
@@ -232,19 +507,128 @@ export class FacetChipsComponent implements OnInit {
     const next = () => {
       const slug = queue.shift();
       if (!slug) return;
-      const label = this.items.find((l) => this.slug(l) === slug)!;
-      ask(label).subscribe({
+      const label = this.items.find((l) => this.slug(l) === slug);
+      if (!label) {
+        next();
+        return;
+      }
+
+      let sub: Subscription;
+
+      sub = ask(label).subscribe({
         next: (res: any) => this.set(slug, res?.meta?.pagination?.total ?? 0),
-        error: () => this.set(slug, 0),
-        complete: () => next(),
+        error: () => {
+          this.set(slug, 0);
+          // Ora 'sub' è accessibile qui
+          this.removeSubscription(sub);
+          next();
+        },
+        complete: () => {
+          // E anche qui!
+          this.removeSubscription(sub);
+          next();
+        },
       });
+      this.subscriptions.push(sub);
     };
     next();
   }
 
   private set(slug: string, n: number) {
     this.local[slug] = n;
-    FacetChipsComponent.memo[this.kind][slug] = n; // salva in cache globale
+    FacetChipsComponent.memo[this.kind][slug] = n;
+
+    this.cdr.detectChanges();
+    this.scheduleScrollStateUpdate();
+  }
+
+  onScrollButtonClick(direction: 'left' | 'right'): void {
+    const el = this.chipsContainer?.nativeElement;
+    if (!el) return;
+
+    const scrollDistance = Math.max(el.clientWidth * 0.7, 200);
+    el.scrollBy({
+      left: direction === 'left' ? -scrollDistance : scrollDistance,
+      behavior: 'smooth',
+    });
+    this.scheduleScrollStateUpdate();
+  }
+
+  private clearSubscriptions(): void {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+    this.subscriptions = [];
+  }
+
+  private removeSubscription(sub: Subscription) {
+    this.subscriptions = this.subscriptions.filter((s) => s !== sub);
+  }
+
+  private clearUiSubscriptions(): void {
+    this.uiSubscriptions.forEach((sub) => sub.unsubscribe());
+    this.uiSubscriptions = [];
+  }
+
+  private initScrollObservers(): void {
+    if (this.scrollObserversReady || !this.isBrowser) return;
+    const el = this.chipsContainer?.nativeElement;
+    if (!el) return;
+
+    this.scrollObserversReady = true;
+
+    this.uiSubscriptions.push(
+      fromEvent(el, 'scroll')
+        .pipe(auditTime(50))
+        .subscribe(() => this.updateScrollState())
+    );
+
+    if (this.isBrowser) {
+      this.uiSubscriptions.push(
+        fromEvent(window, 'resize')
+          .pipe(auditTime(150))
+          .subscribe(() => this.updateScrollState())
+      );
+    }
+
+    this.updateScrollState();
+  }
+
+  private scheduleScrollStateUpdate(): void {
+    if (this.scrollStateScheduled) return;
+    this.scrollStateScheduled = true;
+    setTimeout(() => {
+      this.scrollStateScheduled = false;
+      this.updateScrollState();
+    });
+  }
+
+  private updateScrollState(): void {
+    if (!this.isBrowser) {
+      this.showScrollControls = false;
+      this.canScrollLeft = false;
+      this.canScrollRight = false;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const el = this.chipsContainer?.nativeElement;
+    if (!el) {
+      this.showScrollControls = false;
+      this.canScrollLeft = false;
+      this.canScrollRight = false;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const threshold = 8;
+    const maxScrollLeft = Math.max(el.scrollWidth - el.clientWidth, 0);
+    const hasOverflow = maxScrollLeft > threshold;
+    const currentScroll = el.scrollLeft;
+
+    this.showScrollControls = hasOverflow;
+    this.canScrollLeft = hasOverflow && currentScroll > threshold;
+    this.canScrollRight =
+      hasOverflow && currentScroll < maxScrollLeft - threshold;
+    this.cdr.markForCheck();
   }
 
   count(slug: string) {
