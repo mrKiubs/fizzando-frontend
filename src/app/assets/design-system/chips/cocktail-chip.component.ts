@@ -22,7 +22,8 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
       [ngClass]="[
         'variant-' + variant,
         'slug-' + slugVal,
-        active ? 'active' : ''
+        active ? 'active' : '',
+        count ? '' : 'no-count'
       ]"
       [attr.data-slug]="slugVal"
       [routerLink]="routerLink"
@@ -141,6 +142,10 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         transition: all 0.2s ease-in-out;
         text-decoration: none;
         width: max-content;
+      }
+
+      .cocktail-chip.no-count {
+        padding: 4px 8px 4px 8px;
       }
       .cocktail-chip:hover {
         background: #00000019;
