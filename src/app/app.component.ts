@@ -1,11 +1,15 @@
-import { Component, inject } from '@angular/core';
+import { Component, PLATFORM_ID, inject } from '@angular/core';
 import {
   Router,
   NavigationEnd,
   RouterOutlet,
   RouterModule,
 } from '@angular/router';
-import { ViewportScroller, CommonModule } from '@angular/common';
+import {
+  ViewportScroller,
+  CommonModule,
+  isPlatformBrowser,
+} from '@angular/common';
 import { filter } from 'rxjs/operators';
 import {
   trigger,
@@ -19,6 +23,7 @@ import {
 import { NavbarComponent } from './core/navbar.component';
 import { CocktailBubblesComponent } from './assets/design-system/cocktail-bubbles/cocktail-bubbles.component';
 import { FooterComponent } from './core/footer.component';
+import { ViewportService } from './services/viewport.service';
 
 @Component({
   selector: 'app-root',
@@ -108,19 +113,24 @@ import { FooterComponent } from './core/footer.component';
 export class AppComponent {
   private router = inject(Router);
   private viewportScroller = inject(ViewportScroller);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly viewportService = inject(ViewportService);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   // 👉 params “mobile-safe”
   private readonly isTouch =
-    typeof window !== 'undefined' &&
+    this.isBrowser &&
     (navigator.maxTouchPoints > 0 ||
       /Android|iP(ad|hone|od)/i.test(navigator.userAgent));
 
   private readonly prefersReduced =
-    typeof window !== 'undefined' &&
+    this.isBrowser &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   constructor() {
-    this.viewportScroller.setHistoryScrollRestoration('manual');
+    if (this.isBrowser) {
+      this.viewportScroller.setHistoryScrollRestoration('manual');
+    }
 
     let lastPath = '';
     this.router.events
@@ -131,11 +141,10 @@ export class AppComponent {
         lastPath = path;
 
         if (!pathChanged) return;
-
         const nav = this.router.getCurrentNavigation();
         const state =
           (nav?.extras?.state as any) ||
-          (typeof window !== 'undefined' ? window.history.state : {}) ||
+          (this.isBrowser ? window.history.state : {}) ||
           {};
         if (state.suppressScroll) return;
 
@@ -144,7 +153,9 @@ export class AppComponent {
   }
 
   ngOnInit() {
-    if (typeof window !== 'undefined') {
+    if (this.isBrowser) {
+      this.viewportService.init();
+
       const htmlEl = document.querySelector('html') as HTMLElement;
       if ('fonts' in (document as any)) {
         (document as any).fonts.ready.finally(() =>

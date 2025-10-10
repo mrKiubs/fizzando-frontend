@@ -7,6 +7,55 @@
 /* ====== Base font stack ====== */
 :root {
   font-synthesis: none;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --app-vh: 100dvh;
+  --header-height: 64px;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  min-height: 100svh;
+  min-height: var(--app-vh);
+  padding-top: calc(var(--header-height) + var(--safe-top));
+  scroll-padding-top: calc(var(--header-height) + var(--safe-top));
+  overscroll-behavior: contain;
+}
+
+header.app-header {
+  position: sticky;
+  top: 0;
+  height: calc(var(--header-height) + var(--safe-top));
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.fullscreen-section {
+  height: calc(
+    var(--app-vh) - var(--header-height) - var(--safe-top) - var(--safe-bottom)
+  );
+}
+
+.ios-fixed header.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+header.app-header.ios-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+body.ios-fixed {
+  padding-top: calc(var(--header-height) + var(--safe-top));
 }
 html {
   scrollbar-gutter: stable;
