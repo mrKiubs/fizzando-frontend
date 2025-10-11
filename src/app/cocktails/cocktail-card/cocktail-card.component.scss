@@ -132,6 +132,8 @@
     display: flex;
     flex-direction: row;
     gap: 8px;
+    padding: 8px;
+    background-color: #ffffff14;
     @media (min-width: 600px) {
       flex-direction: column;
     }
@@ -221,6 +223,7 @@
   justify-content: space-between;
   flex-direction: column;
   height: 100%;
+  padding: 0 8px 8px;
 }
 
 .bottom-card-container {
@@ -231,7 +234,7 @@
   padding-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   justify-content: space-between;
-
+  border-radius: 12px 12px 0 0;
   @media (main-width: 600px) {
     margin-top: 8px;
   }
@@ -511,6 +514,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  padding: 0;
 }
 
 .stretched-link {
