@@ -249,3 +249,42 @@ h1 {
   height: auto;
   aspect-ratio: 1 / 1;
 }
+
+/* BASE: tutti i mobile */
+@media (max-width: 768px) {
+  html {
+    -webkit-text-size-adjust: 110%;
+    text-size-adjust: 110%;
+  }
+}
+
+/* RETINA 2x+ (Pixel A compresi) */
+@media (max-width: 768px) and (min-resolution: 2dppx) {
+  html {
+    -webkit-text-size-adjust: 114%;
+    text-size-adjust: 114%;
+  }
+}
+
+/* RETINA 3x+ (iPhone recenti, probabilmente anche 16e) */
+@media (max-width: 768px) and (min-resolution: 3dppx) {
+  html {
+    -webkit-text-size-adjust: 118%;
+    text-size-adjust: 118%;
+  }
+}
+
+/* iOS TUNE: Safari iOS rende i font un filo più piccoli → spingiamo un po' di più.
+   Messo DOPO per sovrascrivere le regole sopra solo su iOS. */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 768px) {
+    html {
+      -webkit-text-size-adjust: 116%;
+    }
+  }
+  @media (max-width: 768px) and (min-resolution: 3dppx) {
+    html {
+      -webkit-text-size-adjust: 120%;
+    }
+  }
+}
