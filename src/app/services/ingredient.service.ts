@@ -481,6 +481,27 @@ export class IngredientService {
     return !(saveData || slow);
   }
 
+  /** Permette al client di idratare manualmente la cache con dati già disponibili (TransferState). */
+  hydrateAllIngredientsCache(list: Ingredient[] | null | undefined): void {
+    if (!Array.isArray(list) || !list.length) return;
+
+    this._allIngredientsCache = list.slice();
+    this._allIngredientsDataSubject.next(this._allIngredientsCache);
+    this._allIngredientsLoadingSubject.next(false);
+
+    for (const item of this._allIngredientsCache) {
+      const key = String(item?.external_id ?? '').toLowerCase();
+      if (key) this.byExternalId.set(key, item);
+    }
+  }
+
+  hydrateIngredientDetail(ingredient: Ingredient | null | undefined): void {
+    if (!ingredient) return;
+    const key = String(ingredient.external_id ?? '').toLowerCase();
+    if (!key) return;
+    this.byExternalId.set(key, ingredient);
+  }
+
   /** Scarica TUTTE le pagine e popola _allIngredientsCache (+ byExternalId). */
   warmAllIngredientsIndex(
     pageSize = 100,

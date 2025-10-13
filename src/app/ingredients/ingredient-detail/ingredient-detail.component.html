@@ -24,12 +24,11 @@
             class="ingredient-image-circular"
             [ngSrc]="getPreferred(getIngredientHeroUrl(ingredient))"
             alt="{{ ingredient.name }}"
-            width="100"
-            height="100"
-            loading="eager"
-            fetchpriority="high"
+            width="150"
+            height="150"
+            priority
             decoding="async"
-            sizes="(max-width: 150px) 100vw, (max-width: 150px) 50vw, 33vw"
+            [disableOptimizedSrcset]="true"
             (error)="onImgError($event, getIngredientHeroUrl(ingredient))"
           />
         </div>
