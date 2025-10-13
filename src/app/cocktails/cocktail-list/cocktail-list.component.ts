@@ -553,8 +553,6 @@ const cloneSupportingContent = (
     RouterLink,
     CocktailCardComponent,
     DevAdsComponent,
-    AffiliateProductComponent,
-    RouterLinkActive,
     FacetChipsComponent,
   ],
   templateUrl: './cocktail-list.component.html',

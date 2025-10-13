@@ -519,13 +519,13 @@
     <div
       class="faq-item"
       *ngFor="let faq of faqEntries; let i = index; trackBy: trackByIndex"
-      [class.expanded]="faqStates[i]?.isExpanded"
+      [class.expanded]="faqStates[i].isExpanded"
     >
       <button
         class="faq-question"
         type="button"
         (click)="toggleFaq(i)"
-        [attr.aria-expanded]="faqStates[i]?.isExpanded"
+        [attr.aria-expanded]="faqStates[i].isExpanded"
       >
         <span>{{ faq.question }}</span>
         <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
@@ -534,9 +534,7 @@
       <div
         #answer
         class="faq-answer-wrapper"
-        [style.maxHeight.px]="
-          faqStates[i]?.isExpanded ? answer.scrollHeight : 0
-        "
+        [style.maxHeight.px]="faqStates[i].isExpanded ? answer.scrollHeight : 0"
       >
         <p class="faq-answer">
           <ng-container *ngFor="let segment of faq.answer">

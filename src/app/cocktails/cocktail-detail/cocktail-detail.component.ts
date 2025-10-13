@@ -65,7 +65,6 @@ interface AdSlot {
     MatIconModule,
     RouterLink,
     DevAdsComponent,
-    AffiliateProductComponent,
     ArticleCardComponent,
     CocktailCardComponent,
     NgOptimizedImage,

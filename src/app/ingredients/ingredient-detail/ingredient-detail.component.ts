@@ -65,7 +65,6 @@ type NavIngredient = {
     RouterLink,
     FormatAbvPipe,
     DevAdsComponent,
-    AffiliateProductComponent,
     NgOptimizedImage,
   ],
   templateUrl: './ingredient-detail.component.html',
