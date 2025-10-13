@@ -13,24 +13,6 @@
 
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
-    <!-- 1) Preconnect: riduce la latenza di handshake -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <!-- 2) Non-blocking fonts CSS (preload as=style + onload swap) -->
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;700&display=swap"
-      onload="this.onload=null;this.rel='stylesheet'"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;700&display=swap"
-      />
-    </noscript>
-
     <!-- 3) Material Icons: stesso trucco (meglio passare a SVG appena puoi) -->
     <link
       rel="preload"
