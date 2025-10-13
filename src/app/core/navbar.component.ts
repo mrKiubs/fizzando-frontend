@@ -287,9 +287,30 @@ export class NavbarComponent implements OnInit, OnDestroy {
       '[tabindex]:not([tabindex="-1"])',
     ].join(',');
     return Array.from(rootEl.querySelectorAll<HTMLElement>(selectors)).filter(
-      (el) =>
-        !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length)
+      (el) => this.isFocusableElement(el)
     );
+  }
+
+  private isFocusableElement(el: HTMLElement): boolean {
+    if (el.hidden || el.getAttribute('aria-hidden') === 'true') return false;
+    if (el.closest('[hidden], [aria-hidden="true"], [inert]')) return false;
+    if (el.tabIndex >= 0) return true;
+
+    const nodeName = el.nodeName.toLowerCase();
+    switch (nodeName) {
+      case 'a':
+      case 'area':
+        return !!(el as HTMLAnchorElement).href;
+      case 'input':
+      case 'select':
+      case 'textarea':
+      case 'button':
+        return !(el as HTMLInputElement | HTMLButtonElement).disabled;
+      case 'iframe':
+        return true;
+      default:
+        return false;
+    }
   }
 
   private getActiveOverlayRoot(): HTMLElement | null {
