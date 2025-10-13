@@ -16,6 +16,7 @@ import { concatMap, map } from 'rxjs/operators';
 import {
   CommonModule,
   DOCUMENT,
+  NgOptimizedImage,
   isPlatformBrowser,
   Location,
 } from '@angular/common';
@@ -67,6 +68,7 @@ interface AdSlot {
     AffiliateProductComponent,
     ArticleCardComponent,
     CocktailCardComponent,
+    NgOptimizedImage,
   ],
   templateUrl: './cocktail-detail.component.html',
   styleUrls: ['./cocktail-detail.component.scss'],
@@ -529,32 +531,38 @@ export class CocktailDetailComponent
     const abs = (u?: string | null) =>
       u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
 
-    const parts: string[] = [];
+    const entries: Array<[string, number]> = [];
     if (img?.formats?.thumbnail?.url)
-      parts.push(`${abs(img.formats.thumbnail.url)} 150w`);
+      entries.push([abs(img.formats.thumbnail.url), 150]);
     if (img?.formats?.small?.url)
-      parts.push(`${abs(img.formats.small.url)} 320w`);
+      entries.push([abs(img.formats.small.url), 320]);
     if (img?.formats?.medium?.url)
-      parts.push(`${abs(img.formats.medium.url)} 640w`);
+      entries.push([abs(img.formats.medium.url), 640]);
     if (img?.formats?.large?.url)
-      parts.push(`${abs(img.formats.large.url)} 1024w`);
-    if (img?.url) parts.push(`${abs(img.url)} 1600w`);
-    return parts.join(', ');
+      entries.push([abs(img.formats.large.url), 1024]);
+    if (img?.url) entries.push([abs(img.url), 1600]);
+
+    return entries
+      .filter(([u, w]) => !!u && !!w)
+      .map(([u, w]) => `${u.trim()} ${w}w`)
+      .join(', ');
   }
 
   getCocktailImageSrcsetPreferred(cocktail?: Cocktail): string {
     const original = this.getCocktailImageSrcset(cocktail);
     if (!this.supportsWebp || !original) return original;
 
-    const out = original
+    return original
       .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
       .map((entry) => {
-        const [u, w] = entry.trim().split(/\s+/);
-        const uw = this.toWebp(u);
-        return `${uw} ${w || ''}`.trim();
+        const m = entry.match(/^(?<url>\S+)\s+(?<w>\d+)w$/);
+        if (!m?.groups) return entry; // fallback safe
+        const url = this.toWebp(m.groups['url']);
+        return `${url} ${m.groups['w']}w`;
       })
       .join(', ');
-    return out || original;
   }
 
   getCocktailHeroUrl(cocktail?: Cocktail): string {

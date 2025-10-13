@@ -32,17 +32,19 @@
       <!-- Image -->
       <div class="cocktail-image-column">
         <div class="image-wrapper">
-          <!-- ✅ LCP optimized hero + WebP preferito con fallback -->
+          <!-- LCP optimized hero + WebP preferito con fallback -->
           <img
             class="detail-image"
-            [src]="heroSrc || getPreferred(getCocktailHeroUrl(cocktail))"
-            [srcset]="heroSrcset || getCocktailImageSrcsetPreferred(cocktail)"
-            sizes="(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 500px"
+            [ngSrc]="heroSrc || getPreferred(getCocktailHeroUrl(cocktail))"
+            [attr.srcset]="
+              heroSrcset || getCocktailImageSrcsetPreferred(cocktail)
+            "
+            sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw"
             width="500"
             height="500"
+            priority
             fetchpriority="high"
-            loading="eager"
-            decoding="async"
+            [disableOptimizedSrcset]="true"
             alt="{{ cocktail.name || 'Cocktail photo' }}"
             (error)="
               onImgErrorWithSrcset(
@@ -79,7 +81,7 @@
               >
                 <div class="image-ingredient-wrapper">
                   <img
-                    [src]="getPreferred(getIngredientImageUrl(item))"
+                    [ngSrc]="getPreferred(getIngredientImageUrl(item))"
                     [alt]="item.ingredient.name"
                     width="50"
                     height="50"
@@ -518,7 +520,7 @@
         <mat-icon svgIcon="chevron_left" aria-hidden="true"></mat-icon>
         <div class="cocktail-image-wrapper" aria-hidden="true">
           <img
-            [src]="previousCocktail.imageUrl"
+            [ngSrc]="previousCocktail.imageUrl"
             alt=""
             class="nav-cocktail-image"
             width="36"
@@ -549,7 +551,7 @@
         {{ nextCocktail.name }}
         <div class="cocktail-image-wrapper" aria-hidden="true">
           <img
-            [src]="nextCocktail.imageUrl"
+            [ngSrc]="nextCocktail.imageUrl"
             alt=""
             class="nav-cocktail-image"
             width="36"
