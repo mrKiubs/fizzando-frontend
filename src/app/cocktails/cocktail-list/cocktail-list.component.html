@@ -106,13 +106,15 @@
 
 <!-- SEARCH (solo nel ROOT) -->
 <div class="custom-search-input-wrapper" *ngIf="isRootHubView()">
+  <label for="cocktail-search" class="sr-only">Search cocktails</label>
   <input
     type="search"
+    id="cocktail-search"
+    name="q"
     class="custom-search-input"
     placeholder="Search cocktails by name..."
     [value]="searchTerm()"
     (input)="onSearchInput($event)"
-    aria-label="Search cocktails by name"
     autocomplete="off"
     autocorrect="off"
     autocapitalize="off"

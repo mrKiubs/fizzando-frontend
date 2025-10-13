@@ -28,16 +28,15 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
       <span class="hub-switcher__label">{{ label }}</span>
       <div
         class="chips-scroll-wrapper"
-        [class.chips-scroll-wrapper--overflow]="showScrollControls"
+        [class.chips-scroll-wrapper--overflow]="showArrows"
       >
+        <!-- Prev -->
         <button
+          *ngIf="showArrows"
           type="button"
           class="scroll-button scroll-button--prev"
           (click)="onScrollButtonClick('left')"
-          [class.scroll-button--visible]="showScrollControls"
-          [disabled]="!canScrollLeft || !showScrollControls"
-          [attr.tabindex]="showScrollControls ? null : '-1'"
-          [attr.aria-hidden]="showScrollControls ? null : 'true'"
+          [disabled]="!canScrollLeft"
           [attr.aria-label]="'Scroll ' + label + ' chips left'"
         >
           <span aria-hidden="true">‹</span>
@@ -52,19 +51,16 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
             [variant]="kind"
             [slug]="slug(lbl)"
             [routerLink]="['/cocktails', kind, slug(lbl)]"
-          >
-          </app-cocktail-chip>
+          ></app-cocktail-chip>
         </div>
 
+        <!-- Next -->
         <button
+          *ngIf="showArrows"
           type="button"
           class="scroll-button scroll-button--next"
           (click)="onScrollButtonClick('right')"
           [disabled]="!canScrollRight"
-          [class.scroll-button--visible]="showScrollControls"
-          [disabled]="!canScrollRight || !showScrollControls"
-          [attr.tabindex]="showScrollControls ? null : '-1'"
-          [attr.aria-hidden]="showScrollControls ? null : 'true'"
           [attr.aria-label]="'Scroll ' + label + ' chips right'"
         >
           <span aria-hidden="true">›</span>
@@ -643,5 +639,10 @@ export class FacetChipsComponent
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9\-]/g, '');
+  }
+
+  get showArrows(): boolean {
+    const k = (this.kind ?? '').toString().toLowerCase();
+    return k !== 'alcoholic' && this.showScrollControls;
   }
 }
