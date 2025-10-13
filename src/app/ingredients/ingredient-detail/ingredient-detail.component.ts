@@ -14,6 +14,7 @@ import {
   CommonModule,
   DOCUMENT,
   isPlatformBrowser,
+  isPlatformServer,
   NgOptimizedImage,
 } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -33,6 +34,7 @@ import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-ca
 import { FormatAbvPipe } from '../../assets/pipes/format-abv.pipe';
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
 import { env } from '../../config/env';
+import { makeStateKey, TransferState } from '@angular/core';
 
 export interface IngredientDetail extends Ingredient {
   relatedCocktails?: Cocktail[];
@@ -48,6 +50,20 @@ type NavIngredient = {
 };
 
 type CocktailListItem = Cocktail | { isAd: true };
+
+const ALL_INGREDIENTS_STATE_KEY = makeStateKey<Ingredient[]>(
+  'ING_DETAIL__ALL_INGREDIENTS_INDEX'
+);
+
+const detailStateKey = (externalId: string) =>
+  makeStateKey<IngredientDetail>(
+    `ING_DETAIL__${String(externalId ?? '').toLowerCase()}`
+  );
+
+const relatedStateKey = (externalId: string) =>
+  makeStateKey<Cocktail[]>(
+    `ING_RELATED__${String(externalId ?? '').toLowerCase()}`
+  );
 
 @Component({
   selector: 'app-ingredient-detail',
@@ -69,7 +85,9 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   // --- runtime/env
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly isServer = isPlatformServer(this.platformId);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly transferState = inject(TransferState);
 
   // --- stato principale
   ingredient: IngredientDetail | null = null;
@@ -131,6 +149,12 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscribeToRouteParams();
 
+    const restored = this.tryRestoreAllIngredientsIndex();
+    if (restored) {
+      this.cdr.markForCheck();
+      return;
+    }
+
     // Carica elenco completo (cache del service consentita)
     this.ingredientService
       .getIngredients(1, 1000, undefined, undefined, undefined, true)
@@ -138,9 +162,18 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           this.allIngredients = response.data || [];
+          this.ingredientService.hydrateAllIngredientsCache(
+            this.allIngredients
+          );
           this.allBySlug = this.sortBySlug(
             this.allIngredients.map((it) => this.mapToNav(it))
           );
+          if (this.isServer) {
+            this.transferState.set(
+              ALL_INGREDIENTS_STATE_KEY,
+              this.cloneForTransfer(this.allIngredients)
+            );
+          }
           this.computeNeighbors();
           this.cdr.markForCheck();
         },
@@ -185,15 +218,26 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
     this.relatedCocktailsSubscription?.unsubscribe();
     this.cdr.markForCheck();
 
+    if (this.tryRestoreIngredientFromState(externalId)) {
+      return;
+    }
+
     // prova cache allIngredients
     const cached = this.allIngredients.find(
       (i) => String(i.external_id) === String(externalId)
     );
     if (cached) {
       this.ingredient = { ...(cached as IngredientDetail) };
+      this.ingredientService.hydrateIngredientDetail(this.ingredient);
       this.currentSlug = this.safeSlugFromIngredient(cached);
       this.computeNeighbors(); // ← calcolo prev/next su allBySlug
       this.setSeoTagsAndSchema();
+      if (this.isServer) {
+        this.transferState.set(
+          detailStateKey(externalId),
+          this.cloneForTransfer(this.ingredient)
+        );
+      }
       this.unlockAdsWhenStable();
       this.loadRelatedCocktails(externalId);
       this.cdr.markForCheck();
@@ -235,6 +279,10 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   }
 
   private loadRelatedCocktails(externalId: string): void {
+    if (this.tryRestoreRelatedCocktailsFromState(externalId)) {
+      return;
+    }
+
     this.relatedCocktailsSubscription = this.cocktailService
       .getRelatedCocktailsForIngredient(externalId)
       .subscribe({
@@ -245,6 +293,12 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
           this.firstRelatedCocktailSlug = first?.slug ?? null;
           this.firstRelatedCocktailId =
             typeof first?.id === 'number' ? first.id : null;
+          if (this.isServer) {
+            this.transferState.set(
+              relatedStateKey(externalId),
+              this.cloneForTransfer(list || [])
+            );
+          }
           this.loading = false;
           this.cdr.markForCheck();
         },
@@ -256,6 +310,80 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
           this.cdr.markForCheck();
         },
       });
+  }
+
+  private tryRestoreAllIngredientsIndex(): boolean {
+    if (!this.isBrowser) return false;
+    if (!this.transferState.hasKey(ALL_INGREDIENTS_STATE_KEY)) return false;
+
+    const restored = this.transferState.get(ALL_INGREDIENTS_STATE_KEY, []);
+    this.transferState.remove(ALL_INGREDIENTS_STATE_KEY);
+    if (!restored?.length) {
+      return false;
+    }
+
+    this.allIngredients = restored;
+    this.ingredientService.hydrateAllIngredientsCache(restored);
+    this.allBySlug = this.sortBySlug(
+      this.allIngredients.map((it) => this.mapToNav(it))
+    );
+    this.computeNeighbors();
+    return true;
+  }
+
+  private tryRestoreIngredientFromState(externalId: string): boolean {
+    if (!this.isBrowser) return false;
+
+    const key = detailStateKey(externalId);
+    if (!this.transferState.hasKey(key)) return false;
+
+    const restored = this.transferState.get(key, null);
+    this.transferState.remove(key);
+    if (!restored) return false;
+
+    this.ingredient = { ...restored };
+    this.ingredientService.hydrateIngredientDetail(this.ingredient);
+    this.currentSlug = this.safeSlugFromIngredient(this.ingredient);
+    this.computeNeighbors();
+    this.setSeoTagsAndSchema();
+    this.unlockAdsWhenStable();
+    this.loadRelatedCocktails(externalId);
+    this.loading = false;
+    this.cdr.markForCheck();
+    return true;
+  }
+
+  private tryRestoreRelatedCocktailsFromState(externalId: string): boolean {
+    if (!this.isBrowser) return false;
+
+    const key = relatedStateKey(externalId);
+    if (!this.transferState.hasKey(key)) return false;
+
+    const list = this.transferState.get(key, [] as Cocktail[]);
+    this.transferState.remove(key);
+
+    if (!list) return false;
+
+    if (this.ingredient) this.ingredient.relatedCocktails = list;
+    this.cocktailItems = this.buildCocktailsAndAds(list || []);
+    const first = list?.length ? list[0] : null;
+    this.firstRelatedCocktailSlug = first?.slug ?? null;
+    this.firstRelatedCocktailId =
+      typeof first?.id === 'number' ? first.id : null;
+    this.loading = false;
+    this.cdr.markForCheck();
+    return true;
+  }
+
+  private cloneForTransfer<T>(value: T): T {
+    if (value === null || value === undefined) {
+      return value;
+    }
+    try {
+      return JSON.parse(JSON.stringify(value)) as T;
+    } catch {
+      return value;
+    }
   }
 
   // === NAV prev/next (ordinata per SLUG, stabile) ==========================
@@ -512,11 +640,7 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
       this.renderer.setAttribute(preload, 'rel', 'preload');
       this.renderer.setAttribute(preload, 'as', 'image');
       this.renderer.setAttribute(preload, 'href', imageUrl);
-      this.renderer.setAttribute(
-        preload,
-        'imagesizes',
-        '(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw'
-      );
+      this.renderer.setAttribute(preload, 'imagesizes', '150px');
       this.renderer.setAttribute(preload, 'data-preload-hero', '1');
       this.renderer.appendChild(this.document.head, preload);
     }
