@@ -163,6 +163,10 @@
             <app-cocktail-card
               [cocktail]="item"
               [routerLink]="['/cocktails', item.slug]"
+              [isLcp]="
+                item.slug === firstRelatedCocktailSlug ||
+                item.id === firstRelatedCocktailId
+              "
             ></app-cocktail-card>
           </ng-container>
 

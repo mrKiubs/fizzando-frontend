@@ -86,7 +86,6 @@ type DashboardPayload = {
     CocktailCardComponent,
     IngredientCardComponent,
     GlossaryCardComponent,
-    DatePipe,
     DevAdsComponent,
     NgOptimizedImage,
     LogoComponent,
