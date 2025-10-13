@@ -8,6 +8,7 @@ import {
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  DestroyRef,
 } from '@angular/core';
 import {
   CommonModule,
@@ -19,6 +20,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PLATFORM_ID } from '@angular/core';
 import { Title, Meta } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
   IngredientService,
@@ -61,11 +63,13 @@ type CocktailListItem = Cocktail | { isAd: true };
   ],
   templateUrl: './ingredient-detail.component.html',
   styleUrls: ['./ingredient-detail.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IngredientDetailComponent implements OnInit, OnDestroy {
   // --- runtime/env
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly destroyRef = inject(DestroyRef);
 
   // --- stato principale
   ingredient: IngredientDetail | null = null;
@@ -95,11 +99,13 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   private supportsWebp = false;
 
   // --- subscriptions
-  private routeSubscription?: Subscription;
-  private allIngredientsSubscription?: Subscription;
   private relatedCocktailsSubscription?: Subscription;
 
   cocktailItems: CocktailListItem[] = [];
+
+  topBannerType: 'mobile-banner' | 'leaderboard' = 'leaderboard';
+  gridAdType: 'mobile-banner' | 'square' = 'square';
+  bottomBannerType: 'mobile-banner' | 'leaderboard' = 'leaderboard';
 
   constructor(
     private route: ActivatedRoute,
@@ -116,37 +122,36 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
       this.isMobile = window.innerWidth <= 768;
       this.supportsWebp = this.checkWebpSupport();
     }
+
+    this.updateAdSlotTypes();
   }
 
   // === lifecycle ============================================================
 
   ngOnInit(): void {
-    // 1) Carica elenco completo (cache del service consentita)
-    this.allIngredientsSubscription = this.ingredientService
+    this.subscribeToRouteParams();
+
+    // Carica elenco completo (cache del service consentita)
+    this.ingredientService
       .getIngredients(1, 1000, undefined, undefined, undefined, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
           this.allIngredients = response.data || [];
-          // costruisci indice ordinato per slug
           this.allBySlug = this.sortBySlug(
             this.allIngredients.map((it) => this.mapToNav(it))
           );
-          // 2) poi sincronizza con la route
-          this.subscribeToRouteParams();
+          this.computeNeighbors();
           this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Error loading all ingredients:', err);
-          // anche se fallisce, proviamo comunque a leggere la route e caricare il singolo
-          this.subscribeToRouteParams();
           this.cdr.markForCheck();
         },
       });
   }
 
   ngOnDestroy(): void {
-    this.routeSubscription?.unsubscribe();
-    this.allIngredientsSubscription?.unsubscribe();
     this.relatedCocktailsSubscription?.unsubscribe();
     this.cleanupSeo();
   }
@@ -154,17 +159,19 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   // === router / data ========================================================
 
   private subscribeToRouteParams(): void {
-    this.routeSubscription = this.route.paramMap.subscribe((params) => {
-      const externalId = params.get('externalId');
-      if (!externalId) {
-        this.error = 'Ingredient ID not provided.';
-        this.loading = false;
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const externalId = params.get('externalId');
+        if (!externalId) {
+          this.error = 'Ingredient ID not provided.';
+          this.loading = false;
+          this.cdr.markForCheck();
+          return;
+        }
+        this.loadIngredientDetails(externalId);
         this.cdr.markForCheck();
-        return;
-      }
-      this.loadIngredientDetails(externalId);
-      this.cdr.markForCheck();
-    });
+      });
   }
 
   private loadIngredientDetails(externalId: string): void {
@@ -175,6 +182,7 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
     this.firstRelatedCocktailId = null;
     this.cocktailItems = [];
     this.cleanupSeo(); // pulisci meta/ld+json precedenti
+    this.relatedCocktailsSubscription?.unsubscribe();
     this.cdr.markForCheck();
 
     // prova cache allIngredients
@@ -245,6 +253,7 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
           this.error = 'Could not load related cocktails.';
           this.loading = false;
           this.unlockAdsWhenStable();
+          this.cdr.markForCheck();
         },
       });
   }
@@ -426,7 +435,11 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
 
   @HostListener('window:resize')
   onResize(): void {
-    this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
+    if (!this.isBrowser) return;
+    const nextIsMobile = window.innerWidth <= 768;
+    if (nextIsMobile === this.isMobile) return;
+    this.isMobile = nextIsMobile;
+    this.updateAdSlotTypes();
     this.cdr.markForCheck();
   }
 
@@ -626,14 +639,14 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
     return `ad-slot ${type}`;
   }
 
-  getTopBannerType(): 'mobile-banner' | 'leaderboard' {
-    return this.isMobile ? 'mobile-banner' : 'leaderboard';
+  getAdSlotPlaceholderClass(type: string): string {
+    return `${this.adSlotClass(type)} ad-slot-placeholder`;
   }
-  getGridAdType(): 'mobile-banner' | 'square' {
-    return this.isMobile ? 'mobile-banner' : 'square';
-  }
-  getBottomBannerType(): 'mobile-banner' | 'leaderboard' {
-    return this.isMobile ? 'mobile-banner' : 'leaderboard';
+  private updateAdSlotTypes(): void {
+    const mobile = this.isMobile;
+    this.topBannerType = mobile ? 'mobile-banner' : 'leaderboard';
+    this.gridAdType = mobile ? 'mobile-banner' : 'square';
+    this.bottomBannerType = mobile ? 'mobile-banner' : 'leaderboard';
   }
 
   // === utils ===============================================================
