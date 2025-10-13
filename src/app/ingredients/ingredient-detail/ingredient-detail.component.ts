@@ -84,6 +84,10 @@ export class IngredientDetailComponent
   error: string | null = null;
   contentReady = false;
 
+  /** Track the first cocktail to prioritize its hero image (LCP). */
+  firstRelatedCocktailSlug: string | null = null;
+  firstRelatedCocktailId: number | null = null;
+
   // --- dataset completo (per nav & SEO)
   private allIngredients: Ingredient[] = [];
 
@@ -235,6 +239,8 @@ export class IngredientDetailComponent
     this.loading = true;
     this.error = null;
     this.contentReady = false;
+    this.firstRelatedCocktailSlug = null;
+    this.firstRelatedCocktailId = null;
     this.cleanupSeo(); // pulisci meta/ld+json precedenti
 
     // prova cache allIngredients
@@ -288,6 +294,10 @@ export class IngredientDetailComponent
       .subscribe({
         next: (list) => {
           if (this.ingredient) this.ingredient.relatedCocktails = list;
+          const first = list?.length ? list[0] : null;
+          this.firstRelatedCocktailSlug = first?.slug ?? null;
+          this.firstRelatedCocktailId =
+            typeof first?.id === 'number' ? first.id : null;
           this.loading = false;
         },
         error: (err) => {
