@@ -5,6 +5,7 @@ import { CommonEngine, isMainModule } from '@angular/ssr/node';
 import express, { Request, Response, NextFunction } from 'express';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 import bootstrap from './main.server';
 
 /* ================== PATHS ================== */
@@ -82,12 +83,46 @@ app.use(
 );
 
 /* ================== MICRO-CACHE SSR ================== */
-type CacheEntry = { html: string; expires: number };
+type CacheEntry = { html: string; expires: number; etag: string };
 const htmlCache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<string>>();
 
 const CACHE_TTL_MS = Number(process.env['SSR_CACHE_TTL_MS'] ?? 60_000); // 60s
 const CACHE_MAX_ENTRIES = Number(process.env['SSR_CACHE_MAX'] ?? 300);
+
+// ignora parametri di tracking nella cache key
+const IGNORED_QUERY_KEYS = new Set([
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+  'gclid',
+  'fbclid',
+  'ref',
+  'ref_src',
+]);
+
+function normalizeCacheKey(req: Request): string {
+  try {
+    const url = new URL(
+      req.protocol + '://' + (req.headers.host || 'localhost') + req.originalUrl
+    );
+    const params = url.searchParams;
+    // rimuovi tracking
+    IGNORED_QUERY_KEYS.forEach((k) => params.delete(k));
+    // ordina params → chiave stabile
+    const ordered = new URLSearchParams();
+    Array.from(params.keys())
+      .sort()
+      .forEach((k) => ordered.append(k, params.get(k)!));
+    return (
+      url.pathname + (ordered.toString() ? '?' + ordered.toString() : '')
+    ).toLowerCase();
+  } catch {
+    return (req.originalUrl || '/').toLowerCase();
+  }
+}
 
 function evictOneIfNeeded(): void {
   if (htmlCache.size < CACHE_MAX_ENTRIES) return;
@@ -96,16 +131,32 @@ function evictOneIfNeeded(): void {
 }
 
 function isCacheablePath(pathname: string): boolean {
+  // pagine stabili e “al centro” del funnel: home, liste, detail
   return (
     pathname === '/' ||
-    pathname.startsWith('/cocktails') ||
-    pathname.startsWith('/ingredients') ||
-    pathname.startsWith('/glossary')
+    pathname.startsWith('/cocktails') || // liste + /cocktails/*
+    pathname.startsWith('/ingredients') || // liste + /ingredients/*
+    pathname.startsWith('/glossary') || // liste + /glossary/*
+    pathname.startsWith('/find-cocktail') || // anche la finder (se SSR non dipende da user input)
+    pathname.startsWith('/about') || // eventuali pag statiche
+    pathname.startsWith('/privacy') ||
+    pathname.startsWith('/terms')
   );
+}
+
+function etagFromHtml(html: string): string {
+  // weak ETag, sufficiente per 304/conditional
+  const hash = crypto
+    .createHash('sha1')
+    .update(html)
+    .digest('hex')
+    .slice(0, 12);
+  return `W/"${html.length.toString(16)}-${hash}"`;
 }
 
 /* ============== SSR CATCH-ALL ============== */
 app.get('*', (req: Request, res: Response, next: NextFunction): void => {
+  const t0 = Date.now();
   try {
     // URL assoluto per Angular SSR
     const xfProto = (
@@ -121,8 +172,13 @@ app.get('*', (req: Request, res: Response, next: NextFunction): void => {
     const pathOnly = req.path || '/';
     const cacheable = isCacheablePath(pathOnly);
 
-    // Header per CDN/edge
+    // Riduci la frammentazione della cache
+    const cacheKey = normalizeCacheKey(req);
+
+    // Header comuni
+    res.setHeader('Vary', 'Accept-Encoding'); // utile per proxy/edge
     if (cacheable) {
+      // friendly per CDN (Cloudflare legge Cache-Control)
       res.setHeader(
         'Cache-Control',
         'public, max-age=0, s-maxage=300, stale-while-revalidate=60'
@@ -131,13 +187,23 @@ app.get('*', (req: Request, res: Response, next: NextFunction): void => {
       res.setHeader('Cache-Control', 'no-store');
     }
 
-    const cacheKey = (req.originalUrl || '/').toLowerCase();
-
     if (cacheable) {
       const now = Date.now();
       const cached = htmlCache.get(cacheKey);
+
       if (cached && cached.expires > now) {
+        res.setHeader('ETag', cached.etag);
+        // Conditional (304) se client/edge ha etag
+        if (req.headers['if-none-match'] === cached.etag) {
+          res.status(304).end();
+          res.setHeader(
+            'Server-Timing',
+            `ssr;dur=${Date.now() - t0};desc="HIT-304"`
+          );
+          return;
+        }
         res.setHeader('x-ssr-cache', 'HIT');
+        res.setHeader('Server-Timing', `ssr;dur=${Date.now() - t0};desc="HIT"`);
         res.send(cached.html);
         return;
       }
@@ -154,9 +220,11 @@ app.get('*', (req: Request, res: Response, next: NextFunction): void => {
             providers: [{ provide: APP_BASE_HREF, useValue: req.baseUrl }],
           })
           .then((html) => {
+            const etag = etagFromHtml(html);
             evictOneIfNeeded();
             htmlCache.set(cacheKey, {
               html,
+              etag,
               expires: Date.now() + CACHE_TTL_MS,
             });
             inFlight.delete(cacheKey);
@@ -169,12 +237,18 @@ app.get('*', (req: Request, res: Response, next: NextFunction): void => {
         inFlight.set(cacheKey, p);
       }
 
-      // NON ritorno la Promise → chiudo sempre con void
-      p.then((html) => res.send(html)).catch((err) => next(err));
+      p.then((html) => {
+        res.setHeader('ETag', etagFromHtml(html));
+        res.setHeader(
+          'Server-Timing',
+          `ssr;dur=${Date.now() - t0};desc="MISS"`
+        );
+        res.send(html);
+      }).catch((err) => next(err));
       return;
     }
 
-    // NON cacheabile → render diretto (senza ritornare la Promise)
+    // NON cacheabile → render diretto
     commonEngine
       .render({
         bootstrap,
@@ -183,7 +257,14 @@ app.get('*', (req: Request, res: Response, next: NextFunction): void => {
         publicPath: browserDistFolder,
         providers: [{ provide: APP_BASE_HREF, useValue: req.baseUrl }],
       })
-      .then((html) => res.send(html))
+      .then((html) => {
+        res.setHeader('ETag', etagFromHtml(html));
+        res.setHeader(
+          'Server-Timing',
+          `ssr;dur=${Date.now() - t0};desc="BYPASS"`
+        );
+        res.send(html);
+      })
       .catch((err) => next(err));
     return;
   } catch (e) {
