@@ -2,13 +2,12 @@ import {
   Component,
   OnInit,
   OnDestroy,
-  AfterViewInit,
-  ViewChild,
-  ElementRef,
   HostListener,
   Inject,
   Renderer2,
   inject,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import {
   CommonModule,
@@ -31,19 +30,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-card.component';
 import { FormatAbvPipe } from '../../assets/pipes/format-abv.pipe';
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
-import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
 import { env } from '../../config/env';
 
 export interface IngredientDetail extends Ingredient {
   relatedCocktails?: Cocktail[];
-}
-
-interface ProductItem {
-  title: string;
-  imageUrl: string;
-  price: string;
-  link: string;
-  showPlaceholder: boolean;
 }
 
 /** Modello “slim” per la nav prev/next */
@@ -54,6 +44,8 @@ type NavIngredient = {
   name: string;
   imageUrl?: string | null;
 };
+
+type CocktailListItem = Cocktail | { isAd: true };
 
 @Component({
   selector: 'app-ingredient-detail',
@@ -70,9 +62,7 @@ type NavIngredient = {
   templateUrl: './ingredient-detail.component.html',
   styleUrls: ['./ingredient-detail.component.scss'],
 })
-export class IngredientDetailComponent
-  implements OnInit, OnDestroy, AfterViewInit
-{
+export class IngredientDetailComponent implements OnInit, OnDestroy {
   // --- runtime/env
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
@@ -101,53 +91,6 @@ export class IngredientDetailComponent
   private siteBaseUrl = '';
   private schemaScript?: HTMLScriptElement;
 
-  // --- affiliate
-  @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
-  private wheelCleanup?: () => void;
-
-  productList: ProductItem[] = [
-    {
-      title: 'Libbey Mixologist 9-Piece Cocktail Set',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/71MYEP67w2S._AC_SY879_.jpg',
-      price: '$50.00',
-      link: 'https://amzn.to/4fowM9o',
-      showPlaceholder: true,
-    },
-    {
-      title: 'Riedel Nick and Nora Cocktail Glasses, Set of 2',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/61wIAjM9apL._AC_SX522_.jpg',
-      price: '$45.00',
-      link: 'https://www.amazon.com/Riedel-Nick-Nora-Cocktail-Glasses/dp/B07R8B7L1V',
-      showPlaceholder: true,
-    },
-    {
-      title: 'YARRAMATE 8Pcs 24oz Hybrid Insulated Cocktail Shaker',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/71NZMAbpEjL._AC_SX679_.jpg',
-      price: '$24.74',
-      link: 'https://www.amazon.com/Cocktail-Codex-Fundamentals-Formulas-Evolutions/dp/1607749714',
-      showPlaceholder: true,
-    },
-    {
-      title: 'Bartesian Professional Cocktail Machine',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/81YFuyY5xVL._AC_SX679_.jpg',
-      price: '$269.99',
-      link: 'https://www.amazon.com/Bartesian-Premium-Cocktail-Machine-Drinks/dp/B07T435M1S',
-      showPlaceholder: true,
-    },
-    {
-      title: 'BARE BARREL® Mixology Bartender Kit Bar Set',
-      imageUrl:
-        'https://m.media-amazon.com/images/I/81L4vmLO+KL._AC_SX679_.jpg',
-      price: '$39.95',
-      link: 'https://www.amazon.com/Hella-Cocktail-Co-Bitters-Variety/dp/B08V5QY3Q7',
-      showPlaceholder: true,
-    },
-  ];
-
   // --- WEBP preferenza
   private supportsWebp = false;
 
@@ -156,6 +99,8 @@ export class IngredientDetailComponent
   private allIngredientsSubscription?: Subscription;
   private relatedCocktailsSubscription?: Subscription;
 
+  cocktailItems: CocktailListItem[] = [];
+
   constructor(
     private route: ActivatedRoute,
     private ingredientService: IngredientService,
@@ -163,6 +108,7 @@ export class IngredientDetailComponent
     private titleService: Title,
     private metaService: Meta,
     private renderer: Renderer2,
+    private cdr: ChangeDetectorRef,
     @Inject(DOCUMENT) private document: Document
   ) {
     if (this.isBrowser) {
@@ -187,36 +133,21 @@ export class IngredientDetailComponent
           );
           // 2) poi sincronizza con la route
           this.subscribeToRouteParams();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Error loading all ingredients:', err);
           // anche se fallisce, proviamo comunque a leggere la route e caricare il singolo
           this.subscribeToRouteParams();
+          this.cdr.markForCheck();
         },
       });
-  }
-
-  ngAfterViewInit(): void {
-    if (!this.isBrowser) return;
-    // scroll orizzontale con wheel (come cocktail-detail)
-    const listEl = this.affiliateCardList?.nativeElement as
-      | HTMLElement
-      | undefined;
-    if (!listEl) return;
-
-    const handler = (e: WheelEvent) => {
-      e.preventDefault();
-      listEl.scrollLeft += e.deltaY;
-    };
-    listEl.addEventListener('wheel', handler, { passive: false });
-    this.wheelCleanup = () => listEl.removeEventListener('wheel', handler);
   }
 
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
     this.allIngredientsSubscription?.unsubscribe();
     this.relatedCocktailsSubscription?.unsubscribe();
-    if (this.wheelCleanup) this.wheelCleanup();
     this.cleanupSeo();
   }
 
@@ -228,9 +159,11 @@ export class IngredientDetailComponent
       if (!externalId) {
         this.error = 'Ingredient ID not provided.';
         this.loading = false;
+        this.cdr.markForCheck();
         return;
       }
       this.loadIngredientDetails(externalId);
+      this.cdr.markForCheck();
     });
   }
 
@@ -240,7 +173,9 @@ export class IngredientDetailComponent
     this.contentReady = false;
     this.firstRelatedCocktailSlug = null;
     this.firstRelatedCocktailId = null;
+    this.cocktailItems = [];
     this.cleanupSeo(); // pulisci meta/ld+json precedenti
+    this.cdr.markForCheck();
 
     // prova cache allIngredients
     const cached = this.allIngredients.find(
@@ -253,6 +188,7 @@ export class IngredientDetailComponent
       this.setSeoTagsAndSchema();
       this.unlockAdsWhenStable();
       this.loadRelatedCocktails(externalId);
+      this.cdr.markForCheck();
       return;
     }
 
@@ -262,6 +198,7 @@ export class IngredientDetailComponent
         if (!res) {
           this.error = 'Ingredient not found.';
           this.loading = false;
+          this.cdr.markForCheck();
           return;
         }
         this.ingredient = { ...(res as IngredientDetail) };
@@ -277,12 +214,14 @@ export class IngredientDetailComponent
         this.setSeoTagsAndSchema();
         this.unlockAdsWhenStable();
         this.loadRelatedCocktails(externalId);
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Error fetching ingredient directly:', err);
         this.error = 'Unable to load ingredient details.';
         this.loading = false;
         this.unlockAdsWhenStable();
+        this.cdr.markForCheck();
       },
     });
   }
@@ -293,11 +232,13 @@ export class IngredientDetailComponent
       .subscribe({
         next: (list) => {
           if (this.ingredient) this.ingredient.relatedCocktails = list;
+          this.cocktailItems = this.buildCocktailsAndAds(list || []);
           const first = list?.length ? list[0] : null;
           this.firstRelatedCocktailSlug = first?.slug ?? null;
           this.firstRelatedCocktailId =
             typeof first?.id === 'number' ? first.id : null;
           this.loading = false;
+          this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Error fetching related cocktails:', err);
@@ -454,13 +395,15 @@ export class IngredientDetailComponent
     return 'assets/no-image.png';
   }
 
-  trackByCocktailId(_index: number, c: Cocktail): number {
-    return c.id;
-  }
+  trackCocktailOrAd = (
+    index: number,
+    item: CocktailListItem
+  ): number | string =>
+    'id' in item ? (item as any).id ?? `c-${index}` : `ad-${index}`;
 
-  getCocktailsAndAds(): any[] {
-    const items: any[] = [];
-    const list = this.ingredient?.relatedCocktails || [];
+  private buildCocktailsAndAds(list: Cocktail[]): CocktailListItem[] {
+    if (!list?.length) return [];
+    const items: CocktailListItem[] = [];
     list.forEach((c, i) => {
       items.push(c);
       if ((i + 1) % 6 === 0 && i < list.length - 1) {
@@ -470,8 +413,8 @@ export class IngredientDetailComponent
     return items;
   }
 
-  isCocktailItem(item: any): boolean {
-    return item && !item.isAd;
+  isCocktailItem(item: CocktailListItem): item is Cocktail {
+    return !!item && 'id' in item;
   }
 
   private getFullSiteUrl(path: string): string {
@@ -484,6 +427,7 @@ export class IngredientDetailComponent
   @HostListener('window:resize')
   onResize(): void {
     this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
+    this.cdr.markForCheck();
   }
 
   // === SEO / JSON-LD ========================================================
@@ -673,6 +617,7 @@ export class IngredientDetailComponent
     if (!this.isBrowser) return;
     this.runAfterFirstPaint(() => {
       this.contentReady = true;
+      this.cdr.markForCheck();
     });
   }
 

@@ -158,7 +158,13 @@
         "
         class="related-cocktail-cards-grid"
       >
-        <ng-container *ngFor="let item of getCocktailsAndAds(); let i = index">
+        <ng-container
+          *ngFor="
+            let item of cocktailItems;
+            let i = index;
+            trackBy: trackCocktailOrAd
+          "
+        >
           <ng-container *ngIf="isCocktailItem(item); else adBlock">
             <app-cocktail-card
               [cocktail]="item"
