@@ -1,30 +1,12 @@
 import { Routes } from '@angular/router';
 
-import { DashboardComponent } from './dashboard/dashboard.component';
-
-import { CocktailListComponent } from './cocktails/cocktail-list/cocktail-list.component';
-import { CocktailDetailComponent } from './cocktails/cocktail-detail/cocktail-detail.component';
-
-import { IngredientListComponent } from './ingredients/ingredient-list/ingredient-list.component';
-import { IngredientDetailComponent } from './ingredients/ingredient-detail/ingredient-detail.component';
-import { IngredientSearchCocktailListComponent } from './cocktails/ingredient-search-cocktail-list/ingredient-search-cocktail-list.component';
-
-import { GlossaryListComponent } from './glossary/glossary-list/glossary-list.component';
-
-import { QuizListComponent } from './quiz/quiz-list/quiz-list.component';
-import { QuizDetailComponent } from './quiz/quiz-detail/quiz-detail.component';
-
-import { ArticleListComponent } from './articles/article-list/article-list.component';
-import { ArticleDetailComponent } from './articles/article-detail/article-detail.component';
-
-import { PrivacyPolicyComponent } from './legal/privacy-policy/privacy-policy.component';
-import { CookiePolicyComponent } from './legal/cookie-policy/cookie-policy.component';
-import { TermsConditionsComponent } from './legal/terms-conditions/terms-conditions.component';
-import { CreditsComponent } from './legal/credits-component/credits-component.component';
 export const routes: Routes = [
   {
     path: '',
-    component: DashboardComponent,
+    loadComponent: () =>
+      import('./dashboard/dashboard.component').then(
+        (m) => m.DashboardComponent
+      ),
     data: { breadcrumb: 'Home' },
   },
 
@@ -33,35 +15,53 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        component: CocktailListComponent,
+        loadComponent: () =>
+          import('./cocktails/cocktail-list/cocktail-list.component').then(
+            (m) => m.CocktailListComponent
+          ),
       },
 
       // HUB puliti (una sola definizione per ciascuno)
       {
         path: 'method/:methodSlug',
-        component: CocktailListComponent,
+        loadComponent: () =>
+          import('./cocktails/cocktail-list/cocktail-list.component').then(
+            (m) => m.CocktailListComponent
+          ),
         data: { hub: 'method', breadcrumb: 'Method' },
       },
       {
         path: 'glass/:glassSlug',
-        component: CocktailListComponent,
+        loadComponent: () =>
+          import('./cocktails/cocktail-list/cocktail-list.component').then(
+            (m) => m.CocktailListComponent
+          ),
         data: { hub: 'glass', breadcrumb: 'Glass' },
       },
       {
         path: 'category/:categorySlug',
-        component: CocktailListComponent,
+        loadComponent: () =>
+          import('./cocktails/cocktail-list/cocktail-list.component').then(
+            (m) => m.CocktailListComponent
+          ),
         data: { hub: 'category', breadcrumb: 'Category' },
       },
       {
         path: 'alcoholic/:alcoholicSlug',
-        component: CocktailListComponent,
+        loadComponent: () =>
+          import('./cocktails/cocktail-list/cocktail-list.component').then(
+            (m) => m.CocktailListComponent
+          ),
         data: { hub: 'alcoholic', breadcrumb: 'Alcoholic' },
       },
 
       // Dettaglio cocktail — tenere per ultimo perché è generico
       {
         path: ':slug',
-        component: CocktailDetailComponent,
+        loadComponent: () =>
+          import('./cocktails/cocktail-detail/cocktail-detail.component').then(
+            (m) => m.CocktailDetailComponent
+          ),
         data: { breadcrumb: 'Cocktail Details' },
       },
     ],
@@ -70,10 +70,19 @@ export const routes: Routes = [
   {
     path: 'ingredients',
     children: [
-      { path: '', component: IngredientListComponent },
+      {
+        path: '',
+        loadComponent: () =>
+          import(
+            './ingredients/ingredient-list/ingredient-list.component'
+          ).then((m) => m.IngredientListComponent),
+      },
       {
         path: ':externalId',
-        component: IngredientDetailComponent,
+        loadComponent: () =>
+          import(
+            './ingredients/ingredient-detail/ingredient-detail.component'
+          ).then((m) => m.IngredientDetailComponent),
         data: { breadcrumb: 'Ingredient Details' },
       },
     ],
@@ -81,28 +90,67 @@ export const routes: Routes = [
 
   {
     path: 'find-cocktail',
-    component: IngredientSearchCocktailListComponent,
+    loadComponent: () =>
+      import(
+        './cocktails/ingredient-search-cocktail-list/ingredient-search-cocktail-list.component'
+      ).then((m) => m.IngredientSearchCocktailListComponent),
     data: { breadcrumb: '🔎 Find Cocktail' },
   },
 
   {
     path: 'glossary',
-    component: GlossaryListComponent,
+    loadComponent: () =>
+      import('./glossary/glossary-list/glossary-list.component').then(
+        (m) => m.GlossaryListComponent
+      ),
     data: { breadcrumb: '📚 Glossary' },
+  },
+
+  {
+    path: 'quiz',
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./quiz/quiz-list/quiz-list.component').then(
+            (m) => m.QuizListComponent
+          ),
+      },
+      {
+        path: ':slug',
+        loadComponent: () =>
+          import('./quiz/quiz-detail/quiz-detail.component').then(
+            (m) => m.QuizDetailComponent
+          ),
+        data: { breadcrumb: 'Quiz Details' },
+      },
+    ],
   },
 
   {
     path: 'articles',
     children: [
-      { path: '', component: ArticleListComponent },
+      {
+        path: '',
+        loadComponent: () =>
+          import('./articles/article-list/article-list.component').then(
+            (m) => m.ArticleListComponent
+          ),
+      },
       {
         path: 'category/:slug',
-        component: ArticleListComponent,
+        loadComponent: () =>
+          import('./articles/article-list/article-list.component').then(
+            (m) => m.ArticleListComponent
+          ),
         data: { breadcrumb: '📂 Category' },
       },
       {
         path: ':slug',
-        component: ArticleDetailComponent,
+        loadComponent: () =>
+          import('./articles/article-detail/article-detail.component').then(
+            (m) => m.ArticleDetailComponent
+          ),
         data: { breadcrumb: 'Article Details' },
       },
     ],
@@ -110,22 +158,34 @@ export const routes: Routes = [
 
   {
     path: 'privacy',
-    component: PrivacyPolicyComponent,
+    loadComponent: () =>
+      import('./legal/privacy-policy/privacy-policy.component').then(
+        (m) => m.PrivacyPolicyComponent
+      ),
     data: { breadcrumb: '🔒 Privacy Policy' },
   },
   {
     path: 'cookies',
-    component: CookiePolicyComponent,
+    loadComponent: () =>
+      import('./legal/cookie-policy/cookie-policy.component').then(
+        (m) => m.CookiePolicyComponent
+      ),
     data: { breadcrumb: '🍪 Cookie Policy' },
   },
   {
     path: 'terms',
-    component: TermsConditionsComponent,
+    loadComponent: () =>
+      import('./legal/terms-conditions/terms-conditions.component').then(
+        (m) => m.TermsConditionsComponent
+      ),
     data: { breadcrumb: '📄 Terms & Conditions' },
   },
   {
     path: 'credits',
-    component: CreditsComponent,
+    loadComponent: () =>
+      import('./legal/credits-component/credits-component.component').then(
+        (m) => m.CreditsComponent
+      ),
     data: { breadcrumb: '🙏 Credits' },
   },
 

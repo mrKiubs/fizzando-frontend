@@ -36,7 +36,6 @@ import { ViewportService } from './services/viewport.service';
     CocktailBubblesComponent,
     FooterComponent,
   ],
-  // All'interno del tuo @Component in AppComponent.ts
   animations: [
     trigger('routeAnimations', [
       transition(
@@ -54,7 +53,6 @@ import { ViewportService } from './services/viewport.service';
             [style({ opacity: 0, transform: 'translateY({{enterY}})' })],
             { optional: true }
           ),
-
           group([
             query(
               ':leave',
@@ -105,9 +103,34 @@ import { ViewportService } from './services/viewport.service';
     >
       <router-outlet #routerOutlet="outlet"></router-outlet>
     </main>
+    @defer (on idle) {
     <app-footer></app-footer>
+    } @placeholder {
+    <footer class="app-footer-placeholder" aria-hidden="true"></footer>
+    } @if (showAmbient) { @defer (on idle) {
     <app-cocktail-bubbles></app-cocktail-bubbles>
+    } @placeholder {
+    <div class="cocktail-bubbles-placeholder" aria-hidden="true"></div>
+    } }
   `,
+
+  styles: [
+    `
+      @use './assets/style/main.scss' as *; // Assicurati che il percorso sia corretto
+
+      .app-footer-placeholder {
+        display: block;
+        min-height: 120px;
+        width: 100%;
+      }
+
+      .cocktail-bubbles-placeholder {
+        position: fixed;
+        inset: auto 0 0 0;
+        height: 0;
+      }
+    `,
+  ],
   // styles: lascia pure i tuoi, vedi anche styles.scss sotto
 })
 export class AppComponent {
@@ -118,14 +141,16 @@ export class AppComponent {
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   // 👉 params “mobile-safe”
-  private readonly isTouch =
+  protected readonly isTouch =
     this.isBrowser &&
     (navigator.maxTouchPoints > 0 ||
       /Android|iP(ad|hone|od)/i.test(navigator.userAgent));
 
-  private readonly prefersReduced =
+  protected readonly prefersReduced =
     this.isBrowser &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  protected readonly showAmbient = !this.prefersReduced;
 
   constructor() {
     if (this.isBrowser) {
@@ -150,7 +175,6 @@ export class AppComponent {
         if (state.suppressScroll) return;
 
         this.viewportScroller.scrollToPosition([0, 0]);
-
       });
   }
 
@@ -172,11 +196,11 @@ export class AppComponent {
   get animParams() {
     const reduce = this.isTouch || this.prefersReduced;
     return reduce
-      ? { duration: '240ms ease-out', enterY: '24px', leaveY: '24px' }
+      ? { duration: '220ms ease-out', enterY: '16px', leaveY: '16px' }
       : {
-          duration: '700ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-          enterY: '64px',
-          leaveY: '64px',
+          duration: '420ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+          enterY: '40px',
+          leaveY: '40px',
         };
   }
 
