@@ -36,12 +36,15 @@
           <img
             class="detail-image"
             [ngSrc]="heroSrc || getPreferred(getCocktailHeroUrl(cocktail))"
-            [ngSrcset]="heroSrcset || getCocktailImageSrcsetPreferred(cocktail)"
-            sizes="(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 500px"
+            [attr.srcset]="
+              heroSrcset || getCocktailImageSrcsetPreferred(cocktail)
+            "
+            sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw"
             width="500"
             height="500"
             priority
             fetchpriority="high"
+            [disableOptimizedSrcset]="true"
             alt="{{ cocktail.name || 'Cocktail photo' }}"
             (error)="
               onImgErrorWithSrcset(
