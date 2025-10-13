@@ -22,7 +22,6 @@ import {
 } from '@angular/common';
 import { Router } from '@angular/router';
 
-import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { forkJoin, Subscription, of } from 'rxjs';
 import { DatePipe } from '@angular/common';
@@ -83,7 +82,6 @@ type DashboardPayload = {
   standalone: true,
   imports: [
     CommonModule,
-    MatIconModule,
     RouterLink,
     CocktailCardComponent,
     IngredientCardComponent,
@@ -516,6 +514,35 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Angular richiede una lista "comma-separated" con descrittori "w" o "x"
     return parts.join(', ');
+  }
+
+  getCotdSrcSet(image: StrapiImage | null | undefined): string {
+    const formats = (image as any)?.formats || null;
+    if (!formats) return '';
+
+    const toAbs = (url: string) =>
+      url?.startsWith('http') ? url : env.apiUrl + url;
+
+    const preferredOrder: Array<{
+      key: 'thumbnail' | 'small' | 'medium';
+      fallbackWidth: number;
+    }> = [
+      { key: 'thumbnail', fallbackWidth: 150 },
+      { key: 'small', fallbackWidth: 320 },
+      { key: 'medium', fallbackWidth: 640 },
+    ];
+
+    const parts = preferredOrder
+      .map(({ key, fallbackWidth }) => {
+        const entry = (formats as Record<string, any>)[key];
+        if (!entry?.url) return '';
+        const width = entry.width ?? fallbackWidth;
+        if (!width) return '';
+        return `${toAbs(entry.url)} ${Math.min(width, 640)}w`;
+      })
+      .filter(Boolean);
+
+    return Array.from(new Set(parts)).join(', ');
   }
 
   // ======== trackBy ========
