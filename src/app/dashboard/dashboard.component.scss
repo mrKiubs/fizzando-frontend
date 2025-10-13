@@ -22,6 +22,20 @@ img {
   display: block;
 }
 
+.icon-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+  margin-inline-end: 0.35rem;
+}
+
+.carousel-btn .icon-chevron {
+  display: inline-block;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
 /* Container */
 .dashboard-container {
   max-width: 1200px;
@@ -89,6 +103,24 @@ section {
   contain: content;
   min-width: 0; /* permette compressione in grid */
 }
+
+.random-cocktail-section.placeholder {
+  min-height: 260px;
+}
+.random-cocktail-section.placeholder .cocktail-display {
+  width: 100%;
+  min-height: 240px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
 .random-cocktail-image {
   width: 210px;
   height: 210px;

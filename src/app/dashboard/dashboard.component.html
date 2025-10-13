@@ -4,7 +4,7 @@
   </div>
 
   <div *ngIf="error" class="error-message">
-    <mat-icon>error_outline</mat-icon>
+    <span class="icon-inline" aria-hidden="true">⚠️</span>
     <p>{{ error }}</p>
     <button class="glass-button primary" (click)="ngOnInit()">Retry</button>
   </div>
@@ -119,7 +119,8 @@
                 class="glass-button secondary"
                 [routerLink]="['/find-cocktail']"
               >
-                Find Your Cocktail <mat-icon>visibility</mat-icon>
+                Find Your Cocktail
+                <span class="icon-inline" aria-hidden="true">👁️</span>
               </button>
             </div>
           </article>
@@ -136,7 +137,7 @@
         (click)="prevSlide()"
         aria-label="Previous slide"
       >
-        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+        <span class="icon-chevron" aria-hidden="true">‹</span>
       </button>
       <button
         class="carousel-btn next"
@@ -144,7 +145,7 @@
         (click)="nextSlide()"
         aria-label="Next slide"
       >
-        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+        <span class="icon-chevron" aria-hidden="true">›</span>
       </button>
 
       <!-- Dots -->
@@ -163,11 +164,14 @@
     </section>
 
     <!-- RANDOM (1/3) – LCP -->
+    <!-- RANDOM (1/3) – LCP -->
+    @defer (on viewport; prefetch on idle) { @if (randomCocktail) {
     <section
       class="random-cocktail-section"
-      *ngIf="randomCocktail"
       role="region"
       aria-label="Fizzando’s Cocktail of the Day"
+      (mouseenter)="burstConfetti()"
+      (focusin)="burstConfetti()"
     >
       <div
         class="cocktail-display glass-card"
@@ -195,19 +199,20 @@
         }
 
         <img
-          [src]="getSmallestUrl(randomCocktail.image)"
-          alt="{{ randomCocktail.name || 'Random cocktail' }}"
+          [ngSrc]="getBestImageUrl(randomCocktail.image, 360)"
+          [attr.srcset]="getCotdSrcSet(randomCocktail.image)"
+          [alt]="randomCocktail.name || 'Random cocktail'"
           width="210"
           height="210"
-          loading="eager"
-          fetchpriority="high"
           decoding="async"
           class="random-cocktail-image"
+          priority
+          sizes="(min-width: 641px) 33vw, 70vw"
+          [disableOptimizedSrcset]="true"
         />
 
         <div class="content-random">
           <h4>{{ randomCocktail.name }}</h4>
-
           <button
             class="btn-shine"
             type="button"
@@ -218,8 +223,13 @@
             <span>View Recipe</span>
           </button>
         </div>
-      </div>
 
+        <p class="random-cta">
+          <a [routerLink]="['/cocktails', randomCocktail.slug]"
+            >View the cocktail</a
+          >
+        </p>
+      </div>
       <div class="glass-card cocktail-display-button">
         <h3>Quick links</h3>
         <div class="quick-link-home">
@@ -253,6 +263,24 @@
         </div>
       </div>
     </section>
+    } @else {
+    <!-- Questo non è un placeholder del defer: è l'ELSE del tuo @if -->
+    <section
+      class="ad-block"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+      <app-dev-ads
+        [type]="isMobile ? 'mobile-banner' : 'leaderboard'"
+      ></app-dev-ads>
+    </section>
+    } } @placeholder {
+    <!-- Questo è l'UNICO placeholder del DEFER esterno -->
+    <section class="random-cocktail-section placeholder" aria-hidden="true">
+      <div class="cocktail-display glass-card skeleton"></div>
+    </section>
+    }
 
     <ng-container *ngIf="contentReady">
       @defer (on viewport) {
@@ -368,30 +396,31 @@
 
       <div class="links-grid">
         <button class="glass-button secondary" [routerLink]="['/cocktails']">
-          <mat-icon>local_bar</mat-icon> All Cocktails
+          <span class="icon-inline" aria-hidden="true">🍸</span> All Cocktails
         </button>
         <button class="glass-button secondary" [routerLink]="['/ingredients']">
-          <mat-icon>science</mat-icon> All Ingredients
+          <span class="icon-inline" aria-hidden="true">🧪</span> All Ingredients
         </button>
         <button
           class="glass-button secondary"
           [routerLink]="['/find-cocktail']"
         >
-          <mat-icon>search</mat-icon> Find by Ingredients
+          <span class="icon-inline" aria-hidden="true">🔍</span> Find by
+          Ingredients
         </button>
         <button
           class="glass-button secondary"
           [routerLink]="['/cocktails']"
           [queryParams]="{ alcoholic: 'Alcoholic' }"
         >
-          <mat-icon>liquor</mat-icon> Alcoholic
+          <span class="icon-inline" aria-hidden="true">🥃</span> Alcoholic
         </button>
         <button
           class="glass-button secondary"
           [routerLink]="['/cocktails']"
           [queryParams]="{ alcoholic: 'Non Alcoholic' }"
         >
-          <mat-icon>local_drink</mat-icon> Non-Alcoholic
+          <span class="icon-inline" aria-hidden="true">🍹</span> Non-Alcoholic
         </button>
       </div>
 
