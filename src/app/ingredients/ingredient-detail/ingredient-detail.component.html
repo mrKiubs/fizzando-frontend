@@ -80,8 +80,8 @@
         aria-label="Sponsored content"
       >
         <span class="ad-badge">Ad</span>
-        <div [class]="adSlotClass(getTopBannerType())">
-          <app-dev-ads [type]="getTopBannerType()"></app-dev-ads>
+        <div [class]="adSlotClass(topBannerType)">
+          <app-dev-ads [type]="topBannerType"></app-dev-ads>
         </div>
       </section>
       } @placeholder {
@@ -93,9 +93,7 @@
         aria-hidden="true"
       >
         <span class="ad-badge">Ad</span>
-        <div [class]="adSlotClass(getTopBannerType())">
-          <app-dev-ads [type]="getTopBannerType()"></app-dev-ads>
-        </div>
+        <div [class]="getAdSlotPlaceholderClass(topBannerType)"></div>
       </section>
       }
     </ng-container>
@@ -185,8 +183,8 @@
                 aria-label="Sponsored content"
               >
                 <span class="ad-badge">Ad</span>
-                <div [class]="adSlotClass(getGridAdType())">
-                  <app-dev-ads [type]="getGridAdType()"></app-dev-ads>
+                <div [class]="adSlotClass(gridAdType)">
+                  <app-dev-ads [type]="gridAdType"></app-dev-ads>
                 </div>
               </section>
               } @placeholder {
@@ -198,9 +196,7 @@
                 aria-hidden="true"
               >
                 <span class="ad-badge">Ad</span>
-                <div [class]="adSlotClass(getGridAdType())">
-                  <app-dev-ads [type]="getGridAdType()"></app-dev-ads>
-                </div>
+                <div [class]="getAdSlotPlaceholderClass(gridAdType)"></div>
               </section>
               }
             </ng-container>
@@ -314,8 +310,8 @@
       aria-label="Sponsored content"
     >
       <span class="ad-badge">Ad</span>
-      <div [class]="adSlotClass(getBottomBannerType())">
-        <app-dev-ads [type]="getBottomBannerType()"></app-dev-ads>
+      <div [class]="adSlotClass(bottomBannerType)">
+        <app-dev-ads [type]="bottomBannerType"></app-dev-ads>
       </div>
     </section>
     } @placeholder {
@@ -327,9 +323,7 @@
       aria-hidden="true"
     >
       <span class="ad-badge">Ad</span>
-      <div [class]="adSlotClass(getBottomBannerType())">
-        <app-dev-ads [type]="getBottomBannerType()"></app-dev-ads>
-      </div>
+      <div [class]="getAdSlotPlaceholderClass(bottomBannerType)"></div>
     </section>
     }
   </ng-container>

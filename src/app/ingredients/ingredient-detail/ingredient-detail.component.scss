@@ -362,3 +362,31 @@ h2 {
 .ad-block {
   grid-area: "ad-block";
 }
+
+.ad-slot-placeholder {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  min-height: 90px;
+
+  &.leaderboard,
+  &.mobile-banner {
+    min-height: 90px;
+  }
+
+  &.square {
+    min-height: 250px;
+  }
+}
