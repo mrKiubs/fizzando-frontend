@@ -56,6 +56,14 @@
   >
     <div class="glassy-content-container">
       <div class="glassy-info">
+        <p class="match-motto" *ngIf="displayMotto as motto; else highlightTpl">
+          ✨ {{ motto }}
+        </p>
+        <ng-template #highlightTpl>
+          <p class="match-motto" *ngIf="primaryHighlight as hl">
+            ✨ {{ hl.text }}
+          </p>
+        </ng-template>
         <div class="glassy-image-container">
           <a
             class="cocktail-card-image-link"

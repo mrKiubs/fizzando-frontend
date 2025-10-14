@@ -105,6 +105,7 @@ h2 {
     "header"
     "ad-block"
     "ai-insights"
+    "ad-block-second"
     "related-cocktails" /* Spostato sotto ai-insights */
     "actions";
 
@@ -273,6 +274,7 @@ h2 {
       "header"
       "ad-block"
       "ai-insights"
+      "ad-block-second"
       "related-cocktails"
       "actions";
   }
@@ -366,6 +368,9 @@ h2 {
 }
 .ad-block {
   grid-area: "ad-block";
+}
+.ad-block.second-block {
+  grid-area: "ad-block-second";
 }
 
 .ad-slot-placeholder {

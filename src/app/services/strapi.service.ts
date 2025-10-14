@@ -114,10 +114,23 @@ export interface Cocktail {
   ai_variations: string | null;
   slug: string;
 }
+
+export interface SimilarityMeta {
+  score: number; // 0..1
+  ingredientOverlap?: number; // 0..1 (Jaccard pesato)
+  cat?: boolean;
+  method?: boolean;
+  glass?: boolean;
+  alcoholic?: boolean;
+  abvClass?: boolean;
+  motto?: string;
+}
 export interface CocktailWithLayoutAndMatch extends Cocktail {
   isTall?: boolean;
   isWide?: boolean;
   matchedIngredientCount?: number;
+  similarityScore?: number;
+  similarityMeta?: SimilarityMeta;
 }
 export interface StrapiResponse<T> {
   data: T[];
@@ -189,6 +202,234 @@ export class CocktailService {
     { prev: Cocktail | null; next: Cocktail | null; ts: number }
   >();
   private adjacentTTLms = 5 * 60_000;
+
+  // ===== Similarity + Motto helpers (EN only) =====
+
+  // Small utils
+  private _norm(s?: string | null): string {
+    return (s || '').toLowerCase().trim();
+  }
+  private _hash(s: string): number {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) {
+      h = (h << 5) - h + s.charCodeAt(i);
+      h |= 0;
+    }
+    return h;
+  }
+  private _pick<T>(arr: readonly T[], seed: string): T {
+    const idx = Math.abs(this._hash(seed)) % Math.max(1, arr.length);
+    return arr[idx];
+  }
+  private _truncate(s: string, n = 36): string {
+    s = (s || '').trim();
+    return s.length > n ? s.slice(0, n - 1) + '…' : s;
+  }
+  private _firstSentence(s?: string | null): string {
+    if (!s) return '';
+    const part = String(s)
+      .split(/[.|;|•|–|—|-]/)[0]
+      .trim();
+    return part;
+  }
+
+  // ABV class from ai_alcohol_content % or alcoholic label
+  private _abvClass(
+    aiAlcohol?: string | null,
+    alcoholic?: string | null
+  ): 'low' | 'med' | 'high' {
+    const s = this._norm(aiAlcohol);
+    const m = s.match(/(\d+(?:\.\d+)?)\s*%/);
+    const num = m ? parseFloat(m[1]) : NaN;
+    if (!isNaN(num)) {
+      if (num < 12) return 'low';
+      if (num < 25) return 'med';
+      return 'high';
+    }
+    const alc = this._norm(alcoholic);
+    if (alc.includes('non alcoholic') || alc.includes('optional alcohol'))
+      return 'low';
+    return 'med';
+  }
+
+  // Ingredient weighting (higher weight for top items = likely base spirit)
+  private _ingredientWeightedSet(c: Cocktail): Map<string, number> {
+    const map = new Map<string, number>();
+    const list = c?.ingredients_list || [];
+    list.forEach((item, idx) => {
+      const id =
+        this._norm(item?.ingredient?.external_id) ||
+        this._norm(item?.ingredient?.name);
+      if (!id) return;
+      let w = 0.3;
+      if (idx === 0) w = 1.0;
+      else if (idx === 1) w = 0.8;
+      else if (idx === 2) w = 0.6;
+      else if (idx <= 4) w = 0.5;
+      map.set(id, Math.max(map.get(id) || 0, w));
+    });
+    return map;
+  }
+  private _weightedJaccard(
+    a: Map<string, number>,
+    b: Map<string, number>
+  ): number {
+    let inter = 0,
+      uni = 0;
+    const keys = new Set([...a.keys(), ...b.keys()]);
+    keys.forEach((k) => {
+      const wa = a.get(k) || 0;
+      const wb = b.get(k) || 0;
+      inter += Math.min(wa, wb);
+      uni += Math.max(wa, wb);
+    });
+    return uni > 0 ? inter / uni : 0;
+  }
+  private _eq(a?: string | null, b?: string | null): 0 | 1 {
+    return this._norm(a) === this._norm(b) ? 1 : 0;
+  }
+
+  // Main similarity score [0..1]
+  private _similarityScore(cur: Cocktail, cand: Cocktail): number {
+    const W = {
+      ingredients: 0.4,
+      category: 0.15,
+      method: 0.15,
+      glass: 0.1,
+      alcoholic: 0.05,
+      abvClass: 0.15,
+    } as const;
+
+    const ji = this._weightedJaccard(
+      this._ingredientWeightedSet(cur),
+      this._ingredientWeightedSet(cand)
+    );
+
+    const cat = this._eq(cur.category, cand.category);
+    const meth = this._eq(cur.preparation_type, cand.preparation_type);
+    const glass = this._eq(cur.glass, cand.glass);
+    const alc = this._eq(cur.alcoholic, cand.alcoholic);
+
+    const abvA = this._abvClass(cur.ai_alcohol_content, cur.alcoholic);
+    const abvB = this._abvClass(cand.ai_alcohol_content, cand.alcoholic);
+    const abv = abvA === abvB ? 1 : 0;
+
+    const score =
+      W.ingredients * ji +
+      W.category * cat +
+      W.method * meth +
+      W.glass * glass +
+      W.alcoholic * alc +
+      W.abvClass * abv;
+
+    return +score.toFixed(4);
+  }
+
+  // EN mottos
+  private readonly MOTTO_EN = {
+    base: [
+      'Shares the base: {{base}}',
+      'Same core: {{base}}',
+      'Shared spirit: {{base}}',
+      'United by {{base}}',
+    ],
+    service: [
+      'Same serve · {{method}} in {{glass}}',
+      'Method & glass aligned',
+      'Twin serve · {{method}} · {{glass}}',
+      'Same ritual: {{method}} · {{glass}}',
+    ],
+    family: [
+      'Same family · {{category}}',
+      'ABV & style aligned',
+      'Similar balance in the glass',
+      'Kindred character',
+    ],
+    overlap: [
+      'Shared flavor profile',
+      'Common aromatic thread',
+      'Ingredient footprint aligned',
+      'Coherent flavor line',
+      'Taste affinity',
+    ],
+    methodOnly: ['Same making gesture · {{method}}'],
+    glassOnly: ['Same glass · {{glass}}'],
+    flavor: [
+      '{{flavor}}',
+      'Shared notes: {{flavor}}',
+      'Kindred feel: {{flavor}}',
+    ],
+    fallback: ['Good pairing', 'Close in style', 'A coherent choice'],
+  } as const;
+
+  // Build the final EN motto (ordered rules)
+  private _buildMottoEn(
+    cur: Cocktail,
+    cand: Cocktail,
+    sm: SimilarityMeta
+  ): string {
+    const baseName = cur?.ingredients_list?.[0]?.ingredient?.name || '';
+    const baseNorm = this._norm(baseName);
+    const candHasBase =
+      !!baseNorm &&
+      (cand?.ingredients_list || []).some(
+        (it) => this._norm(it?.ingredient?.name) === baseNorm
+      );
+
+    const method = cand.preparation_type || cur.preparation_type || 'Serve';
+    const glass = cand.glass || cur.glass || 'glass';
+    const category = cand.category || cur.category || 'Cocktail';
+    const flavorAI = this._firstSentence(
+      (cand as any).ai_flavor_profile || (cand as any).ai_sensory_description
+    );
+
+    if (candHasBase && baseName) {
+      return this._pick(this.MOTTO_EN.base, cand.slug).replace(
+        '{{base}}',
+        baseName
+      );
+    }
+
+    if (sm.method && sm.glass) {
+      return this._pick(this.MOTTO_EN.service, cand.slug)
+        .replace('{{method}}', method)
+        .replace('{{glass}}', glass);
+    }
+
+    if (sm.cat && sm.abvClass) {
+      return this._pick(this.MOTTO_EN.family, cand.slug).replace(
+        '{{category}}',
+        category
+      );
+    }
+
+    if ((sm.ingredientOverlap ?? 0) >= 0.45) {
+      return this._pick(this.MOTTO_EN.overlap, cand.slug);
+    }
+
+    if (sm.method) {
+      return this._pick(this.MOTTO_EN.methodOnly, cand.slug).replace(
+        '{{method}}',
+        method
+      );
+    }
+    if (sm.glass) {
+      return this._pick(this.MOTTO_EN.glassOnly, cand.slug).replace(
+        '{{glass}}',
+        glass
+      );
+    }
+
+    if (flavorAI) {
+      return this._pick(this.MOTTO_EN.flavor, cand.slug).replace(
+        '{{flavor}}',
+        this._truncate(flavorAI, 36)
+      );
+    }
+
+    return this._pick(this.MOTTO_EN.fallback, cand.slug);
+  }
+
   constructor(private http: HttpClient) {}
 
   // --------- Helpers ----------
@@ -766,67 +1007,148 @@ export class CocktailService {
       );
   }
 
-  getSimilarCocktails(currentCocktail: Cocktail): Observable<Cocktail[]> {
+  getSimilarCocktails(
+    currentCocktail: Cocktail,
+    limit = 16
+  ): Observable<CocktailWithLayoutAndMatch[]> {
     if (!currentCocktail?.ingredients_list?.length) return of([]);
 
-    return this.getCocktails(
-      1,
-      48,
-      undefined,
-      undefined,
-      undefined,
-      true,
-      false
-    ).pipe(
-      map((response: StrapiResponse<Cocktail>) => {
-        const allCocktails = response.data;
-        const primary =
-          currentCocktail.ingredients_list[0]?.ingredient?.external_id;
-        const secondary =
-          currentCocktail.ingredients_list[1]?.ingredient?.external_id;
+    // Ingredient ids del corrente (riduce i candidati prima del ranking)
+    const primaryIds = currentCocktail.ingredients_list
+      .map((i) => i?.ingredient?.external_id)
+      .filter(Boolean) as string[];
 
-        let candidates: Cocktail[] = [];
-        if (primary) {
-          candidates = allCocktails.filter(
-            (c) =>
-              c.external_id !== currentCocktail.external_id &&
-              c.ingredients_list.some(
-                (it) => it.ingredient.external_id === primary
-              )
-          );
-        }
-        if (candidates.length < 16 && secondary && secondary !== primary) {
-          const extra = allCocktails.filter(
-            (c) =>
-              c.external_id !== currentCocktail.external_id &&
-              !candidates.some((s) => s.external_id === c.external_id) &&
-              c.ingredients_list.some(
-                (it) => it.ingredient.external_id === secondary
-              )
-          );
-          candidates = [...candidates, ...extra];
-        }
-        if (candidates.length < 16) {
-          const fallback = allCocktails.filter((c) => {
-            if (
-              c.external_id === currentCocktail.external_id ||
-              candidates.some((s) => s.external_id === c.external_id)
+    // Lista base: includi ingredienti per calcolo overlap
+    const base$ = primaryIds.length
+      ? this.getCocktails(
+          1,
+          120,
+          undefined,
+          undefined,
+          undefined,
+          false,
+          true /* include ingredients */
+        )
+      : this.getCocktails(1, 200, undefined, undefined, undefined, true, true);
+
+    return base$.pipe(
+      map((resp) => {
+        const all = resp.data;
+        const curId = String(currentCocktail.external_id);
+
+        const prelim = primaryIds.length
+          ? all.filter(
+              (c) =>
+                String(c.external_id) !== curId &&
+                c.ingredients_list?.some((it) =>
+                  primaryIds.includes(it.ingredient?.external_id)
+                )
             )
-              return false;
-            const matchCategory =
-              currentCocktail.category &&
-              c.category === currentCocktail.category;
-            const matchAlcoholic =
-              currentCocktail.alcoholic &&
-              c.alcoholic === currentCocktail.alcoholic;
-            const matchGlass =
-              currentCocktail.glass && c.glass === currentCocktail.glass;
-            return matchCategory || matchAlcoholic || matchGlass;
+          : all.filter((c) => String(c.external_id) !== curId);
+
+        // Ranking + meta + motto
+        const ranked = prelim
+          .map((c) => {
+            const score = this._similarityScore(currentCocktail, c);
+            const a = this._ingredientWeightedSet(currentCocktail);
+            const b = this._ingredientWeightedSet(c);
+            const ingredientOverlap = this._weightedJaccard(a, b);
+
+            const meta: SimilarityMeta = {
+              score,
+              ingredientOverlap,
+              cat: this._eq(currentCocktail.category, c.category) === 1,
+              method:
+                this._eq(
+                  currentCocktail.preparation_type,
+                  c.preparation_type
+                ) === 1,
+              glass: this._eq(currentCocktail.glass, c.glass) === 1,
+              alcoholic: this._eq(currentCocktail.alcoholic, c.alcoholic) === 1,
+              abvClass:
+                this._abvClass(
+                  currentCocktail.ai_alcohol_content,
+                  currentCocktail.alcoholic
+                ) === this._abvClass(c.ai_alcohol_content, c.alcoholic),
+            };
+            meta.motto = this._buildMottoEn(currentCocktail, c, meta);
+
+            return {
+              ...c,
+              similarityScore: score,
+              similarityMeta: meta,
+            } as CocktailWithLayoutAndMatch;
+          })
+          .sort((a, b) => {
+            const diff = b.similarityScore! - a.similarityScore!;
+            if (Math.abs(diff) > 0.0001) return diff;
+            const mA = this._eq(
+              currentCocktail.preparation_type,
+              a.preparation_type
+            );
+            const mB = this._eq(
+              currentCocktail.preparation_type,
+              b.preparation_type
+            );
+            if (mA !== mB) return mB - mA;
+            const gA = this._eq(currentCocktail.glass, a.glass);
+            const gB = this._eq(currentCocktail.glass, b.glass);
+            return gB - gA;
           });
-          candidates = [...candidates, ...fallback];
+
+        // Fallback per riempire fino a limit
+        let out = ranked;
+        if (out.length < limit) {
+          const extras = all
+            .filter(
+              (c) =>
+                String(c.external_id) !== curId &&
+                !out.some((o) => o.external_id === c.external_id) &&
+                (this._eq(c.category, currentCocktail.category) ||
+                  this._eq(
+                    c.preparation_type,
+                    currentCocktail.preparation_type
+                  ) ||
+                  this._eq(c.glass, currentCocktail.glass))
+            )
+            .map((c) => {
+              const score = this._similarityScore(currentCocktail, c);
+              const a = this._ingredientWeightedSet(currentCocktail);
+              const b = this._ingredientWeightedSet(c);
+              const ingredientOverlap = this._weightedJaccard(a, b);
+
+              const meta: SimilarityMeta = {
+                score,
+                ingredientOverlap,
+                cat: this._eq(currentCocktail.category, c.category) === 1,
+                method:
+                  this._eq(
+                    currentCocktail.preparation_type,
+                    c.preparation_type
+                  ) === 1,
+                glass: this._eq(currentCocktail.glass, c.glass) === 1,
+                alcoholic:
+                  this._eq(currentCocktail.alcoholic, c.alcoholic) === 1,
+                abvClass:
+                  this._abvClass(
+                    currentCocktail.ai_alcohol_content,
+                    currentCocktail.alcoholic
+                  ) === this._abvClass(c.ai_alcohol_content, c.alcoholic),
+              };
+              meta.motto = this._buildMottoEn(currentCocktail, c, meta);
+
+              return {
+                ...c,
+                similarityScore: score,
+                similarityMeta: meta,
+              } as CocktailWithLayoutAndMatch;
+            })
+            .sort((a, b) => b.similarityScore! - a.similarityScore!);
+
+          out = out.concat(extras);
         }
-        const shuffled = candidates.sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, 16);
+
+        return out.slice(0, limit);
       }),
       catchError(() =>
         throwError(() => new Error('Could not load similar cocktails.'))

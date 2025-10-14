@@ -7,6 +7,7 @@ import {
   BehaviorSubject,
   throwError,
   Subscription,
+  forkJoin,
 } from 'rxjs';
 import {
   map,
@@ -17,17 +18,6 @@ import {
   concatMap,
 } from 'rxjs/operators';
 import { env } from '../config/env';
-
-// --- NUOVA INTERFACCIA: Article (per la relazione) ---
-export interface Article {
-  id: number;
-  title: string;
-  slug: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt: string;
-}
 
 // --- INTERFACCE (immutate) ---
 export interface StrapiImage {
@@ -74,7 +64,6 @@ export interface Ingredient {
 
   ingredient_type: string | null;
   ai_cocktail_substitutes: any | null;
-  article: Article | null;
 
   createdAt: string;
   updatedAt: string;
@@ -320,26 +309,12 @@ export class IngredientService {
     const hit = this.byExternalId.get(key);
     if (hit) return of(hit);
 
-    if (this._allIngredientsLoadingSubject.getValue()) {
-      return this._allIngredientsDataSubject.pipe(
-        filter((data) => data !== null),
-        map((data) => {
-          const found =
-            data!.find((i) => i.external_id.toLowerCase() === key) || null;
-          if (found) this.byExternalId.set(key, found);
-          return found;
-        }),
-        catchError(() => of(null))
-      );
-    }
-
     const inFlight = this.byExternalInFlight.get(key);
     if (inFlight) return inFlight;
 
     let params = new HttpParams()
       .set('filters[external_id][$eq]', externalId)
-      .set('populate[image]', 'true')
-      .set('populate[article]', 'true');
+      .set('populate[image]', 'true');
 
     const req$ = this.http
       .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
@@ -513,12 +488,12 @@ export class IngredientService {
     const collected: Ingredient[] = [];
     this._allIngredientsLoadingSubject.next(true);
 
-    // Prima pagina (NO sort su slug lato server)
     let params = new HttpParams()
       .set('pagination[page]', '1')
       .set('pagination[pageSize]', String(pageSize))
       .set('populate[image]', 'true');
 
+    // 1. PRIMA PAGINA (per ottenere il conteggio totale)
     const first$ = this.http
       .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
       .pipe(
@@ -532,43 +507,48 @@ export class IngredientService {
       );
 
     return first$.pipe(
+      // 2. SCARICA LE PAGINE RIMANENTI IN PARALLELO (se pageCount > 1)
       concatMap((pageCount) => {
-        if (pageCount <= 1) return of(null);
+        if (pageCount <= 1) return of(collected); // Se c'è solo una pagina, restituisci subito
 
-        // 2..N
-        let chain$ = of(null as unknown);
+        const pageRequests: Observable<any>[] = [];
         for (let p = 2; p <= pageCount; p++) {
-          chain$ = chain$.pipe(
-            concatMap(() => {
-              const pParams = new HttpParams()
-                .set('pagination[page]', String(p))
-                .set('pagination[pageSize]', String(pageSize))
-                .set('populate[image]', 'true');
+          const pParams = new HttpParams()
+            .set('pagination[page]', String(p))
+            .set('pagination[pageSize]', String(pageSize))
+            .set('populate[image]', 'true');
 
-              return this.http
-                .get<StrapiResponse<Ingredient>>(this.baseUrl, {
-                  params: pParams,
-                })
-                .pipe(
-                  map((resp) => {
-                    resp.data.forEach(
-                      (ing) =>
-                        (ing.image = this.processIngredientImage(ing.image))
-                    );
-                    collected.push(...resp.data);
-                    return null;
-                  })
-                );
+          // Crea l'Observable per ogni pagina
+          const page$ = this.http
+            .get<StrapiResponse<Ingredient>>(this.baseUrl, {
+              params: pParams,
             })
-          );
+            .pipe(
+              map((resp) => {
+                resp.data.forEach(
+                  (ing) => (ing.image = this.processIngredientImage(ing.image))
+                );
+                return resp.data;
+              })
+            );
+          pageRequests.push(page$);
         }
-        return chain$;
+
+        // forkJoin esegue tutte le richieste in parallelo
+        return forkJoin(pageRequests).pipe(
+          map((results) => {
+            // Unisci i risultati delle pagine rimanenti nell'array collected
+            results.forEach((pageData) => collected.push(...pageData));
+            return collected;
+          })
+        );
       }),
-      map(() => {
-        // Ordina TUTTO client-side per "safe slug"
-        this._allIngredientsCache = collected
+      map((finalList) => {
+        // 3. Ordina TUTTO client-side (come prima)
+        this._allIngredientsCache = finalList
           .slice()
           .sort((a, b) => this.compareBySlug(a, b));
+
         this._allIngredientsDataSubject.next(this._allIngredientsCache);
         this._allIngredientsLoadingSubject.next(false);
         this._allIngredientsCache.forEach((i) =>

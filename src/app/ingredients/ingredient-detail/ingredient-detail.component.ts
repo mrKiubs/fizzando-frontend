@@ -155,7 +155,11 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Carica elenco completo (cache del service consentita)
+    // [FIX] Rimuovi il caricamento bloccante dell'indice.
+    // Il TransferState (tryRestoreAllIngredientsIndex) rimane come unico
+    // meccanismo per ottenere l'indice "prev/next".
+
+    /* OLD CODE RIMOSSO:
     this.ingredientService
       .getIngredients(1, 1000, undefined, undefined, undefined, true)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -182,6 +186,7 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
           this.cdr.markForCheck();
         },
       });
+    */
   }
 
   ngOnDestroy(): void {
@@ -230,7 +235,7 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
       this.ingredient = { ...(cached as IngredientDetail) };
       this.ingredientService.hydrateIngredientDetail(this.ingredient);
       this.currentSlug = this.safeSlugFromIngredient(cached);
-      this.computeNeighbors(); // ← calcolo prev/next su allBySlug
+      this.computeNeighbors(); // ← calcolo prev/next su allBySlug (se indice ripristinato)
       this.setSeoTagsAndSchema();
       if (this.isServer) {
         this.transferState.set(
@@ -256,13 +261,15 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
         this.ingredient = { ...(res as IngredientDetail) };
         this.currentSlug = this.safeSlugFromIngredient(res as Ingredient);
 
-        // se per qualsiasi motivo non avevamo l’indice, costruiscilo best-effort
+        // [FIX] Rimuovi la logica di 'best-effort' inutile
+        /* OLD CODE RIMOSSO:
         if (!this.allBySlug.length) {
           const single = this.mapToNav(res as Ingredient);
           this.allBySlug = this.sortBySlug([single]);
         }
+        */
 
-        this.computeNeighbors(); // ← calcolo prev/next
+        this.computeNeighbors(); // ← calcolo prev/next (funzionerà solo se l'indice è stato ripristinato da TransferState)
         this.setSeoTagsAndSchema();
         this.unlockAdsWhenStable();
         this.loadRelatedCocktails(externalId);
@@ -564,11 +571,15 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   @HostListener('window:resize')
   onResize(): void {
     if (!this.isBrowser) return;
-    const nextIsMobile = window.innerWidth <= 768;
-    if (nextIsMobile === this.isMobile) return;
-    this.isMobile = nextIsMobile;
-    this.updateAdSlotTypes();
-    this.cdr.markForCheck();
+    cancelAnimationFrame(this.resizeRaf!);
+    this.resizeRaf = requestAnimationFrame(() => {
+      const nextIsMobile = window.innerWidth <= 768;
+      if (nextIsMobile !== this.isMobile) {
+        this.isMobile = nextIsMobile;
+        this.updateAdSlotTypes();
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   // === SEO / JSON-LD ========================================================
@@ -652,6 +663,8 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
       this.addJsonLdSchema();
     });
   }
+
+  private resizeRaf?: number;
 
   private addJsonLdSchema(): void {
     if (!this.ingredient) return;
