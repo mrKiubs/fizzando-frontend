@@ -37,13 +37,15 @@ export interface StrapiImage {
   caption: string | null;
   width: number;
   height: number;
-  formats: {
-    thumbnail?: { url: string; [key: string]: any };
-    small?: { url: string; [key: string]: any };
-    medium?: { url: string; [key: string]: any };
-    large?: { url: string; [key: string]: any };
-    [key: string]: any;
-  };
+  formats:
+    | {
+        thumbnail?: { url: string; [key: string]: any };
+        small?: { url: string; [key: string]: any };
+        medium?: { url: string; [key: string]: any };
+        large?: { url: string; [key: string]: any };
+        [key: string]: any;
+      }
+    | any; // <-- può arrivare string/null: lo normalizziamo
   hash: string;
   ext: string;
   mime: string;
@@ -79,7 +81,7 @@ export interface Ingredient {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
-  slug?: string; // opzionale
+  slug?: string; // opzionale (non esposto da Strapi pubblico)
 }
 
 export interface StrapiResponse<T> {
@@ -139,19 +141,37 @@ export class IngredientService {
     return `${this.apiUrl}/${cleaned}`;
   }
 
+  // >>> PATCH: funzione difensiva sui formats
   private processIngredientImage(
     image: StrapiImage | null
   ): StrapiImage | null {
     if (!image) return null;
+
     image.url = this.getAbsoluteImageUrl(image.url);
-    if (image.formats) {
-      for (const key in image.formats) {
-        if (Object.prototype.hasOwnProperty.call(image.formats, key)) {
-          const fmt = (image.formats as any)[key];
-          if (fmt?.url) fmt.url = this.getAbsoluteImageUrl(fmt.url);
-        }
+
+    const raw = (image as any).formats;
+    let formats: any = raw;
+
+    if (typeof raw === 'string') {
+      try {
+        formats = JSON.parse(raw);
+      } catch {
+        formats = null;
       }
     }
+
+    if (formats && typeof formats === 'object') {
+      for (const key of Object.keys(formats)) {
+        const fmt = formats[key];
+        if (fmt?.url) {
+          fmt.url = this.getAbsoluteImageUrl(fmt.url);
+        }
+      }
+      (image as any).formats = formats;
+    } else {
+      (image as any).formats = undefined;
+    }
+
     return image;
   }
 
@@ -194,7 +214,6 @@ export class IngredientService {
       isAlcoholic === undefined &&
       ingredientType === undefined;
 
-    // 1) cache "all"
     if (isAllIngredientsRequest && !forceReload && this._allIngredientsCache) {
       return of({
         data: this._allIngredientsCache,
@@ -209,7 +228,6 @@ export class IngredientService {
       });
     }
 
-    // 2) in corso
     if (
       isAllIngredientsRequest &&
       this._allIngredientsLoadingSubject.getValue() &&
@@ -231,11 +249,20 @@ export class IngredientService {
       );
     }
 
-    // 3) params Strapi (NO sort per slug!)
     let params = new HttpParams()
+      .set('publicationState', 'live') // <<< aggiunto
       .set('pagination[page]', String(page))
       .set('pagination[pageSize]', String(pageSize))
-      .set('populate[image]', 'true');
+      // campi essenziali per card/lista/detail
+      .set('fields[0]', 'name')
+      .set('fields[1]', 'external_id')
+      .set('fields[2]', 'description_from_cocktaildb')
+      .set('fields[3]', 'isAlcoholic')
+      .set('fields[4]', 'ingredient_type')
+      // .set('fields[5]', 'slug') // <<< rimosso: non esposto → 400
+      // image fields minimal:
+      .set('populate[image][fields][0]', 'url')
+      .set('populate[image][fields][1]', 'formats');
 
     if (searchTerm)
       params = params.set('filters[name][$startsWithi]', searchTerm);
@@ -246,14 +273,13 @@ export class IngredientService {
 
     if (isAllIngredientsRequest) this._allIngredientsLoadingSubject.next(true);
 
-    // 4) memoization
     const keyObj = {
       page,
       pageSize,
       searchTerm: searchTerm ?? '',
       isAlcoholic: isAlcoholic ?? null,
       ingredientType: ingredientType ?? '',
-      sort: 'client:slug', // solo per la chiave cache
+      sort: 'client:slug',
     };
     const key = JSON.stringify(keyObj);
     const now = Date.now();
@@ -266,23 +292,21 @@ export class IngredientService {
       .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
       .pipe(
         map((response) => {
-          // normalizza immagini
           response.data.forEach(
             (ing) => (ing.image = this.processIngredientImage(ing.image))
           );
 
-          // ORDINE CLIENT-SIDE per "safe slug"
+          // ordina client-side per "safe slug"
           response.data = response.data
             .slice()
             .sort((a, b) => this.compareBySlug(a, b));
 
-          // gestisci cache "all"
           if (isAllIngredientsRequest) {
             this._allIngredientsCache = response.data.slice();
             this._allIngredientsDataSubject.next(this._allIngredientsCache);
             this._allIngredientsLoadingSubject.next(false);
             this._allIngredientsCache.forEach((i) =>
-              this.byExternalId.set(i.external_id.toLowerCase(), i)
+              this.byExternalId.set((i.external_id || '').toLowerCase(), i)
             );
           }
           return response;
@@ -300,7 +324,7 @@ export class IngredientService {
           return throwError(
             () =>
               new Error(
-                'Could not load ingredients. Check Strapi permissions and filter configuration.'
+                'Could not load ingredients. Check Strapi permissions and filters.'
               )
           );
         }),
@@ -325,7 +349,8 @@ export class IngredientService {
         filter((data) => data !== null),
         map((data) => {
           const found =
-            data!.find((i) => i.external_id.toLowerCase() === key) || null;
+            data!.find((i) => (i.external_id || '').toLowerCase() === key) ||
+            null;
           if (found) this.byExternalId.set(key, found);
           return found;
         }),
@@ -337,9 +362,24 @@ export class IngredientService {
     if (inFlight) return inFlight;
 
     let params = new HttpParams()
-      .set('filters[external_id][$eq]', externalId)
-      .set('populate[image]', 'true')
-      .set('populate[article]', 'true');
+      .set('publicationState', 'live') // <<< aggiunto
+      .set('filters[external_id][$eq]', externalId) // usa il valore originale
+      // Campi usati in UI:
+      .set('fields[0]', 'name')
+      .set('fields[1]', 'external_id')
+      .set('fields[2]', 'description_from_cocktaildb')
+      .set('fields[3]', 'isAlcoholic')
+      .set('fields[4]', 'ingredient_type')
+      // .set('fields[5]', 'slug') // <<< rimosso: non esposto → 400
+      .set('fields[5]', 'ai_flavor_profile')
+      .set('fields[6]', 'ai_common_uses')
+      .set('fields[7]', 'ai_substitutes')
+      .set('fields[8]', 'ai_brief_history')
+      .set('fields[9]', 'ai_interesting_facts')
+      .set('fields[10]', 'ai_alcohol_content')
+      // Image solo con i campi necessari:
+      .set('populate[image][fields][0]', 'url')
+      .set('populate[image][fields][1]', 'formats');
 
     const req$ = this.http
       .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
@@ -360,10 +400,7 @@ export class IngredientService {
             err?.error || err
           );
           return throwError(
-            () =>
-              new Error(
-                'Could not get ingredient details from API. Check Strapi permissions for article population.'
-              )
+            () => new Error('Could not get ingredient details from API.')
           );
         }),
         shareReplay(1)
@@ -383,13 +420,14 @@ export class IngredientService {
   // ================================
 
   prefetchIngredientByExternalId(externalId: string): void {
-    const key = (externalId || '').toLowerCase();
-    if (!key) return;
-    if (this.byExternalId.get(key)) return;
-    if (this.byExternalInFlight.get(key)) return;
+    const cacheKey = (externalId || '').toLowerCase();
+    if (!cacheKey) return;
+    if (this.byExternalId.get(cacheKey)) return;
+    if (this.byExternalInFlight.get(cacheKey)) return;
     if (!this.canPrefetch()) return;
 
-    this.enqueueIdle(() => this.getIngredientByExternalId(key));
+    // usa l'argomento originale nella fetch (no key lowercased)
+    this.enqueueIdle(() => this.getIngredientByExternalId(externalId));
   }
 
   prefetchIngredientsByExternalIds(externalIds: string[], limit = 5): void {
@@ -513,14 +551,22 @@ export class IngredientService {
     const collected: Ingredient[] = [];
     this._allIngredientsLoadingSubject.next(true);
 
-    // Prima pagina (NO sort su slug lato server)
-    let params = new HttpParams()
-      .set('pagination[page]', '1')
-      .set('pagination[pageSize]', String(pageSize))
-      .set('populate[image]', 'true');
+    const baseFields = (p: number) =>
+      new HttpParams()
+        .set('publicationState', 'live') // <<< aggiunto
+        .set('pagination[page]', String(p))
+        .set('pagination[pageSize]', String(pageSize))
+        .set('fields[0]', 'name')
+        .set('fields[1]', 'external_id')
+        .set('fields[2]', 'description_from_cocktaildb')
+        .set('fields[3]', 'isAlcoholic')
+        .set('fields[4]', 'ingredient_type')
+        // .set('fields[5]', 'slug') // <<< rimosso
+        .set('populate[image][fields][0]', 'url')
+        .set('populate[image][fields][1]', 'formats');
 
     const first$ = this.http
-      .get<StrapiResponse<Ingredient>>(this.baseUrl, { params })
+      .get<StrapiResponse<Ingredient>>(this.baseUrl, { params: baseFields(1) })
       .pipe(
         map((resp) => {
           resp.data.forEach(
@@ -534,20 +580,13 @@ export class IngredientService {
     return first$.pipe(
       concatMap((pageCount) => {
         if (pageCount <= 1) return of(null);
-
-        // 2..N
         let chain$ = of(null as unknown);
         for (let p = 2; p <= pageCount; p++) {
           chain$ = chain$.pipe(
-            concatMap(() => {
-              const pParams = new HttpParams()
-                .set('pagination[page]', String(p))
-                .set('pagination[pageSize]', String(pageSize))
-                .set('populate[image]', 'true');
-
-              return this.http
+            concatMap(() =>
+              this.http
                 .get<StrapiResponse<Ingredient>>(this.baseUrl, {
-                  params: pParams,
+                  params: baseFields(p),
                 })
                 .pipe(
                   map((resp) => {
@@ -558,21 +597,20 @@ export class IngredientService {
                     collected.push(...resp.data);
                     return null;
                   })
-                );
-            })
+                )
+            )
           );
         }
         return chain$;
       }),
       map(() => {
-        // Ordina TUTTO client-side per "safe slug"
         this._allIngredientsCache = collected
           .slice()
           .sort((a, b) => this.compareBySlug(a, b));
         this._allIngredientsDataSubject.next(this._allIngredientsCache);
         this._allIngredientsLoadingSubject.next(false);
         this._allIngredientsCache.forEach((i) =>
-          this.byExternalId.set(i.external_id.toLowerCase(), i)
+          this.byExternalId.set((i.external_id || '').toLowerCase(), i)
         );
         return this._allIngredientsCache!;
       }),

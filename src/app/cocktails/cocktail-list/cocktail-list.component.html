@@ -306,7 +306,10 @@
   <span class="skl w-48"></span>
 </div>
 
-<div class="glass-card cocktail-list" *ngIf="!error && cocktails.length > 0">
+<div
+  class="glass-card cards-grid limit-4"
+  *ngIf="!error && cocktails.length > 0"
+>
   <ng-container
     *ngFor="
       let cocktail of cocktails;

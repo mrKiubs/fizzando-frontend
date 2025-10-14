@@ -311,3 +311,33 @@ h1 {
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
 }
+
+/* Card grids — MAX 4 per riga desktop */
+.cards-grid {
+  display: grid;
+  gap: 16px;
+}
+.cards-grid.limit-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.cards-grid > * {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .cards-grid.limit-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/* Mobile */
+@media (max-width: 768px) {
+  .cards-grid.limit-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .cards-grid.limit-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
