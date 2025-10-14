@@ -21,6 +21,15 @@ import {
 } from '../../services/strapi.service';
 import { CocktailChipComponent } from '../../assets/design-system/chips/cocktail-chip.component';
 
+type HighlightKind =
+  | 'motto'
+  | 'service'
+  | 'family'
+  | 'overlap'
+  | 'method'
+  | 'glass'
+  | 'fallback';
+
 @Component({
   selector: 'app-cocktail-card',
   standalone: true,
@@ -63,6 +72,9 @@ export class CocktailCardComponent implements OnInit {
 
   constructor(public router: Router) {}
 
+  // ========================
+  // Lifecycle
+  // ========================
   ngOnInit(): void {
     if (this.cocktail?.ingredients_list) {
       this.mainIngredientsFormatted = this.cocktail.ingredients_list
@@ -93,7 +105,88 @@ export class CocktailCardComponent implements OnInit {
     }
   }
 
-  // ------------------ IMG helpers comuni ------------------
+  // ========================
+  // “Colpo d’occhio”: ordine di importanza
+  // ========================
+
+  /** 1) Se disponibile, mostra direttamente il motto generato dal service */
+  get displayMotto(): string | null {
+    const txt = this.cocktail?.similarityMeta?.motto;
+    return (txt && String(txt).trim()) || null;
+  }
+
+  /**
+   * 2) Highlight primario deterministico quando il motto non c’è.
+   * Priority:
+   *   motto > service(method+glass) > family(cat+abv) > overlap > method > glass > fallback
+   */
+  get primaryHighlight(): { kind: HighlightKind; text: string } | null {
+    // Se c’è il motto, è già gestito da displayMotto.
+    const sm: any = this.cocktail?.similarityMeta || {};
+
+    // service
+    if (sm.method && sm.glass) {
+      const method = this.cocktail?.preparation_type || 'Serve';
+      const glass = this.cocktail?.glass || 'glass';
+      return {
+        kind: 'service',
+        text: `Same serve · ${method} in ${glass}`,
+      };
+    }
+
+    // family
+    if (sm.cat && sm.abvClass) {
+      const cat = this.cocktail?.category || 'Cocktail';
+      return { kind: 'family', text: `Same family · ${cat}` };
+    }
+
+    // overlap (alto)
+    if ((sm.ingredientOverlap ?? 0) >= 0.45) {
+      return { kind: 'overlap', text: 'Shared flavor profile' };
+    }
+
+    // only method
+    if (sm.method) {
+      const method = this.cocktail?.preparation_type || 'Serve';
+      return { kind: 'method', text: `Same making gesture · ${method}` };
+    }
+
+    // only glass
+    if (sm.glass) {
+      const glass = this.cocktail?.glass || 'glass';
+      return { kind: 'glass', text: `Same glass · ${glass}` };
+    }
+
+    // fallback
+    return { kind: 'fallback', text: 'Related' };
+  }
+
+  /** 3) Riassunto compatto se vuoi mostrarlo come micro-label alternativa */
+  get displaySummary(): string {
+    const sm: any = this.cocktail?.similarityMeta || {};
+    const factors = [
+      sm.method ? 1 : 0,
+      sm.glass ? 1 : 0,
+      sm.cat ? 1 : 0,
+      sm.abvClass ? 1 : 0,
+      (sm.ingredientOverlap ?? 0) > 0.25 ? 1 : 0,
+    ];
+    const hits = factors.reduce((a, b) => a + b, 0);
+    return hits >= 4 ? 'Strong match' : hits >= 3 ? 'Good match' : 'Related';
+  }
+
+  /** 4) Badge N/M degli ingredienti, derivato dall’overlap pesato */
+  ingredientBadge(sm: any): { hit: number; total: number } | null {
+    const total = this.cocktail?.ingredients_list?.length || 0;
+    if (!total) return null;
+    const overlap = Math.max(0, Math.min(1, sm?.ingredientOverlap ?? 0));
+    const hit = Math.max(1, Math.round(overlap * total));
+    return { hit, total };
+  }
+
+  // ========================
+  // IMG helpers comuni
+  // ========================
 
   private abs(u?: string | null): string {
     if (!u) return '';
@@ -125,37 +218,32 @@ export class CocktailCardComponent implements OnInit {
     }
   }
 
-  // ------------------ IMG cocktail (card cover) ------------------
-
-  /** Regola: preferisci medium; se manca, usa l’originale, poi large → small → thumbnail */
+  /** Regola: preferisci medium; se manca, fallback in ordine */
   getCocktailCardImageUrl(image: StrapiImage | null | undefined): string {
     if (!image) return 'assets/no-image.png';
     const f: any = image.formats || {};
     const pick =
-      f?.medium?.url || // 1) medium
-      image.url || // 2) original
-      f?.large?.url || // 3) large
-      f?.small?.url || // 4) small
-      f?.thumbnail?.url || // 5) thumbnail
+      f?.medium?.url ||
+      image.url ||
+      f?.large?.url ||
+      f?.small?.url ||
+      f?.thumbnail?.url ||
       'assets/no-image.png';
     return this.abs(pick);
   }
 
-  /** Crea un srcset JPG/PNG includendo anche l’originale (con width reale se presente) */
+  /** Crea srcset JPG/PNG includendo anche l’originale */
   srcsetFromFormatsJpg(img: StrapiImage | null | undefined): string {
     if (!img) return '';
     const f: any = img.formats || {};
-
-    // 👇 width di fallback per l'originale se Strapi non la espone
     const origW =
-      (img as any)?.width ?? f?.large?.width ?? f?.medium?.width ?? 1200; // fallback prudente
+      (img as any)?.width ?? f?.large?.width ?? f?.medium?.width ?? 1200;
 
     const candidates: Array<{ url?: string; w?: number }> = [
       { url: f?.thumbnail?.url, w: f?.thumbnail?.width ?? 150 },
       { url: f?.small?.url, w: f?.small?.width ?? 320 },
       { url: f?.medium?.url, w: f?.medium?.width ?? 640 },
       { url: f?.large?.url, w: f?.large?.width ?? 1024 },
-      // ✅ originale con width garantita
       { url: img.url ?? undefined, w: origW },
     ];
 
@@ -167,7 +255,7 @@ export class CocktailCardComponent implements OnInit {
     return Array.from(new Set(parts)).join(', ');
   }
 
-  /** Versione WebP coerente (stessa lista / stesse width) */
+  /** Versione WebP coerente */
   srcsetFromFormatsWebp(img: StrapiImage | null | undefined): string {
     const jpg = this.srcsetFromFormatsJpg(img);
     if (!jpg) return '';
@@ -184,19 +272,19 @@ export class CocktailCardComponent implements OnInit {
     return Array.from(new Set(out)).join(', ');
   }
 
-  /** Handler errore immagine: stessa priorità medium→original→… (1 solo argomento) */
+  /** Handler errore immagine */
   onCardImgError(evt: Event): void {
     const el = evt.target as HTMLImageElement;
     if ((el as any).__fallbackApplied) return;
     (el as any).__fallbackApplied = true;
-
-    el.srcset = ''; // pulisci eventuali srcset rimasti
+    el.srcset = '';
     el.src = this.getCocktailCardImageUrl(this.cocktail?.image);
   }
 
-  // ------------------ IMG ingredient (icone 20x20) ------------------
+  // ========================
+  // IMG ingredient (icone 20x20)
+  // ========================
 
-  /** Ritorna l’oggetto immagine Strapi dell’ingrediente (se esiste) cercando per nome */
   private getIngredientImageObj(ingredientName: string): StrapiImage | null {
     const found = this.cocktail?.ingredients_list?.find(
       (it) =>
@@ -207,7 +295,6 @@ export class CocktailCardComponent implements OnInit {
     return img ?? null;
   }
 
-  /** URL base (JPG/PNG) per icona 20x20 — accetta stringa o item */
   getIngredientIconUrlJpg(ingredient: string | any): string {
     let ingredientName = '';
     let img: StrapiImage | null | undefined = null;
@@ -229,7 +316,6 @@ export class CocktailCardComponent implements OnInit {
     return pick ? this.abs(pick) : 'assets/no-image.png';
   }
 
-  /** srcset JPG/PNG per icona (usa width reali o stime) */
   srcsetFromIngredientJpg(ingredientName: string): string {
     const img = this.getIngredientImageObj(ingredientName);
     if (!img) return '';
@@ -251,7 +337,6 @@ export class CocktailCardComponent implements OnInit {
     return Array.from(new Set(parts)).join(', ');
   }
 
-  /** srcset WebP per icona */
   srcsetFromIngredientWebp(ingredientName: string): string {
     const jpg = this.srcsetFromIngredientJpg(ingredientName);
     if (!jpg) return '';
@@ -268,7 +353,9 @@ export class CocktailCardComponent implements OnInit {
     return Array.from(new Set(out)).join(', ');
   }
 
-  // ------------------ ID ingrediente per router ------------------
+  // ========================
+  // ID ingrediente per router
+  // ========================
 
   getIngredientId(ingredientName: string): string {
     const found = this.cocktail?.ingredients_list?.find(
@@ -294,7 +381,9 @@ export class CocktailCardComponent implements OnInit {
     );
   }
 
-  // ------------------ UI badges & icons ------------------
+  // ========================
+  // UI badges & icons
+  // ========================
 
   get matchedIngredientsBadgeText(): {
     desktop: string;
@@ -401,9 +490,10 @@ export class CocktailCardComponent implements OnInit {
     }
   }
 
-  // ------------------ srcset “capped” se vuoi limitarli in altri punti ------------------
+  // ========================
+  // srcset “capped”
+  // ========================
 
-  /** Raccoglie i candidati da Strapi con le width reali (fallback su stime) */
   private getCandidates(
     img: StrapiImage | null | undefined
   ): Array<{ url: string; w: number; key?: string }> {
@@ -411,7 +501,7 @@ export class CocktailCardComponent implements OnInit {
     const f: any = img.formats || {};
 
     const origW =
-      (img as any)?.width ?? f?.large?.width ?? f?.medium?.width ?? 1200; // fallback prudente
+      (img as any)?.width ?? f?.large?.width ?? f?.medium?.width ?? 1200;
 
     const rows: Array<{ url?: string; w?: number; key?: string }> = [
       {
@@ -422,7 +512,6 @@ export class CocktailCardComponent implements OnInit {
       { url: f?.small?.url, w: f?.small?.width ?? 320, key: 'small' },
       { url: f?.medium?.url, w: f?.medium?.width ?? 640, key: 'medium' },
       { url: f?.large?.url, w: f?.large?.width ?? 1024, key: 'large' },
-      // ✅ includiamo l'originale con width garantita
       { url: img.url ?? undefined, w: origW, key: 'original' },
     ];
 
@@ -437,44 +526,42 @@ export class CocktailCardComponent implements OnInit {
       .sort((a, b) => a.w - b.w);
   }
 
-  /** Crea un srcset JPG/PNG con cap; se manca medium, NON cappiamo (così entra l’originale) */
   srcsetMaxJpg(img: StrapiImage | null | undefined, maxW: number): string {
     const all = this.getCandidates(img);
     if (!all.length) return '';
 
     const hasMedium = all.some((c) => c.key === 'medium');
-    const pick = hasMedium ? all.filter((c) => c.w <= maxW) : all; // 👈
+    const pick = hasMedium ? all.filter((c) => c.w <= maxW) : all;
 
     const list = pick.length ? pick : [all[0]];
     return list.map((c) => `${c.url} ${c.w}w`).join(', ');
   }
 
-  /** Versione WebP coerente con la logica di cap (se manca medium, includi tutto) */
   srcsetMaxWebp(img: StrapiImage | null | undefined, maxW: number): string {
     const all = this.getCandidates(img);
     if (!all.length) return '';
-
     const hasMedium = all.some((c) => c.key === 'medium');
-    const pick = hasMedium ? all.filter((c) => c.w <= maxW) : all; // 👈
-
+    const pick = hasMedium ? all.filter((c) => c.w <= maxW) : all;
     const list = pick.length ? pick : [all[0]];
     return list.map((c) => `${this.toWebp(c.url)} ${c.w}w`).join(', ');
   }
 
-  // === ADD: breakpoint handset ===
+  // ========================
+  // Breakpoint & mobile panel
+  // ========================
+
   private _bo = inject(BreakpointObserver);
   isHandset = toSignal(
     this._bo.observe([Breakpoints.Handset]).pipe(map((r) => r.matches)),
     { initialValue: false }
   );
 
-  // === ADD: stato pannello mobile ingredienti ===
   mobileIngredientsPanelOpen = signal(false);
   toggleMobileIngredientsPanel() {
     this.mobileIngredientsPanelOpen.update((v) => !v);
   }
 
-  // === ADD: due ingredienti sempre visibili (silo mobile-first)
+  // Due ingredienti sempre visibili (silo mobile-first)
   get _mobileInlineIngredients(): string[] {
     const list = (this.mainIngredientsFormatted ?? []) as string[];
     return list.slice(0, 2);
@@ -484,9 +571,8 @@ export class CocktailCardComponent implements OnInit {
     return Math.max(0, list.length - 2);
   }
 
-  // === TrackBy per gli ingredienti (aiuta le performance e risolve l’errore)
+  // TrackBy ingredienti
   trackByIngredient(index: number, ingredient: string): string {
-    // Se hai già un metodo getIngredientId, riusalo per restituire l’id/slug.
     try {
       return this.getIngredientId(ingredient) || ingredient;
     } catch {

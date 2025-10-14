@@ -71,7 +71,7 @@
       </div>
     </section>
 
-    <ng-container *ngIf="contentReady">
+    <ng-container *ngIf="!loading && !error && contentReady">
       @defer (on viewport) {
       <section
         class="ad-block"
@@ -144,6 +144,32 @@
         </div>
       </div>
     </section>
+
+    <ng-container *ngIf="!loading && !error && contentReady">
+      @defer (on viewport) {
+      <section
+        class="ad-block ad-block-second"
+        role="complementary"
+        aria-label="Sponsored content"
+      >
+        <span class="ad-badge">Ad</span>
+        <div [class]="adSlotClass(topBannerType)">
+          <app-dev-ads [type]="topBannerType"></app-dev-ads>
+        </div>
+      </section>
+      } @placeholder {
+      <!-- Placeholder IDENTICO → zero-CLS -->
+      <section
+        class="ad-block"
+        role="complementary"
+        aria-label="Sponsored content"
+        aria-hidden="true"
+      >
+        <span class="ad-badge">Ad</span>
+        <div [class]="getAdSlotPlaceholderClass(topBannerType)"></div>
+      </section>
+      }
+    </ng-container>
 
     <!-- Related Cocktails (1 ad ogni 6 card) -->
     <section class="related-cocktails-section glass-card">
