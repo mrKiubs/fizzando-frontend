@@ -574,79 +574,83 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   // === SEO / JSON-LD ========================================================
 
   private setSeoTagsAndSchema(): void {
-    if (!this.ingredient) return;
+    if (!this.ingredient || !this.isBrowser) return;
 
-    const name = this.ingredient.name;
-    const desc =
-      this.ingredient.ai_common_uses ||
-      this.ingredient.ai_flavor_profile ||
-      this.ingredient.description_from_cocktaildb ||
-      `${name} ingredient details, uses and profile.`;
+    requestAnimationFrame(() => {
+      if (!this.ingredient) return;
 
-    // Usa l'hero (piccolo ma sicuro) con preferenza WebP
-    const imageUrl = this.getPreferred(
-      this.getIngredientHeroUrl(this.ingredient)
-    );
-    const pageUrl = this.getFullSiteUrl(
-      `/ingredients/${this.ingredient.external_id}`
-    );
+      const name = this.ingredient.name;
+      const desc =
+        this.ingredient.ai_common_uses ||
+        this.ingredient.ai_flavor_profile ||
+        this.ingredient.description_from_cocktaildb ||
+        `${name} ingredient details, uses and profile.`;
 
-    // <title> + meta description
-    this.titleService.setTitle(`${name} | Fizzando`);
-    this.metaService.updateTag({ name: 'description', content: desc });
+      // Usa l'hero (piccolo ma sicuro) con preferenza WebP
+      const imageUrl = this.getPreferred(
+        this.getIngredientHeroUrl(this.ingredient)
+      );
+      const pageUrl = this.getFullSiteUrl(
+        `/ingredients/${this.ingredient.external_id}`
+      );
 
-    // canonical
-    let canonical = this.document.querySelector<HTMLLinkElement>(
-      'link[rel="canonical"]'
-    );
-    if (!canonical) {
-      canonical = this.renderer.createElement('link');
-      this.renderer.setAttribute(canonical, 'rel', 'canonical');
-      this.renderer.appendChild(this.document.head, canonical);
-    }
-    this.renderer.setAttribute(canonical, 'href', pageUrl);
+      // <title> + meta description
+      this.titleService.setTitle(`${name} | Fizzando`);
+      this.metaService.updateTag({ name: 'description', content: desc });
 
-    // OpenGraph / Twitter
-    this.metaService.updateTag({ property: 'og:title', content: name });
-    this.metaService.updateTag({
-      property: 'og:description',
-      content: desc,
+      // canonical
+      let canonical = this.document.querySelector<HTMLLinkElement>(
+        'link[rel="canonical"]'
+      );
+      if (!canonical) {
+        canonical = this.renderer.createElement('link');
+        this.renderer.setAttribute(canonical, 'rel', 'canonical');
+        this.renderer.appendChild(this.document.head, canonical);
+      }
+      this.renderer.setAttribute(canonical, 'href', pageUrl);
+
+      // OpenGraph / Twitter
+      this.metaService.updateTag({ property: 'og:title', content: name });
+      this.metaService.updateTag({
+        property: 'og:description',
+        content: desc,
+      });
+      this.metaService.updateTag({ property: 'og:image', content: imageUrl });
+      this.metaService.updateTag({ property: 'og:url', content: pageUrl });
+      this.metaService.updateTag({ property: 'og:type', content: 'article' });
+      this.metaService.updateTag({
+        property: 'og:site_name',
+        content: 'Fizzando',
+      });
+
+      this.metaService.updateTag({
+        name: 'twitter:card',
+        content: 'summary_large_image',
+      });
+      this.metaService.updateTag({ name: 'twitter:title', content: name });
+      this.metaService.updateTag({
+        name: 'twitter:description',
+        content: desc,
+      });
+      this.metaService.updateTag({ name: 'twitter:image', content: imageUrl });
+
+      // Preload hero se utile all’LCP
+      const existing = this.document.querySelector<HTMLLinkElement>(
+        'link[rel="preload"][as="image"][data-preload-hero="1"]'
+      );
+      if (!existing && imageUrl) {
+        const preload = this.renderer.createElement('link') as HTMLLinkElement;
+        this.renderer.setAttribute(preload, 'rel', 'preload');
+        this.renderer.setAttribute(preload, 'as', 'image');
+        this.renderer.setAttribute(preload, 'href', imageUrl);
+        this.renderer.setAttribute(preload, 'imagesizes', '150px');
+        this.renderer.setAttribute(preload, 'data-preload-hero', '1');
+        this.renderer.appendChild(this.document.head, preload);
+      }
+
+      // JSON-LD
+      this.addJsonLdSchema();
     });
-    this.metaService.updateTag({ property: 'og:image', content: imageUrl });
-    this.metaService.updateTag({ property: 'og:url', content: pageUrl });
-    this.metaService.updateTag({ property: 'og:type', content: 'article' });
-    this.metaService.updateTag({
-      property: 'og:site_name',
-      content: 'Fizzando',
-    });
-
-    this.metaService.updateTag({
-      name: 'twitter:card',
-      content: 'summary_large_image',
-    });
-    this.metaService.updateTag({ name: 'twitter:title', content: name });
-    this.metaService.updateTag({
-      name: 'twitter:description',
-      content: desc,
-    });
-    this.metaService.updateTag({ name: 'twitter:image', content: imageUrl });
-
-    // Preload hero se utile all’LCP
-    const existing = this.document.querySelector<HTMLLinkElement>(
-      'link[rel="preload"][as="image"][data-preload-hero="1"]'
-    );
-    if (!existing && imageUrl) {
-      const preload = this.renderer.createElement('link') as HTMLLinkElement;
-      this.renderer.setAttribute(preload, 'rel', 'preload');
-      this.renderer.setAttribute(preload, 'as', 'image');
-      this.renderer.setAttribute(preload, 'href', imageUrl);
-      this.renderer.setAttribute(preload, 'imagesizes', '150px');
-      this.renderer.setAttribute(preload, 'data-preload-hero', '1');
-      this.renderer.appendChild(this.document.head, preload);
-    }
-
-    // JSON-LD
-    this.addJsonLdSchema();
   }
 
   private addJsonLdSchema(): void {
