@@ -161,6 +161,11 @@ h2 {
     align-items: center;
     justify-content: center;
     backdrop-filter: blur(16px);
+
+    img {
+      width: 100px;
+      height: 100px;
+    }
   }
 
   .ingredient-main-image {
@@ -389,4 +394,43 @@ h2 {
   &.square {
     min-height: 250px;
   }
+}
+
+/* Isola i contenitori principali per evitare reflow a cascata */
+.ingredient-detail-grid,
+.ingredient-detail-grid > .glass-card,
+.ai-insights-section,
+.related-cocktails-section,
+.ad-block {
+  contain: layout style paint; /* fortissimo ma sicuro per questi blocchi */
+}
+
+/* Le card / elementi ripetuti: render on-demand e dimensione intrinseca “fantasma” */
+.cards-grid > * {
+  content-visibility: auto;
+  contain-intrinsic-size: 320px 420px; /* stima prudente dell'altezza card */
+}
+
+/* Gli slot ads NON devono far cambiare layout */
+.ad-slot.leaderboard,
+.ad-slot.mobile-banner,
+.ad-slot.square {
+  min-height: 90px; /* leaderboard tipica */
+}
+.ad-slot.mobile-banner {
+  min-height: 50px;
+}
+.ad-slot.square {
+  min-height: 250px;
+}
+
+/* I placeholder devono avere la STESSA altezza, così Lighthouse non vede layout thrash */
+.ad-slot-placeholder.leaderboard {
+  min-height: 90px;
+}
+.ad-slot-placeholder.mobile-banner {
+  min-height: 50px;
+}
+.ad-slot-placeholder.square {
+  min-height: 250px;
 }
