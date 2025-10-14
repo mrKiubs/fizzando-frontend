@@ -168,18 +168,6 @@ section {
   overflow-wrap: anywhere;
 }
 
-/* Card grids — MAX 4 per riga desktop */
-.cards-grid {
-  display: grid;
-  gap: var(--gap);
-}
-.cards-grid.limit-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.cards-grid > * {
-  min-width: 0;
-}
-
 /* Section head */
 .section-head {
   display: flex;
@@ -233,9 +221,7 @@ section {
   .quick-links-section .links-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .cards-grid.limit-4 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+
   .articles-by-category-section .articles-category-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -254,9 +240,7 @@ section {
   .dashboard-content {
     grid-template-columns: minmax(0, 1fr); /* stack hero + random */
   }
-  .cards-grid.limit-4 {
-    grid-template-columns: minmax(0, 1fr);
-  }
+
   .quick-links-section .links-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
