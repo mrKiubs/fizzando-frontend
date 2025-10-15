@@ -518,6 +518,9 @@ h4 {
   height: 30px;
   padding: 0;
   color: #ffffff7d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   transition: all 0.3s ease;
 }

@@ -292,12 +292,12 @@ export class CocktailService {
   // Main similarity score [0..1]
   private _similarityScore(cur: Cocktail, cand: Cocktail): number {
     const W = {
-      ingredients: 0.4,
+      ingredients: 0.25,
       category: 0.15,
       method: 0.15,
-      glass: 0.1,
+      glass: 0.15,
       alcoholic: 0.05,
-      abvClass: 0.15,
+      abvClass: 0.05,
     } as const;
 
     const ji = this._weightedJaccard(

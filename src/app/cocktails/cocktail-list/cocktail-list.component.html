@@ -1,107 +1,232 @@
+<!-- src/app/cocktails/cocktail-list/cocktail-list.component.html -->
 <div class="page-header-container" [class.fonts-loaded]="fontsLoaded">
   <h1 class="page-title">{{ pageH1 }}</h1>
-  <h2 class="page-subtitle">{{ pageH2 }}</h2>
-  <!-- opzionale: piccola descrizione (non H3 per SEO, solo testo) -->
-  <p class="page-lead sr-only" *ngIf="pageDescription">{{ pageDescription }}</p>
+  <h2 class="page-subtitle">
+    {{ pageH2 }}
+  </h2>
+
+  <!-- SEO: intro visibile (prima era sr-only). Breve, naturale, con sinonimi -->
+  <p class="page-lead" *ngIf="pageDescription">
+    {{ pageDescription }}
+  </p>
 </div>
 
 <!-- HUB SWITCHER (link a sezioni) -->
 <section
-  class="hub-switcher cut"
+  class="container-tab glass-card"
   role="navigation"
   aria-label="Explore sections"
 >
-  <h3 class="hub-switcher__title">Explore sections</h3>
+  <h3 class="hub-switcher__title">Explore sections by</h3>
 
-  <app-facet-chips
-    label="By method"
-    kind="method"
-    [items]="[
-      'Built in Glass',
-      'Shaken',
-      'Stirred',
-      'Blended',
-      'Other',
-      'Layered',
-      'Muddled',
-      'Built in Punch Bowl',
-      'Heated',
-      'Infusion & Aging',
-      'Bomb Shot'
-    ]"
-    [activeKind]="hubKind"
-    [activeSlug]="hubSlug"
+  <!-- TABS (Material-free) -->
+  <nav
+    class="tabs"
+    role="tablist"
+    aria-label="Explore sections"
+    (keydown)="onTabsKeydown($event)"
   >
-  </app-facet-chips>
+    <button
+      id="tab-method"
+      role="tab"
+      type="button"
+      [class.active]="selectedTab === 'method'"
+      [attr.aria-selected]="selectedTab === 'method'"
+      [attr.tabindex]="selectedTab === 'method' ? 0 : -1"
+      (click)="selectTab('method')"
+    >
+      method
+    </button>
 
-  <app-facet-chips
-    label="By glass"
-    kind="glass"
-    [items]="[
-      'Cocktail Glass',
-      'Highball Glass',
-      'Collins Glass',
-      'Old Fashioned Glass',
-      'Shot Glass',
-      'Coffee Mug',
-      'Whiskey Sour Glass',
-      'Hurricane Glass',
-      'Punch Bowl',
-      'Wine Glass',
-      'Champagne Flute',
-      'Irish Coffee Glass',
-      'Pint Glass',
-      'Beer Glass',
-      'Pitcher',
-      'Beer Mug',
-      'Margarita Glass',
-      'Mason Jar',
-      'Balloon Glass',
-      'Coupe Glass',
-      'Cordial Glass',
-      'Brandy Snifter',
-      'Nick & Nora Glass',
-      'Julep Cup',
-      'Copper Mug'
-    ]"
-    [activeKind]="hubKind"
-    [activeSlug]="hubSlug"
-  >
-  </app-facet-chips>
+    <button
+      id="tab-glass"
+      role="tab"
+      type="button"
+      [class.active]="selectedTab === 'glass'"
+      [attr.aria-selected]="selectedTab === 'glass'"
+      [attr.tabindex]="selectedTab === 'glass' ? 0 : -1"
+      (click)="selectTab('glass')"
+    >
+      glass
+    </button>
 
-  <app-facet-chips
-    label="By category"
-    kind="category"
-    [items]="[
-      'Refreshing',
-      'After-Dinner',
-      'Sour',
-      'Tropical',
-      'Spirit-Forward',
-      'Classic',
-      'Hot',
-      'Aperitif',
-      'Sparkling',
-      'Flaming',
-      'Punch',
-      'Shot',
-      'Beer',
-      'Aromatic',
-      'Homemade Liqueur'
-    ]"
-    [activeKind]="hubKind"
-    [activeSlug]="hubSlug"
-  >
-  </app-facet-chips>
+    <button
+      id="tab-category"
+      role="tab"
+      type="button"
+      [class.active]="selectedTab === 'category'"
+      [attr.aria-selected]="selectedTab === 'category'"
+      [attr.tabindex]="selectedTab === 'category' ? 0 : -1"
+      (click)="selectTab('category')"
+    >
+      category
+    </button>
 
-  <app-facet-chips
-    label="By profile"
-    kind="alcoholic"
-    [items]="alcoholicOptions"
-    [activeKind]="hubKind"
-    [activeSlug]="hubSlug"
+    <button
+      id="tab-alcoholic"
+      role="tab"
+      type="button"
+      [class.active]="selectedTab === 'alcoholic'"
+      [attr.aria-selected]="selectedTab === 'alcoholic'"
+      [attr.tabindex]="selectedTab === 'alcoholic' ? 0 : -1"
+      (click)="selectTab('alcoholic')"
+    >
+      profile
+    </button>
+  </nav>
+
+  <!-- PANELS (lazy render con *ngIf) -->
+  <section
+    [hidden]="selectedTab !== 'method'"
+    id="panel-method"
+    class="hub-switcher cut"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-method'"
   >
-  </app-facet-chips>
+    <!-- ⤵️ INCOLLA QUI il tuo div .link-section-method (immutato) -->
+
+    <div class="link-section link-section-method">
+      <!-- Micro-copy SEO sopra i blocchi chips -->
+      <p class="chip-lead">
+        Browse cocktails by <strong>preparation method</strong> to discover
+        classic and modern recipes mixed, shaken, stirred, or layered — a clean,
+        Wikipedia-style map of techniques across the site.
+      </p>
+      <app-facet-chips
+        label="By method"
+        kind="method"
+        [items]="[
+          'Built in Glass',
+          'Shaken',
+          'Stirred',
+          'Blended',
+          'Other',
+          'Layered',
+          'Muddled',
+          'Built in Punch Bowl',
+          'Heated',
+          'Infusion & Aging',
+          'Bomb Shot'
+        ]"
+        [activeKind]="hubKind"
+        [activeSlug]="hubSlug"
+      >
+      </app-facet-chips>
+    </div>
+  </section>
+
+  <section
+    [hidden]="selectedTab !== 'glass'"
+    id="panel-glass"
+    class="hub-switcher cut"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-glass'"
+  >
+    <div class="link-section link-section-glass">
+      <p class="chip-lead">
+        Explore cocktails by <strong>glassware</strong> — from highballs to
+        coupes. Glass type hints at style, dilution and presentation, helping
+        you jump to the right family of drinks.
+      </p>
+      <app-facet-chips
+        label="By glass"
+        kind="glass"
+        [items]="[
+          'Cocktail Glass',
+          'Highball Glass',
+          'Collins Glass',
+          'Old Fashioned Glass',
+          'Shot Glass',
+          'Coffee Mug',
+          'Whiskey Sour Glass',
+          'Hurricane Glass',
+          'Punch Bowl',
+          'Wine Glass',
+          'Champagne Flute',
+          'Irish Coffee Glass',
+          'Pint Glass',
+          'Beer Glass',
+          'Pitcher',
+          'Beer Mug',
+          'Margarita Glass',
+          'Mason Jar',
+          'Balloon Glass',
+          'Coupe Glass',
+          'Cordial Glass',
+          'Brandy Snifter',
+          'Nick & Nora Glass',
+          'Julep Cup',
+          'Copper Mug'
+        ]"
+        [activeKind]="hubKind"
+        [activeSlug]="hubSlug"
+      >
+      </app-facet-chips>
+    </div>
+  </section>
+
+  <section
+    [hidden]="selectedTab !== 'category'"
+    id="panel-category"
+    class="hub-switcher cut"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-category'"
+  >
+    <div class="link-section link-section-categories">
+      <p class="chip-lead">
+        Jump into <strong>categories</strong> that match a mood or flavor
+        profile — refreshing, tropical, spirit-forward, after-dinner, sparkling
+        and more.
+      </p>
+      <app-facet-chips
+        label="By category"
+        kind="category"
+        [items]="[
+          'Refreshing',
+          'After-Dinner',
+          'Sour',
+          'Tropical',
+          'Spirit-Forward',
+          'Classic',
+          'Hot',
+          'Aperitif',
+          'Sparkling',
+          'Flaming',
+          'Punch',
+          'Shot',
+          'Beer',
+          'Aromatic',
+          'Homemade Liqueur'
+        ]"
+        [activeKind]="hubKind"
+        [activeSlug]="hubSlug"
+      >
+      </app-facet-chips>
+    </div>
+  </section>
+
+  <section
+    [hidden]="selectedTab !== 'alcoholic'"
+    id="panel-alcoholic"
+    class="hub-switcher cut"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-alcoholic'"
+  >
+    <div class="link-section link-section-alcholic">
+      <p class="chip-lead">
+        Filter by <strong>alcohol profile</strong> — from non-alcoholic and
+        low-ABV options to full-strength classics.
+      </p>
+      <app-facet-chips
+        label="By profile"
+        kind="alcoholic"
+        [items]="alcoholicOptions"
+        [activeKind]="hubKind"
+        [activeSlug]="hubSlug"
+      >
+      </app-facet-chips>
+    </div>
+  </section>
 </section>
 
 <!-- SEARCH (solo nel ROOT) -->
@@ -147,7 +272,7 @@
         svgIcon="filter_list"
         aria-hidden="true"
       ></mat-icon>
-      Filter by letter
+      Filter Cocktails by Letter
     </h3>
     <span class="active-filters-summary" *ngIf="!isExpanded()">
       ({{ getActiveFiltersText() }})
@@ -270,10 +395,13 @@
 
 <hr />
 
+<!-- Legenda migliorata con sinonimi e invito all’azione -->
 <p class="cocktail-card-legend">
   Each card shows the cocktail’s <b>image</b>, <b>category</b>, estimated
   <b>ABV (Alcohol By Volume)</b>, <b>key ingredients</b>, and the
-  <b>recommended glass</b>. Click a cocktail to view full details!
+  <b>recommended glass</b>. Click any cocktail to view the full recipe, method,
+  and ingredient links — an easy way to navigate classic and modern mixed
+  drinks.
 </p>
 
 <div *ngIf="loading" class="loading-message">Loading cocktails...</div>
@@ -322,6 +450,7 @@
       [isLcp]="i === 0"
     ></app-cocktail-card>
 
+    <!-- Banner ogni 6 card (rimasto identico nella logica) -->
     <ng-container *ngIf="i > 0 && (i + 1) % 6 === 0">
       @defer (on viewport) {
       <section
@@ -462,6 +591,7 @@
   </div>
 </div>
 
+<!-- Key features: confermato. Testo già segmentato e indicizzabile. -->
 <div class="key-features-section" *ngIf="keyFeatures.length">
   <h3>{{ keyFeaturesHeading }}</h3>
 
@@ -518,6 +648,13 @@
 <div class="bottom-container">
   <div class="faq-section" *ngIf="faqEntries.length">
     <h2>{{ faqHeading }}</h2>
+
+    <!-- SEO: breve prefazione alle FAQ, generica ma utile per tutte le sezioni -->
+    <p class="faq-lead">
+      Quick answers to common questions about this collection — definitions,
+      serving tips, and how these cocktails relate to method, glass, and flavor
+      families across Fizzando.
+    </p>
 
     <div
       class="faq-item"

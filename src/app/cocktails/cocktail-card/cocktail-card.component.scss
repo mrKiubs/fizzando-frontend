@@ -131,7 +131,7 @@
   justify-content: space-between;
   .glassy-info {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     flex-direction: row;
     gap: 8px;
     padding: 8px;

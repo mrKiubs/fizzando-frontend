@@ -49,6 +49,8 @@ interface ProductItem {
   showPlaceholder: boolean;
 }
 
+type HubTab = 'method' | 'glass' | 'category' | 'alcoholic';
+
 type ContentSegment =
   | { kind: 'text'; value: string; emphasis?: 'strong' }
   | {
@@ -569,6 +571,8 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   // — Hub state
   hubKind: 'root' | 'method' | 'glass' | 'category' | 'alcoholic' = 'root';
   hubSlug = '';
+
+  selectedTab: HubTab = 'method';
 
   get hubLabel(): string {
     if (this.hubKind === 'method') return this.unslugify(this.hubSlug);
@@ -1544,7 +1548,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
 
   // --- debounce senza RxJS ---
   private searchDebounceHandle: any = null;
-
+  readonly tabOrder: HubTab[] = ['method', 'glass', 'category', 'alcoholic'];
   constructor(
     private cocktailService: CocktailService,
     private titleService: Title,
@@ -1716,6 +1720,9 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     } else if (this.isBrowser) {
       requestAnimationFrame(() => (this.fontsLoaded = true));
     }
+
+    const qp = (this.route.snapshot.queryParamMap.get('tab') as HubTab) || null;
+    if (qp && this.tabOrder.includes(qp)) this.selectedTab = qp;
 
     this.loadFacetCountsOnce();
   }
@@ -2936,5 +2943,35 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     // la lasceremo nella funzione che usa i dati.
     this.addJsonLdCollectionPageAndBreadcrumbs(pageTitle, description);
     this.addJsonLdFaqPage();
+  }
+
+  selectTab(t: HubTab) {
+    if (this.selectedTab === t) return;
+    this.selectedTab = t;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: t },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  onTabsKeydown(ev: KeyboardEvent) {
+    const i = this.tabOrder.indexOf(this.selectedTab);
+    if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') {
+      this.selectTab(this.tabOrder[(i + 1) % this.tabOrder.length]);
+      ev.preventDefault();
+    } else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') {
+      this.selectTab(
+        this.tabOrder[(i - 1 + this.tabOrder.length) % this.tabOrder.length]
+      );
+      ev.preventDefault();
+    } else if (ev.key === 'Home') {
+      this.selectTab(this.tabOrder[0]);
+      ev.preventDefault();
+    } else if (ev.key === 'End') {
+      this.selectTab(this.tabOrder[this.tabOrder.length - 1]);
+      ev.preventDefault();
+    }
   }
 }
