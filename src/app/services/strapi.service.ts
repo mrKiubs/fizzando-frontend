@@ -1009,7 +1009,7 @@ export class CocktailService {
 
   getSimilarCocktails(
     currentCocktail: Cocktail,
-    limit = 16
+    limit = 28
   ): Observable<CocktailWithLayoutAndMatch[]> {
     if (!currentCocktail?.ingredients_list?.length) return of([]);
 
