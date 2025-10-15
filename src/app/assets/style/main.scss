@@ -871,7 +871,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 10px 0;
+    padding: 10px 4px;
     cursor: pointer;
     background-color: rgba(255, 255, 255, 0.1);
     transition: background-color 0.2s ease, border-bottom 0.2s ease;
@@ -882,12 +882,13 @@ body {
 
     .accordion-title {
       margin: 0;
-      font-size: 1.1rem;
+      font-size: 14rem;
       color: #fff;
       font-weight: 500;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 8px;
+      white-space: nowrap;
     }
 
     .accordion-icon {

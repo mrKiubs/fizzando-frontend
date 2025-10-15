@@ -132,13 +132,14 @@
   .glassy-info {
     display: flex;
     flex-wrap: nowrap;
-    flex-direction: row;
+    flex-direction: column;
     gap: 8px;
     padding: 8px;
     background-color: #ffffff14;
     position: relative;
-    @media (min-width: 600px) {
-      flex-direction: column;
+    @media (max-width: 600px) {
+      flex-wrap: wrap;
+      flex-direction: row;
     }
 
     p {
