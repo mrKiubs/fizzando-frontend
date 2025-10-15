@@ -15,11 +15,19 @@
   <!-- Title / Subtitle -->
   <ng-container *ngIf="cocktail && !loading && !error">
     <h1 class="cocktail-title">{{ cocktail.name }}</h1>
+
     <h2 class="cocktail-subtitle">
-      {{ cocktail.category }} - {{ cocktail.alcoholic }}
-      <ng-container *ngIf="cocktail.glass">
-        <span class="separator">|</span> Glass: {{ cocktail.glass }}
-      </ng-container>
+      <span class="row">
+        <span class="category">{{ cocktail.category }}</span>
+        <span class="separator">|</span>
+        <span class="alcoholic">{{ cocktail.alcoholic }}</span>
+      </span>
+
+      <span class="row">
+        <span class="method">{{ cocktail.preparation_type }}</span>
+        <span class="separator">|</span>
+        <span class="glass">{{ cocktail.glass }}</span>
+      </span>
     </h2>
   </ng-container>
 
