@@ -82,14 +82,19 @@
 
 /* Title / Subtitle */
 .cocktail-subtitle {
-  font-size: 1.2rem;
+  font-size: 18px;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 400;
-  margin-top: 0;
-  margin-bottom: 1.5rem;
+  margin-top: 8px;
+  margin-bottom: 20px;
   text-align: center;
   width: 100%;
   max-width: 800px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
 }
 .cocktail-subtitle .separator {
   margin: 0 0.5rem;
@@ -556,4 +561,44 @@ app-cocktail-card {
 .ai-placeholder {
   content-visibility: auto;
   contain-intrinsic-size: 96px;
+}
+
+.cocktail-subtitle .row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  /* font-family: var(--font-display); */
+  /* letter-spacing: 2px; */
+  /* font-weight: 700; */
+  /* line-height: 1.2; */
+  -webkit-background-clip: text;
+  background-clip: content-box;
+  /* color: red; */
+  -webkit-text-fill-color: #ffffff63;
+  background-image: none;
+  text-shadow: none;
+  /* letter-spacing: 1.3px; */
+  font-weight: 400;
+  height: 24px;
+}
+
+.cocktail-subtitle .separator {
+  flex: 0 0 auto;
+  text-align: center;
+  z-index: 1;
+}
+
+.cocktail-subtitle .category,
+.cocktail-subtitle .method {
+  flex: 1 1 50%;
+  text-align: right;
+  padding-right: 0.5em;
+}
+
+.cocktail-subtitle .alcoholic,
+.cocktail-subtitle .glass {
+  flex: 1 1 50%;
+  text-align: left;
+  padding-left: 0.5em;
 }
