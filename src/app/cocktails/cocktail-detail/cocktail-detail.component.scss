@@ -568,19 +568,16 @@ app-cocktail-card {
   align-items: center;
   justify-content: center;
   position: relative;
-  /* font-family: var(--font-display); */
-  /* letter-spacing: 2px; */
-  /* font-weight: 700; */
-  /* line-height: 1.2; */
   -webkit-background-clip: text;
   background-clip: content-box;
-  /* color: red; */
-  -webkit-text-fill-color: #ffffff63;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.3882352941);
   background-image: none;
   text-shadow: none;
-  /* letter-spacing: 1.3px; */
   font-weight: 400;
   height: 24px;
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
 }
 
 .cocktail-subtitle .separator {
@@ -592,13 +589,13 @@ app-cocktail-card {
 .cocktail-subtitle .category,
 .cocktail-subtitle .method {
   flex: 1 1 50%;
-  text-align: right;
-  padding-right: 0.5em;
+  text-align: left;
+  padding-left: 8px;
 }
 
 .cocktail-subtitle .alcoholic,
 .cocktail-subtitle .glass {
   flex: 1 1 50%;
-  text-align: left;
-  padding-left: 0.5em;
+  text-align: right;
+  padding-left: 8px;
 }
