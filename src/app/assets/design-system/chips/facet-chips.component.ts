@@ -25,11 +25,11 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
   imports: [CommonModule, RouterLink, CocktailChipComponent],
   template: `
     <div class="hub-switcher__row">
-      <span class="hub-switcher__label">{{ label }}</span>
       <div
         class="chips-scroll-wrapper"
         [class.chips-scroll-wrapper--overflow]="showArrows"
       >
+        <!-- Prev -->
         <!-- Prev -->
         <button
           *ngIf="showArrows"
@@ -37,6 +37,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
           class="scroll-button scroll-button--prev"
           (click)="onScrollButtonClick('left')"
           [disabled]="!canScrollLeft"
+          [class.scroll-button--visible]="canScrollLeft"
           [attr.aria-label]="'Scroll ' + label + ' chips left'"
         >
           <span aria-hidden="true">‹</span>
@@ -61,6 +62,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
           class="scroll-button scroll-button--next"
           (click)="onScrollButtonClick('right')"
           [disabled]="!canScrollRight"
+          [class.scroll-button--visible]="canScrollRight"
           [attr.aria-label]="'Scroll ' + label + ' chips right'"
         >
           <span aria-hidden="true">›</span>

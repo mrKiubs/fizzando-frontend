@@ -343,3 +343,6 @@ h1 {
 }
 
 /* Mobile */
+:where([hidden]) {
+  display: none !important;
+}
