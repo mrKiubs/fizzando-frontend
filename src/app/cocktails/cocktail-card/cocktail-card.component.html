@@ -46,6 +46,7 @@
 <ng-template #defaultCard>
   <div
     class="cocktail-card"
+    [class.has-highlight]="showCorrelation"
     role="article"
     [attr.tabindex]="isHandset() ? 0 : null"
     (keydown.enter)="router.navigate(['/cocktails', cocktail.slug])"
