@@ -70,6 +70,8 @@ export class CocktailCardComponent implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
+  @Input() showCorrelation = false;
+
   constructor(public router: Router) {}
 
   // ========================
@@ -121,44 +123,32 @@ export class CocktailCardComponent implements OnInit {
    *   motto > service(method+glass) > family(cat+abv) > overlap > method > glass > fallback
    */
   get primaryHighlight(): { kind: HighlightKind; text: string } | null {
-    // Se c’è il motto, è già gestito da displayMotto.
     const sm: any = this.cocktail?.similarityMeta || {};
+    if (!sm) return null;
 
-    // service
     if (sm.method && sm.glass) {
       const method = this.cocktail?.preparation_type || 'Serve';
       const glass = this.cocktail?.glass || 'glass';
-      return {
-        kind: 'service',
-        text: `Same serve · ${method} in ${glass}`,
-      };
+      return { kind: 'service', text: `Same serve · ${method} in ${glass}` };
     }
-
-    // family
     if (sm.cat && sm.abvClass) {
       const cat = this.cocktail?.category || 'Cocktail';
       return { kind: 'family', text: `Same family · ${cat}` };
     }
-
-    // overlap (alto)
     if ((sm.ingredientOverlap ?? 0) >= 0.45) {
       return { kind: 'overlap', text: 'Shared flavor profile' };
     }
-
-    // only method
     if (sm.method) {
       const method = this.cocktail?.preparation_type || 'Serve';
       return { kind: 'method', text: `Same making gesture · ${method}` };
     }
-
-    // only glass
     if (sm.glass) {
       const glass = this.cocktail?.glass || 'glass';
       return { kind: 'glass', text: `Same glass · ${glass}` };
     }
 
-    // fallback
-    return { kind: 'fallback', text: 'Related' };
+    //  NIENTE fallback "Related": se non c’è nulla di significativo, non mostrare
+    return null;
   }
 
   /** 3) Riassunto compatto se vuoi mostrarlo come micro-label alternativa */

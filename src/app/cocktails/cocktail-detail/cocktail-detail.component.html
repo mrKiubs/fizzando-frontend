@@ -435,6 +435,7 @@
         <ng-container *ngIf="!$any(item).isAd; else adTpl">
           <app-cocktail-card
             [cocktail]="$any(item)"
+            [showCorrelation]="true"
             [routerLink]="['/cocktails', $any(item).slug]"
           ></app-cocktail-card>
         </ng-container>
