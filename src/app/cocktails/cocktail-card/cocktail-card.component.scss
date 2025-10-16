@@ -125,10 +125,43 @@
 /* image-overlay styles rimossi */
 
 .glassy-content-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   justify-content: space-between;
+  p.match-motto {
+    position: absolute;
+    margin: 18px 16px;
+    background: rgba(0, 0, 0, 0.15);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: calc(100% - 32px);
+    font-size: 13px;
+    text-align: center;
+    z-index: 99;
+    color: #fff;
+    font-size: 12px;
+
+    @media (max-width: 600px) {
+      position: static;
+      width: 100%;
+      background: transparent !important;
+      -webkit-backdrop-filter: blur(0px) !important;
+      backdrop-filter: blur(0px) !important;
+      border: none;
+      padding: 4px 4px 0 8px;
+      border-radius: 0;
+      text-align: left;
+      margin: 0;
+    }
+  }
+
   .glassy-info {
     display: flex;
     flex-wrap: nowrap;
@@ -136,42 +169,9 @@
     gap: 8px;
     padding: 8px;
     background-color: #ffffff14;
-    position: relative;
+
     @media (max-width: 600px) {
-      flex-wrap: wrap;
       flex-direction: row;
-    }
-
-    p {
-      position: absolute;
-      margin: 4px 4px;
-      background: rgb(0 0 0 / 15%);
-      -webkit-backdrop-filter: blur(2px);
-      backdrop-filter: blur(2px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 6px 4px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      width: calc(100% - 24px);
-      font-size: 13px;
-      text-align: center;
-      z-index: 99;
-      color: #fff;
-      font-size: 12px;
-
-      @media (max-width: 600px) {
-        position: static;
-        width: 100%;
-        background: transparent;
-        -webkit-backdrop-filter: blur(0px);
-        backdrop-filter: blur(0px);
-        border: none;
-        padding: 0 0;
-        border-radius: 0;
-        text-align: left;
-        margin: 0;
-      }
     }
   }
 }
