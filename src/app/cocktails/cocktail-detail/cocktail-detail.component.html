@@ -68,12 +68,12 @@
       <!-- Description + Instructions -->
       <div class="cocktail-description-instructions-column">
         <section class="description-section">
-          <p>{{ cocktail.ai_description || cocktail.instructions }}</p>
+          <p [sentenceBreaks]="cocktail.ai_description"></p>
         </section>
 
         <section class="instructions-section">
           <h2 class="section-title">Instructions</h2>
-          <p>{{ cocktail.instructions }}</p>
+          <p [sentenceBreaks]="cocktail.instructions"></p>
         </section>
       </div>
 
