@@ -31,7 +31,7 @@ import {
   CocktailWithLayoutAndMatch,
 } from '../../services/strapi.service';
 import { MatIconModule } from '@angular/material/icon';
-import { Observable, of, Subscription } from 'rxjs';
+import { forkJoin, Observable, of, Subscription } from 'rxjs';
 import { Title, Meta } from '@angular/platform-browser';
 
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
@@ -41,6 +41,146 @@ import { ArticleCardComponent } from '../../articles/article-card/article-card.c
 import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-card.component';
 
 import { env } from '../../config/env';
+import { SentenceBreaksDirective } from '../../assets/pipes/sentence-breaks.pipe';
+
+type Highlightable = CocktailWithLayoutAndMatch & {
+  primaryHighlight?: { text: string };
+};
+type RelatedCard = Highlightable;
+// ======================
+// Utils locali per affinare i correlati (no Strapi changes)
+// ======================
+const STOP_INGREDIENTS = new Set<string>([
+  // basi molto comuni
+  'vodka',
+  'gin',
+  'white rum',
+  'light rum',
+  'rum',
+  'dark rum',
+  'tequila',
+  'whiskey',
+  'bourbon',
+  'scotch',
+  'brandy',
+  'cognac',
+  // mixer generici
+  'soda water',
+  'club soda',
+  'tonic water',
+  'water',
+  'ice',
+  'crushed ice',
+  // agrumi / succhi
+  'lemon juice',
+  'lime juice',
+  'orange juice',
+  'pineapple juice',
+  'cranberry juice',
+  'apple juice',
+  // dolcificanti
+  'simple syrup',
+  'sugar syrup',
+  'grenadine',
+  'honey',
+  'sugar',
+  'brown sugar',
+  // garnish comuni
+  'mint',
+  'mint leaves',
+  'cherry',
+  'maraschino cherry',
+  'orange slice',
+  'lemon slice',
+  'lime slice',
+  // bitters generici
+  'angostura bitters',
+  'bitters',
+  // altro molto comune
+  'whipped cream',
+  'milk',
+  'cream',
+  'half and half',
+  'egg white',
+  'coffee',
+  'espresso',
+]);
+
+function norm(s?: string | null): string {
+  return (s || '').toLowerCase().trim();
+}
+
+type HasIngredientsList = {
+  ingredients_list?: Array<{ ingredient?: { name?: string } }>;
+};
+
+function ingredientSet(c: HasIngredientsList): Set<string> {
+  const out = new Set<string>();
+  (c?.ingredients_list || []).forEach((it) => {
+    const n = norm(it?.ingredient?.name);
+    if (!n || STOP_INGREDIENTS.has(n)) return;
+    out.add(n);
+  });
+  return out;
+}
+
+type WithHighlight<T> = T & {
+  matchedIngredientCount?: number;
+  primaryHighlight?: { text: string };
+};
+
+/**
+ * Affina i correlati lato client:
+ * - prima tiene quelli con ≥2 ingredienti distintivi in comune
+ * - se vuoto, scende a ≥1
+ * - ordina per overlap, poi alfabetico
+ * - aggiunge un'etichetta (primaryHighlight) senza toccare i template
+ */
+function refineRelatedByIngredients<T extends HasIngredientsList>(
+  current: T,
+  candidates: T[],
+  limit = 12
+): Array<WithHighlight<T>> {
+  const cur = ingredientSet(current);
+  if (!cur.size || !candidates?.length) return [];
+
+  const scored = candidates.map((c) => {
+    const s = ingredientSet(c);
+    let shared = 0;
+    const reasons: string[] = [];
+    s.forEach((n) => {
+      if (cur.has(n)) {
+        shared++;
+        if (reasons.length < 2) reasons.push(n);
+      }
+    });
+    return { c, shared, reasons };
+  });
+
+  // soglia adattiva
+  let filtered = scored.filter((x) => x.shared >= 2);
+  if (!filtered.length) filtered = scored.filter((x) => x.shared >= 1);
+
+  filtered.sort(
+    (a, b) =>
+      b.shared - a.shared ||
+      (norm((a.c as any).name) < norm((b.c as any).name) ? -1 : 1)
+  );
+
+  return filtered.slice(0, limit).map(({ c, shared, reasons }) => {
+    const label =
+      reasons.length >= 2
+        ? `Shares ${reasons[0]} + ${reasons[1]}`
+        : reasons.length === 1
+        ? `Shares ${reasons[0]}`
+        : `Good match`;
+    return {
+      ...(c as any),
+      matchedIngredientCount: shared,
+      primaryHighlight: { text: label },
+    };
+  });
+}
 
 interface ProductItem {
   title: string;
@@ -68,6 +208,7 @@ interface AdSlot {
     ArticleCardComponent,
     CocktailCardComponent,
     NgOptimizedImage,
+    SentenceBreaksDirective,
   ],
   templateUrl: './cocktail-detail.component.html',
   styleUrls: ['./cocktail-detail.component.scss'],
@@ -107,11 +248,10 @@ export class CocktailDetailComponent
     slug: string;
   } | null = null;
 
-  similarCocktails: CocktailWithLayoutAndMatch[] = [];
+  similarCocktails: Highlightable[] = [];
+  relatedWithAds: Array<Highlightable | AdSlot> = [];
   relatedArticles: Article[] = [];
 
-  /** Array pronto per il template, con Ad intercalati */
-  relatedWithAds: Array<CocktailWithLayoutAndMatch | AdSlot> = [];
   private readonly AD_EVERY = 6;
 
   isMobile = false;
@@ -351,24 +491,214 @@ export class CocktailDetailComponent
       this.relatedWithAds = [];
       return;
     }
-    this.similarCocktailsSubscription = this.cocktailService
-      .getSimilarCocktails(this.cocktail)
-      .subscribe({
-        next: (res: Cocktail[]) => {
-          this.similarCocktails = res as CocktailWithLayoutAndMatch[];
-          this.buildRelatedWithAds();
-        },
-        error: () => {
-          this.similarCocktails = [];
-          this.relatedWithAds = [];
-        },
-      });
+
+    const LIMIT = 21;
+    const Q_PRIMARY = 9;
+    const Q_SECONDARY = 5;
+
+    const norm = (s?: string | null) => (s || '').toLowerCase().trim();
+    const hasIng = (c: Cocktail, name: string) =>
+      (c.ingredients_list || []).some(
+        (it: any) => norm(it?.ingredient?.name) === norm(name)
+      );
+
+    const currentId = this.cocktail.id;
+    const primaryName =
+      this.cocktail.ingredients_list?.[0]?.ingredient?.name || null;
+    const primaryId =
+      this.cocktail.ingredients_list?.[0]?.ingredient?.external_id || null;
+    const secondaryName =
+      this.cocktail.ingredients_list?.[1]?.ingredient?.name || null;
+    const secondaryId =
+      this.cocktail.ingredients_list?.[1]?.ingredient?.external_id || null;
+
+    const base$ = this.cocktailService.getSimilarCocktails(this.cocktail);
+    const prim$ = primaryId
+      ? this.cocktailService.getRelatedCocktailsForIngredient(primaryId)
+      : of([]);
+    const sec$ = secondaryId
+      ? this.cocktailService.getRelatedCocktailsForIngredient(secondaryId)
+      : of([]);
+
+    this.similarCocktailsSubscription = forkJoin([
+      base$,
+      prim$,
+      sec$,
+    ]).subscribe({
+      next: ([baseList, primList, secList]) => {
+        const used = new Set<number>();
+        const out: Highlightable[] = [];
+
+        const push = (c: Cocktail | Highlightable, tag?: string) => {
+          if (!c || c.id === currentId) return false;
+          if (used.has(c.id)) return false;
+          if (out.length >= LIMIT) return false;
+
+          // Short pill (chip) for the UI
+          const existing = (c as Highlightable).primaryHighlight;
+          const pill = tag
+            ? { text: `With ${tag}` }
+            : existing || { text: 'Suggested match' };
+
+          // Style reasons to inform the richer motto
+          const styleReasons: string[] = [];
+          if (
+            this.cocktail?.preparation_type &&
+            c.preparation_type === this.cocktail.preparation_type
+          )
+            styleReasons.push(c.preparation_type!);
+          if (this.cocktail?.glass && c.glass === this.cocktail.glass)
+            styleReasons.push(c.glass!);
+          if (this.cocktail?.category && c.category === this.cocktail.category)
+            styleReasons.push(c.category!);
+
+          // Friendly, American-English motto for the card’s top line
+          const motto = this.makeFriendlyMotto(this.cocktail!, c as Cocktail, {
+            tagIngredient: tag || null,
+            styleReasons,
+          });
+
+          const enriched = { ...(c as any) } as Highlightable & {
+            matchLabel?: string;
+            matchReason?: string;
+            similarityMeta?: any;
+          };
+
+          enriched.primaryHighlight = pill; // pill/label (short)
+          enriched.matchLabel = pill.text; // legacy support
+          enriched.matchReason = pill.text; // legacy support
+          enriched.similarityMeta = {
+            ...(enriched.similarityMeta || {}),
+            motto, // <-- card reads this (displayMotto)
+          };
+
+          out.push(enriched);
+          used.add(enriched.id);
+          return true;
+        };
+
+        // 1) 9 dal PRIMO ingrediente
+        if (primaryName && primList?.length) {
+          for (const c of primList as Cocktail[]) {
+            if (out.length >= LIMIT) break;
+            if (hasIng(c, primaryName)) push(c, primaryName);
+            if (
+              out.filter((x) => hasIng(x as Cocktail, primaryName)).length >=
+              Q_PRIMARY
+            )
+              break;
+          }
+        }
+
+        // 2) 5 dal SECONDO ingrediente
+        if (secondaryName && secList?.length) {
+          for (const c of secList as Cocktail[]) {
+            if (out.length >= LIMIT) break;
+            if (hasIng(c, secondaryName)) push(c, secondaryName);
+            if (
+              out.filter((x) => hasIng(x as Cocktail, secondaryName)).length >=
+              Q_SECONDARY
+            )
+              break;
+          }
+        }
+
+        // 3) Riempi col “base” già rankato (ingredienti/stile/abv…)
+        const baseRanked = (baseList as CocktailWithLayoutAndMatch[]) ?? [];
+        for (const c of baseRanked) {
+          if (out.length >= LIMIT) break;
+
+          const reasons: string[] = [];
+          if (
+            this.cocktail?.preparation_type &&
+            c.preparation_type === this.cocktail.preparation_type
+          )
+            reasons.push(c.preparation_type!);
+          if (this.cocktail?.glass && c.glass === this?.cocktail.glass)
+            reasons.push(c.glass!);
+          if (this.cocktail?.category && c.category === this.cocktail?.category)
+            reasons.push(c.category!);
+
+          const label = reasons.length
+            ? { text: reasons.slice(0, 2).join(' · ') }
+            : undefined;
+          if (!used.has(c.id))
+            push({ ...(c as any), primaryHighlight: label } as Highlightable);
+        }
+
+        // 4) Fallback: ricicla prim/sec
+        if (out.length < LIMIT) {
+          for (const c of primList as Cocktail[]) {
+            if (out.length >= LIMIT) break;
+            push(c, primaryName || undefined);
+          }
+        }
+        if (out.length < LIMIT) {
+          for (const c of secList as Cocktail[]) {
+            if (out.length >= LIMIT) break;
+            push(c, secondaryName || undefined);
+          }
+        }
+        // 🔀 MIX: 2 dal primario, 1 dal base, 1 dal secondario, poi ripeti + riempi con resto
+        const isPrim = (x: Highlightable) =>
+          primaryName ? hasIng(x as Cocktail, primaryName) : false;
+        const isSec = (x: Highlightable) =>
+          secondaryName ? hasIng(x as Cocktail, secondaryName) : false;
+
+        const primArr = out.filter(isPrim);
+        const secArr = out.filter((x) => !isPrim(x) && isSec(x)); // evita duplicati tra prim/sec
+        const baseArr = out.filter((x) => !isPrim(x) && !isSec(x)); // tutto il resto (base + filler)
+
+        const mixed: Highlightable[] = [];
+        const take = (arr: Highlightable[]) =>
+          arr.length ? mixed.push(arr.shift()!) : null;
+
+        // ciclo finché abbiamo roba e non superiamo LIMIT
+        while (
+          mixed.length < LIMIT &&
+          (primArr.length || baseArr.length || secArr.length)
+        ) {
+          take(primArr);
+          if (mixed.length >= LIMIT) break;
+
+          take(baseArr);
+          if (mixed.length >= LIMIT) break;
+
+          take(primArr);
+          if (mixed.length >= LIMIT) break;
+
+          take(secArr);
+          if (mixed.length >= LIMIT) break;
+
+          // spezia con un altro base se c’è
+          take(baseArr);
+        }
+
+        // se avanza spazio, svuota in ordine residuo
+        [primArr, baseArr, secArr].forEach((arr) => {
+          while (mixed.length < LIMIT && arr.length) take(arr);
+        });
+
+        // dedup by id (paranoia) e taglio
+        const seenIds = new Set<number>();
+        const finalList = mixed.filter((x) =>
+          seenIds.has(x.id) ? false : (seenIds.add(x.id), true)
+        );
+
+        this.similarCocktails = finalList.slice(0, LIMIT);
+        this.buildRelatedWithAds();
+      },
+      error: () => {
+        this.similarCocktails = [];
+        this.relatedWithAds = [];
+      },
+    });
   }
 
   /** Intercala un ad ogni N card, evitando ad in coda, con id stabili */
   private buildRelatedWithAds(): void {
-    const list = this.similarCocktails ?? [];
-    const out: Array<CocktailWithLayoutAndMatch | AdSlot> = [];
+    const list: Highlightable[] = this.similarCocktails ?? [];
+    const out: Array<Highlightable | AdSlot> = [];
     list.forEach((c, i) => {
       out.push(c);
       const isLast = i === list.length - 1;
@@ -936,5 +1266,340 @@ export class CocktailDetailComponent
           this.indexReady = true;
         },
       });
+  }
+
+  // -- STOP set "snello" per non contare ingredienti troppo generici --
+  private static readonly STOP = new Set([
+    'vodka',
+    'gin',
+    'rum',
+    'white rum',
+    'light rum',
+    'dark rum',
+    'tequila',
+    'whiskey',
+    'whisky',
+    'bourbon',
+    'scotch',
+    'lemon juice',
+    'lime juice',
+    'simple syrup',
+    'sugar',
+    'sugar syrup',
+    'soda water',
+    'club soda',
+    'water',
+    'ice',
+    'orange juice',
+  ]);
+
+  private norm(s?: string | null) {
+    return (s || '').toLowerCase().trim();
+  }
+
+  private distinctivesOf(c: Cocktail): string[] {
+    const seen = new Set<string>();
+    const firstTwo: string[] = [];
+    const others: string[] = [];
+
+    const pushIfNew = (name?: string | null, force = false) => {
+      const n = this.norm(name);
+      if (!n || seen.has(n)) return;
+      if (force || !CocktailDetailComponent.STOP.has(n)) {
+        seen.add(n);
+        if (force) firstTwo.push(n);
+        else others.push(n);
+      }
+    };
+
+    const list = c?.ingredients_list || [];
+    // 1) prendi SEMPRE i primi 2 ingredienti (forzati)
+    for (let i = 0; i < Math.min(2, list.length); i++) {
+      pushIfNew(list[i]?.ingredient?.name, true);
+    }
+    // 2) poi aggiungi gli altri (escludendo STOP)
+    for (let i = 2; i < list.length; i++) {
+      pushIfNew(list[i]?.ingredient?.name, false);
+    }
+
+    return [...firstTwo, ...others];
+  }
+
+  private countSharedWithSource(c: Cocktail, srcSet: Set<string>): number {
+    let k = 0;
+    (c?.ingredients_list || []).forEach((it: any) => {
+      const n = this.norm(it?.ingredient?.name);
+      if (n && srcSet.has(n)) k++;
+    });
+    return k;
+  }
+
+  private firstSharedKey(
+    c: Cocktail,
+    srcOrder: string[], // lista sorgente ordinata per priorità (1°, 2°, 3°...)
+    srcSet: Set<string>
+  ): string | null {
+    // restituisce il "primo" ingrediente condiviso in base all'ordine del cocktail sorgente
+    for (const key of srcOrder) {
+      const has = (c?.ingredients_list || []).some(
+        (it: any) => this.norm(it?.ingredient?.name) === key
+      );
+      if (has) return key;
+    }
+    return null;
+  }
+  // helper: applica un'etichetta se manca
+  private setLabel(c: Highlightable, text: string) {
+    if (!c.primaryHighlight?.text) c.primaryHighlight = { text };
+  }
+
+  // shuffle deterministica (semplificata) per non avere file incolonnati
+  private seededShuffle<T>(arr: T[], seedStr: string): T[] {
+    let seed = 0;
+    for (let i = 0; i < seedStr.length; i++)
+      seed = (seed * 31 + seedStr.charCodeAt(i)) | 0;
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      seed = (seed * 1664525 + 1013904223) | 0;
+      const j = Math.abs(seed) % (i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  private rebalanceByIngredient(
+    ranked: Highlightable[],
+    limit: number
+  ): Highlightable[] {
+    if (!this.cocktail) return ranked.slice(0, limit);
+
+    // 1) distintivi in ordine (1°, 2°, 3°...)
+    const srcOrder = this.distinctivesOf(this.cocktail);
+    const srcSet = new Set(srcOrder);
+    const first = srcOrder[0] || null;
+    const second = srcOrder[1] || null;
+
+    // 2) split strong / weak / filler
+    const strong: Highlightable[] = [];
+    const weak: Highlightable[] = [];
+    const filler: Highlightable[] = [];
+
+    ranked.forEach((c) => {
+      const shared = this.countSharedWithSource(c, srcSet);
+      if (shared >= 2) strong.push(c);
+      else if (shared === 1) weak.push(c);
+      else filler.push(c);
+    });
+
+    // 3) bucket deboli per ingrediente condiviso (rispettando priorità 1°, 2°, …)
+    const buckets = new Map<string, Highlightable[]>();
+    const pickKey = (c: Highlightable): string | null => {
+      for (const k of srcOrder) {
+        if (
+          (c.ingredients_list || []).some(
+            (it) => this.norm(it?.ingredient?.name) === k
+          )
+        )
+          return k;
+      }
+      return null;
+    };
+    weak.forEach((c) => {
+      const k = pickKey(c);
+      if (!k) return;
+      if (!buckets.has(k)) buckets.set(k, []);
+      buckets.get(k)!.push(c);
+    });
+
+    // 4) shuffle leggero per evitare “fiumi di gin”
+    const seed = this.cocktail.slug || String(this.cocktail.id || '');
+    if (first && buckets.get(first))
+      buckets.set(first, this.seededShuffle(buckets.get(first)!, seed + '|1'));
+    if (second && buckets.get(second))
+      buckets.set(
+        second,
+        this.seededShuffle(buckets.get(second)!, seed + '|2')
+      );
+    for (let i = 2; i < srcOrder.length; i++) {
+      const k = srcOrder[i];
+      if (buckets.get(k))
+        buckets.set(
+          k,
+          this.seededShuffle(buckets.get(k)!, seed + '|' + (i + 1))
+        );
+    }
+    const fillerShuffled = this.seededShuffle(filler, seed + '|F');
+
+    const out: Highlightable[] = [];
+    const used = new Set<number>();
+    const push = (c: Highlightable) => {
+      if (!used.has(c.id)) {
+        out.push(c);
+        used.add(c.id);
+      }
+    };
+
+    // 5) prima i forti (≥2 ingredienti)
+    for (const c of strong) {
+      if (out.length >= limit) break;
+      if (!c.primaryHighlight?.text) this.setLabel(c, 'Shares 2+ ingredients');
+      push(c);
+    }
+    if (out.length >= limit) return out.slice(0, limit);
+
+    // 6) round-robin 2:1 tra primo e secondo ingrediente
+    const takeFrom = (key: string | null): boolean => {
+      if (!key) return false;
+      const arr = buckets.get(key);
+      if (!arr?.length) return false;
+      while (arr.length) {
+        const c = arr.shift()!;
+        if (used.has(c.id)) continue;
+        this.setLabel(c, `Shares ${key}`);
+        push(c);
+        return true;
+      }
+      return false;
+    };
+
+    let picksSinceBreak = 0;
+    while (
+      out.length < limit &&
+      (buckets.get(first || '')?.length || buckets.get(second || '')?.length)
+    ) {
+      if (takeFrom(first)) {
+        picksSinceBreak++;
+        if (out.length >= limit) break;
+      }
+      if (takeFrom(first)) {
+        picksSinceBreak++;
+        if (out.length >= limit) break;
+      }
+      if (takeFrom(second)) {
+        picksSinceBreak++;
+        if (out.length >= limit) break;
+      }
+
+      if (picksSinceBreak >= 3 && out.length < limit && fillerShuffled.length) {
+        const f = fillerShuffled.shift()!;
+        const reasons: string[] = [];
+        if (
+          this.cocktail.preparation_type &&
+          f.preparation_type === this.cocktail.preparation_type
+        )
+          reasons.push(f.preparation_type!);
+        if (this.cocktail.glass && f.glass === this.cocktail.glass)
+          reasons.push(f.glass!);
+        if (this.cocktail.category && f.category === this.cocktail.category)
+          reasons.push(f.category!);
+        if (reasons.length) this.setLabel(f, reasons.slice(0, 2).join(' · '));
+        push(f);
+        picksSinceBreak = 0;
+      }
+    }
+
+    // 7) altri ingredienti (3°, 4°, …)
+    for (let i = 2; i < srcOrder.length && out.length < limit; i++) {
+      const k = srcOrder[i];
+      const arr = buckets.get(k) || [];
+      while (arr.length && out.length < limit) {
+        const c = arr.shift()!;
+        if (used.has(c.id)) continue;
+        this.setLabel(c, `Shares ${k}`);
+        push(c);
+      }
+    }
+
+    // 8) riempi con filler
+    while (out.length < limit && fillerShuffled.length) {
+      const f = fillerShuffled.shift()!;
+      if (used.has(f.id)) continue;
+      const reasons: string[] = [];
+      if (
+        this.cocktail.preparation_type &&
+        f.preparation_type === this.cocktail.preparation_type
+      )
+        reasons.push(f.preparation_type!);
+      if (this.cocktail.glass && f.glass === this.cocktail.glass)
+        reasons.push(f.glass!);
+      if (this.cocktail.category && f.category === this.cocktail.category)
+        reasons.push(f.category!);
+      if (reasons.length) this.setLabel(f, reasons.slice(0, 2).join(' · '));
+      push(f);
+    }
+
+    return out.slice(0, limit);
+  }
+
+  /** Genera un motto friendly/SEO per la card in base al motivo di correlazione */
+  /** US-English, concise & editorial-friendly motto generator */
+  private makeFriendlyMotto(
+    source: Cocktail,
+    candidate: Cocktail,
+    opts?: {
+      tagIngredient?: string | null;
+      styleReasons?: string[];
+    }
+  ): string {
+    const seed = (candidate.slug || String(candidate.id || '')).toLowerCase();
+    const pick = (arr: string[]) => {
+      let h = 0;
+      for (let i = 0; i < seed.length; i++)
+        h = (h * 31 + seed.charCodeAt(i)) | 0;
+      return arr[Math.abs(h) % arr.length];
+    };
+
+    const name = candidate.name || 'This cocktail';
+    const cat = (candidate.category || 'cocktail').toLowerCase();
+    const meth = candidate.preparation_type || '';
+    const glass = candidate.glass || '';
+    const ingr = (candidate.ingredients_list || [])
+      .map((i) => (i?.ingredient?.name || '').trim())
+      .filter(Boolean);
+
+    const service: string[] = [];
+    if (meth) service.push(meth[0].toUpperCase() + meth.slice(1));
+    if (glass) service.push(glass.toLowerCase());
+    const serviceText = service.join(' · ');
+    const twoKeyIngr = ingr.slice(0, 2).join(' + ');
+
+    // 1) Ingredient-driven
+    if (opts?.tagIngredient) {
+      const tag = opts.tagIngredient;
+      return pick([
+        `Features ${tag} with a refined balance.`,
+        `Built around ${tag}, subtle yet distinctive.`,
+        `Highlights ${tag} in a classic style.`,
+        `A ${cat} centered on ${tag}.`,
+      ]);
+    }
+
+    // 2) Style-driven (method/glass/category)
+    if (opts?.styleReasons?.length) {
+      const style = opts.styleReasons.slice(0, 2).join(' · ');
+      return pick([
+        `Shares the same ${style} profile.`,
+        `Similar ${style} composition.`,
+        `Aligned in ${style} style.`,
+        `Comparable build and presentation.`,
+      ]);
+    }
+
+    // 3) Fallback with brief flavor tone
+    if (twoKeyIngr) {
+      return pick([
+        `${twoKeyIngr} — a balanced ${cat}.`,
+        `${twoKeyIngr}, refined and harmonious.`,
+        `${twoKeyIngr} for a modern ${cat}.`,
+        `Clean ${cat} built on ${twoKeyIngr}.`,
+      ]);
+    }
+
+    // 4) Neutral fallback
+    return pick([
+      `A related ${cat} in similar style.`,
+      `Another classic within the same family.`,
+      `Comparable drink with matching character.`,
+    ]);
   }
 }
