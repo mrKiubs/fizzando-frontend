@@ -215,7 +215,7 @@ export class AppComponent {
   }
 
   get animParams() {
-    const reduce = this.isTouch || this.prefersReduced;
+    const reduce = this.prefersReduced;
     const isMobile = this.isTouch;
 
     if (reduce) {
