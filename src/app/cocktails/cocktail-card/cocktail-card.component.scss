@@ -133,9 +133,9 @@
   .match-motto {
     position: absolute;
     margin: 18px 16px;
-    background: rgb(0 0 0 / 50%);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.5);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
     border: 1px solid rgba(255, 255, 255, 0.5);
     padding: 6px 4px;
     border-radius: 8px;
@@ -145,7 +145,6 @@
     font-size: 13px;
     text-align: center;
     z-index: 99;
-    /* color: #fff; */
     font-size: 13px;
     background-clip: text;
     background-image: linear-gradient(
