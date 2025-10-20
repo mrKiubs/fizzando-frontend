@@ -168,11 +168,12 @@ export class AppComponent {
         if (!pathChanged) return;
         const nav = this.router.getCurrentNavigation();
 
-        const state =
-          (nav?.extras?.state as any) ||
-          (this.isBrowser ? window.history.state : {}) ||
-          {};
-        if (state.suppressScroll) return;
+        // considera SOLO lo state della navigazione corrente
+        const suppress =
+          !!nav?.extras?.state &&
+          (nav.extras.state as any).suppressScroll === true;
+
+        if (suppress) return;
 
         this.viewportScroller.scrollToPosition([0, 0]);
       });
