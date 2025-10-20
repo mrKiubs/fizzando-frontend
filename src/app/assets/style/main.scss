@@ -1388,7 +1388,7 @@ button.btn-shine:hover span {
   border-radius: 50px;
   font-size: 0.8rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.5411764706);
+  color: rgb(255 255 255 / 75%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
@@ -1411,14 +1411,15 @@ button.btn-shine:hover span {
 
   &.transparent {
     border: none;
-    /* backdrop-filter: blur(0px) !important; */
     -webkit-backdrop-filter: none !important;
     background-color: transparent;
     filter: none !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+    border-radius: 0;
+    padding: 6px 8px !important;
+    height: 100%;
     &:hover {
-      background: transparent !important;
       border-color: transparent !important;
     }
   }
