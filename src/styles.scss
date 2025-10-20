@@ -357,3 +357,6 @@ h1 {
 :where([hidden]) {
   display: none !important;
 }
+.app-main.is-animating {
+  overflow: hidden; // evita comparsa/scomparsa scrollbar durante il transition
+}
