@@ -179,10 +179,11 @@ export class AppComponent {
 
         if (!this.isBrowser) return;
 
+        // --- iOS-safe micro scroll, percepibile anche da top ---
         const doScrollTop = () => {
           const doc = this.document as Document;
 
-          // 🔎 Candidati comuni nelle tue viste
+          // Candidati più comuni: prima wrapper interni, poi documento
           const candidates: (Element | null)[] = [
             doc.querySelector('.app-main'),
             doc.querySelector('.detail-wrapper'),
@@ -198,38 +199,47 @@ export class AppComponent {
               s.overflowY === 'auto' ||
               s.overflowY === 'scroll' ||
               s.overflowY === 'overlay';
-            return canScroll && el.scrollHeight > el.clientHeight;
+            return (
+              (canScroll && el.scrollHeight > el.clientHeight) ||
+              el === (doc.scrollingElement || doc.documentElement)
+            );
           };
 
-          // Primo scrollable valido, altrimenti fallback al documento
           const target =
             (candidates.find(isScrollable) as HTMLElement | null) ||
             (doc.scrollingElement as HTMLElement) ||
             (doc.documentElement as HTMLElement);
 
-          const before = target.scrollTop;
+          // Delay per non sovrapporsi alla route animation (mobile: 300ms circa)
+          const delayMs = this.isTouch ? 300 : 120;
 
-          const nudge = () => {
-            // 👇 nudge “forte” per test su iPhone. Quando confermi che si vede, riporta 24→1.
-            if (before <= 4)
-              target.scrollTo({ top: 24, left: 0, behavior: 'auto' });
-            target.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+          const run = () => {
+            const before = target.scrollTop;
 
-            // LOG diagnostico: verifica container e valori
-            console.log('[scrollTop]', {
-              path,
-              target:
-                (target as HTMLElement).className ||
-                (target as HTMLElement).tagName,
-              before,
-              after: target.scrollTop,
+            // Forza movimento SEMPRE: down (48px) → up (0)
+            const downThenUp = () => {
+              // primo paint
+              target.scrollBy({ top: 48, left: 0, behavior: 'auto' });
+              // secondo paint
+              requestAnimationFrame(() => {
+                target.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                // Debug (se serve):
+                // console.log('[scrollTop]', { target: (target.className || target.tagName), before, after: target.scrollTop });
+              });
+            };
+
+            // triplo step: rAF → setTimeout → rAF per iOS
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                requestAnimationFrame(downThenUp);
+              }, delayMs);
             });
           };
 
-          const raf = window.requestAnimationFrame.bind(window);
-          raf(() => raf(nudge));
+          run();
         };
 
+        // ⬅️ esegui sempre (non guardare prefersReduced)
         doScrollTop();
       });
   }
