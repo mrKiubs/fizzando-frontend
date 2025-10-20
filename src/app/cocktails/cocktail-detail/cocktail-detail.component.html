@@ -40,7 +40,6 @@
       <!-- Image -->
       <div class="cocktail-image-column">
         <div class="image-wrapper">
-          <!-- LCP optimized hero + WebP preferito con fallback -->
           <img
             class="detail-image"
             [ngSrc]="heroSrc || getPreferred(getCocktailHeroUrl(cocktail))"
@@ -111,7 +110,6 @@
                 >
                   <div class="ing-cocktail">
                     {{ item.ingredient.name }}
-
                     <span class="ing-type">{{
                       item.ingredient.ingredient_type
                     }}</span>
@@ -133,7 +131,7 @@
 
   <!-- ===================== AD BLOCK #1 (post hero) ===================== -->
   <ng-container *ngIf="contentReady">
-    @defer (on viewport) {
+    @defer (when !routeAnimating; on viewport) {
     <section
       class="ad-block"
       role="complementary"
@@ -145,7 +143,6 @@
       </div>
     </section>
     } @placeholder {
-    <!-- Placeholder IDENTICO per zero-CLS -->
     <section
       class="ad-block"
       role="complementary"
@@ -175,7 +172,7 @@
 
         <!-- mobile -->
         <ng-container *ngIf="isHandset()">
-          @defer (on viewport; prefetch on idle) {
+          @defer (when !routeAnimating; on viewport; prefetch on idle) {
           <p>{{ cocktail.ai_presentation }}</p>
           } @placeholder {
           <div class="ai-placeholder">
@@ -193,9 +190,8 @@
 
       <div class="ai-detail-block glass-card-mini" *ngIf="cocktail.ai_pairing">
         <h3 class="ai-block-title">🍽️ Pairing</h3>
-        <!-- mobile -->
         <ng-container *ngIf="isHandset()">
-          @defer (on viewport; prefetch on idle) {
+          @defer (when !routeAnimating; on viewport; prefetch on idle) {
           <p>{{ cocktail.ai_pairing }}</p>
           } @placeholder {
           <div class="ai-placeholder">
@@ -204,8 +200,6 @@
           </div>
           }
         </ng-container>
-
-        <!-- desktop -->
         <ng-container *ngIf="!isHandset()">
           <p>{{ cocktail.ai_pairing }}</p>
         </ng-container>
@@ -213,9 +207,8 @@
 
       <div class="ai-detail-block glass-card-mini" *ngIf="cocktail.ai_origin">
         <h3 class="ai-block-title">🌍 Origin</h3>
-        <!-- mobile -->
         <ng-container *ngIf="isHandset()">
-          @defer (on viewport; prefetch on idle) {
+          @defer (when !routeAnimating; on viewport; prefetch on idle) {
           <p>{{ cocktail.ai_origin }}</p>
           } @placeholder {
           <div class="ai-placeholder">
@@ -224,8 +217,6 @@
           </div>
           }
         </ng-container>
-
-        <!-- desktop -->
         <ng-container *ngIf="!isHandset()">
           <p>{{ cocktail.ai_origin }}</p>
         </ng-container>
@@ -233,9 +224,8 @@
 
       <div class="ai-detail-block glass-card-mini" *ngIf="cocktail.ai_occasion">
         <h3 class="ai-block-title">🎉 Occasion</h3>
-        <!-- mobile -->
         <ng-container *ngIf="isHandset()">
-          @defer (on viewport; prefetch on idle) {
+          @defer (when !routeAnimating; on viewport; prefetch on idle) {
           <p>{{ cocktail.ai_occasion }}</p>
           } @placeholder {
           <div class="ai-placeholder">
@@ -244,8 +234,6 @@
           </div>
           }
         </ng-container>
-
-        <!-- desktop -->
         <ng-container *ngIf="!isHandset()">
           <p>{{ cocktail.ai_occasion }}</p>
         </ng-container>
@@ -256,9 +244,8 @@
         *ngIf="cocktail.ai_sensory_description"
       >
         <h3 class="ai-block-title">👃 Sensory Description</h3>
-        <!-- mobile -->
         <ng-container *ngIf="isHandset()">
-          @defer (on viewport; prefetch on idle) {
+          @defer (when !routeAnimating; on viewport; prefetch on idle) {
           <p>{{ cocktail.ai_sensory_description }}</p>
           } @placeholder {
           <div class="ai-placeholder">
@@ -267,8 +254,6 @@
           </div>
           }
         </ng-container>
-
-        <!-- desktop -->
         <ng-container *ngIf="!isHandset()">
           <p>{{ cocktail.ai_sensory_description }}</p>
         </ng-container>
@@ -279,9 +264,8 @@
         *ngIf="cocktail.ai_personality"
       >
         <h3 class="ai-block-title">😎 Personality</h3>
-        <!-- mobile -->
         <ng-container *ngIf="isHandset()">
-          @defer (on viewport; prefetch on idle) {
+          @defer (when !routeAnimating; on viewport; prefetch on idle) {
           <p>{{ cocktail.ai_personality }}</p>
           } @placeholder {
           <div class="ai-placeholder">
@@ -290,8 +274,6 @@
           </div>
           }
         </ng-container>
-
-        <!-- desktop -->
         <ng-container *ngIf="!isHandset()">
           <p>{{ cocktail.ai_personality }}</p>
         </ng-container>
@@ -302,9 +284,8 @@
         *ngIf="cocktail.ai_variations"
       >
         <h3 class="ai-block-title">🔄 Variations</h3>
-        <!-- mobile -->
         <ng-container *ngIf="isHandset()">
-          @defer (on viewport; prefetch on idle) {
+          @defer (when !routeAnimating; on viewport; prefetch on idle) {
           <p>{{ cocktail.ai_variations }}</p>
           } @placeholder {
           <div class="ai-placeholder">
@@ -313,8 +294,6 @@
           </div>
           }
         </ng-container>
-
-        <!-- desktop -->
         <ng-container *ngIf="!isHandset()">
           <p>{{ cocktail.ai_variations }}</p>
         </ng-container>
@@ -326,9 +305,9 @@
       >
         <h3 class="ai-block-title">🍸 Alcohol Content</h3>
 
-        <!-- mobile: defer on viewport -->
+        <!-- mobile -->
         <ng-container *ngIf="isHandset()">
-          @defer (on viewport; prefetch on idle) {
+          @defer (when !routeAnimating; on viewport; prefetch on idle) {
           <ng-container>
             <p>
               <ng-container
@@ -347,13 +326,13 @@
                 🚫 Not for minors, pregnant mamas or designated drivers—sip
                 responsibly! 😉
               </ng-container>
-              <ng-template #noLimit>
-                🆓 No booze here—drink up, the world is your oyster! 🍹
-              </ng-template>
+              <ng-template #noLimit
+                >🆓 No booze here—drink up, the world is your oyster!
+                🍹</ng-template
+              >
             </p>
           </ng-container>
           } @placeholder {
-          <!-- un solo root element -->
           <div class="ai-placeholder">
             <div class="skeleton-line"></div>
             <div class="skeleton-line"></div>
@@ -362,7 +341,7 @@
           }
         </ng-container>
 
-        <!-- desktop: render immediato -->
+        <!-- desktop -->
         <ng-container *ngIf="!isHandset()">
           <p>
             <ng-container
@@ -381,9 +360,10 @@
               🚫 Not for minors, pregnant mamas or designated drivers—sip
               responsibly! 😉
             </ng-container>
-            <ng-template #noLimitDesktop>
-              🆓 No booze here—drink up, the world is your oyster! 🍹
-            </ng-template>
+            <ng-template #noLimitDesktop
+              >🆓 No booze here—drink up, the world is your oyster!
+              🍹</ng-template
+            >
           </p>
         </ng-container>
       </div>
@@ -403,7 +383,7 @@
 
   <!-- ===================== AD BLOCK #2 (dopo Deep Dive) ===================== -->
   <ng-container *ngIf="contentReady">
-    @defer (on viewport) {
+    @defer (when !routeAnimating; on viewport) {
     <section
       class="ad-block"
       role="complementary"
@@ -428,7 +408,9 @@
     </section>
     }
   </ng-container>
+
   <div #relatedSentinel aria-hidden="true"></div>
+
   <!-- Related con ad in-loop -->
   <section class="related-cocktails-section" *ngIf="relatedWithAds.length > 0">
     <h2 class="section-title">
@@ -439,7 +421,6 @@
       <ng-container
         *ngFor="let item of relatedWithAds; trackBy: trackByRelated"
       >
-        <!-- Card cocktail -->
         <ng-container *ngIf="!$any(item).isAd; else adTpl">
           <app-cocktail-card
             [cocktail]="$any(item)"
@@ -448,10 +429,9 @@
           ></app-cocktail-card>
         </ng-container>
 
-        <!-- Ad in-grid -->
         <ng-template #adTpl>
           <ng-container *ngIf="contentReady">
-            @defer (on viewport) {
+            @defer (when !routeAnimating; on viewport) {
             <section
               class="ad-block"
               role="complementary"
@@ -483,7 +463,7 @@
 
   <!-- ===================== AD BLOCK #3 (bottom banner) ===================== -->
   <ng-container *ngIf="contentReady">
-    @defer (on viewport) {
+    @defer (when !routeAnimating; on viewport) {
     <div
       *ngIf="isMobile"
       class="mobile-ad-container"
