@@ -291,6 +291,7 @@
         <div class="bottom-card-container">
           <!-- Category → /cocktails?category=... -->
           <app-cocktail-chip
+            [transparent]="true"
             [label]="cocktail.category"
             [variant]="'category'"
             [slug]="slugifySegment(cocktail.category)"
@@ -306,6 +307,7 @@
 
           <!-- Alcoholic → /cocktails?alcoholic=... -->
           <app-cocktail-chip
+            [transparent]="true"
             *ngIf="cocktail.alcoholic"
             [label]="cocktail.alcoholic"
             [variant]="'alcoholic'"

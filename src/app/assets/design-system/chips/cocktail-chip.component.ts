@@ -23,7 +23,8 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         'variant-' + variant,
         'slug-' + slugVal,
         active ? 'active' : '',
-        count ? '' : 'no-count'
+        count ? '' : 'no-count',
+        transparent ? 'transparent' : ''
       ]"
       [attr.data-slug]="slugVal"
       [routerLink]="routerLink"
@@ -59,7 +60,8 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         [ngClass]="[
           'variant-' + variant,
           'slug-' + slugVal,
-          active ? 'active' : ''
+          active ? 'active' : '',
+          transparent ? 'transparent' : ''
         ]"
         [attr.data-slug]="slugVal"
         [attr.href]="href"
@@ -94,7 +96,8 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
           [ngClass]="[
             'variant-' + variant,
             'slug-' + slugVal,
-            active ? 'active' : ''
+            active ? 'active' : '',
+            transparent ? 'transparent' : ''
           ]"
           [attr.data-slug]="slugVal"
           [attr.aria-pressed]="active"
@@ -127,23 +130,6 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
   `,
   styles: [
     `
-      .cocktail-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 4px 4px 8px;
-        border-radius: 50px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        color: rgba(255, 255, 255, 0.54);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
-        transition: all 0.2s ease-in-out;
-        text-decoration: none;
-        width: max-content;
-      }
-
       .cocktail-chip.no-count {
         padding: 4px 8px 4px 8px;
       }
@@ -157,25 +143,6 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         border-color: #fff;
         color: #fff;
         cursor: default;
-      }
-
-      .variant-category {
-        background: rgba(0, 123, 255, 0.1);
-        border-color: rgba(0, 123, 255, 0.2);
-      }
-      .variant-category:hover {
-        background: rgba(0, 123, 255, 0.8);
-        color: #fff;
-        border-color: #ffffffab;
-      }
-      .variant-method {
-        background: rgba(255, 193, 7, 0.1);
-        border-color: rgba(255, 193, 7, 0.2);
-      }
-      .variant-method:hover {
-        background: rgba(255, 193, 7, 0.8);
-        color: #fff;
-        border-color: #ffffffab;
       }
 
       .chip-count {
@@ -217,6 +184,7 @@ export class CocktailChipComponent {
   @Input() active = false;
   @Input() variant: Variant = 'default';
   @Input() slug?: string;
+  @Input() transparent?: boolean = false;
 
   @Input() showCountWhenUndefined = true;
 
