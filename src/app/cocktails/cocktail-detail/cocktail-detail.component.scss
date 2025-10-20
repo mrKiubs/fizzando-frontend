@@ -599,3 +599,51 @@ app-cocktail-card {
   text-align: right;
   padding-right: 24px;
 }
+
+.cocktail-detail-wrapper {
+  /* impedisce i micro-salti durante il paint dei blocchi differiti */
+  overflow-anchor: none;
+}
+
+/* i 3 blocchi ad hanno sempre la stessa altezza → zero layout shift */
+.ad-block {
+  min-height: 90px; /* desktop banner */
+}
+@media (max-width: 768px) {
+  .ad-block {
+    min-height: 50px;
+  } /* mobile banner */
+}
+.mobile-ad-container {
+  min-height: 50px;
+}
+.ad-desktop-card {
+  min-height: 90px;
+}
+
+/* immagini: blocca l'aspect-ratio per evitare reflow quando arriva srcset */
+.detail-image {
+  aspect-ratio: 1 / 1; /* 500x500 nel template */
+  width: 100%;
+  height: auto;
+  display: block;
+  contain: paint; /* compositing più economico durante transizione */
+}
+
+/* contenitori pesanti caricati in differita */
+.ai-details-section,
+.related-articles-section,
+.related-cocktails-section {
+  content-visibility: auto; /* evita lavoro fuori viewport */
+  contain-intrinsic-size: 1px 600px; /* altezza “provvisoria” stabile */
+}
+
+.ad-slot-placeholder {
+  width: 100%;
+  height: 90px;
+}
+@media (max-width: 768px) {
+  .ad-slot-placeholder {
+    height: 50px;
+  }
+}
