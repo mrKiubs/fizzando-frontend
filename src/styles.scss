@@ -122,19 +122,12 @@ h6,
   letter-spacing: 1.3px;
 
   &.match-motto {
-    /* disattiva il clipping del background sul testo */
     -webkit-background-clip: initial !important;
     background-clip: border-box !important;
-
-    /* rimuovi gradiente / sfondi di background */
     background-image: none !important;
-    background: none !important; // nel dubbio, azzera tutto lo sfondo
-
-    /* ripristina il colore del testo */
-    -webkit-text-fill-color: currentColor !important; // fondamentale su Safari
-    color: var(--text-color, currentColor) !important;
-
-    /* rimuovi effetti visivi aggiuntivi */
+    background: #0000005c !important;
+    -webkit-text-fill-color: currentColor !important;
+    color: #ffffff !important;
     text-shadow: none !important;
     filter: none !important;
   }
