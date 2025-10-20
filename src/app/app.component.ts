@@ -41,7 +41,7 @@ import { ViewportService } from './services/viewport.service';
   ],
   animations: [
     trigger('pageTransition', [
-      // percorso senza animazioni (skip)
+      // percorso senza animazioni
       transition('noanim <=> *', [
         style({ position: 'relative' }),
         query(':enter, :leave', [style({ opacity: 1, transform: 'none' })], {
@@ -49,6 +49,7 @@ import { ViewportService } from './services/viewport.service';
         }),
         query(':leave', [style({ display: 'none' })], { optional: true }),
       ]),
+
       // percorso animato
       transition(
         '* <=> *',
@@ -110,11 +111,13 @@ import { ViewportService } from './services/viewport.service';
     <app-navbar></app-navbar>
 
     <main
-      class="app-main"
+      class="app-main allow-route-anim"
+      [@.disabled]="false"
       [@pageTransition]="{
         value: getRouteAnimationData(routerOutlet),
         params: animParams
       }"
+      (@pageTransition.start)="onRouteAnimStart()"
       (@pageTransition.done)="onRouteAnimDone()"
     >
       <router-outlet #routerOutlet="outlet"></router-outlet>
@@ -134,7 +137,13 @@ import { ViewportService } from './services/viewport.service';
     `
       @use './assets/style/main.scss' as *;
 
-      /* niente overflow:hidden qui: non tocchiamo il contenitore di scroll */
+      /* iOS compositing hints durante le route-anim */
+      .app-main.allow-route-anim > * {
+        will-change: transform, opacity;
+        -webkit-backface-visibility: hidden;
+        transform: translateZ(0);
+      }
+
       .app-footer-placeholder {
         display: block;
         min-height: 120px;
@@ -158,16 +167,22 @@ export class AppComponent {
 
   private skipMotionNext = false;
 
+  // Touch detection per parametri mobile
   protected readonly isTouch =
     this.isBrowser &&
     (navigator.maxTouchPoints > 0 ||
       /Android|iP(ad|hone|od)/i.test(navigator.userAgent));
 
+  // Non spegniamo più le animazioni in base a prefers-reduced-motion
   protected readonly prefersReduced =
     this.isBrowser &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  protected readonly showAmbient = !this.prefersReduced;
+  // Effetti ambient sempre visibili
+  protected readonly showAmbient = true;
+
+  // stato animazione route (esposto per altri component via evento globale)
+  public isRouteAnimating = false;
 
   constructor() {
     // intercetta start: flag per skip
@@ -207,28 +222,31 @@ export class AppComponent {
     }
   }
 
-  // dopo l'animazione: porta in alto (SSR-friendly) se non c'è un #fragment
+  // segnale di START animazione (classe globale + CustomEvent)
+  onRouteAnimStart() {
+    if (!this.isBrowser) return;
+    this.isRouteAnimating = true;
+    const html = (this.document as Document).documentElement;
+    html.classList.add('route-animating');
+    window.dispatchEvent(new CustomEvent('route-anim', { detail: true }));
+  }
+
+  // dopo l'animazione: porta in alto e togli classe/evento
   onRouteAnimDone() {
     if (!this.isBrowser) return;
-    if (this.router.url.includes('#')) return; // lascia gestire l'anchor ad Angular
+
+    this.isRouteAnimating = false;
+    const html = (this.document as Document).documentElement;
+    html.classList.remove('route-animating');
+    window.dispatchEvent(new CustomEvent('route-anim', { detail: false }));
+
+    if (this.router.url.includes('#')) return; // lascia gestire l'anchor
     this.scroller.scrollToPosition([0, 0]);
   }
 
+  // Parametri animazione (sempre ON, con tuning mobile)
   get animParams() {
-    const reduce = this.prefersReduced;
     const isMobile = this.isTouch;
-
-    if (reduce) {
-      return {
-        enterDuration: '180ms',
-        enterDelay: '0ms',
-        enterEasing: 'ease-out',
-        leaveDuration: '120ms',
-        leaveEasing: 'ease-out',
-        enterY: '5px',
-        leaveY: '-5px',
-      };
-    }
 
     if (isMobile) {
       return {

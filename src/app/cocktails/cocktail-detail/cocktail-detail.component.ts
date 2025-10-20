@@ -21,176 +21,27 @@ import {
   Location,
 } from '@angular/common';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
-
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {} from 'rxjs/operators';
+import { MatIconModule } from '@angular/material/icon';
+import { forkJoin, Observable, of, Subscription } from 'rxjs';
+import { Title, Meta } from '@angular/platform-browser';
+
 import {
   CocktailService,
   Cocktail,
   CocktailWithLayoutAndMatch,
 } from '../../services/strapi.service';
-import { MatIconModule } from '@angular/material/icon';
-import { forkJoin, Observable, of, Subscription } from 'rxjs';
-import { Title, Meta } from '@angular/platform-browser';
-
 import { DevAdsComponent } from '../../assets/design-system/dev-ads/dev-ads.component';
-import { AffiliateProductComponent } from '../../assets/design-system/affiliate-product/affiliate-product.component';
 import { ArticleService, Article } from '../../services/article.service';
 import { ArticleCardComponent } from '../../articles/article-card/article-card.component';
 import { CocktailCardComponent } from '../../cocktails/cocktail-card/cocktail-card.component';
-
 import { env } from '../../config/env';
 import { SentenceBreaksDirective } from '../../assets/pipes/sentence-breaks.pipe';
 
 type Highlightable = CocktailWithLayoutAndMatch & {
   primaryHighlight?: { text: string };
 };
-type RelatedCard = Highlightable;
-// ======================
-// Utils locali per affinare i correlati (no Strapi changes)
-// ======================
-const STOP_INGREDIENTS = new Set<string>([
-  // basi molto comuni
-  'vodka',
-  'gin',
-  'white rum',
-  'light rum',
-  'rum',
-  'dark rum',
-  'tequila',
-  'whiskey',
-  'bourbon',
-  'scotch',
-  'brandy',
-  'cognac',
-  // mixer generici
-  'soda water',
-  'club soda',
-  'tonic water',
-  'water',
-  'ice',
-  'crushed ice',
-  // agrumi / succhi
-  'lemon juice',
-  'lime juice',
-  'orange juice',
-  'pineapple juice',
-  'cranberry juice',
-  'apple juice',
-  // dolcificanti
-  'simple syrup',
-  'sugar syrup',
-  'grenadine',
-  'honey',
-  'sugar',
-  'brown sugar',
-  // garnish comuni
-  'mint',
-  'mint leaves',
-  'cherry',
-  'maraschino cherry',
-  'orange slice',
-  'lemon slice',
-  'lime slice',
-  // bitters generici
-  'angostura bitters',
-  'bitters',
-  // altro molto comune
-  'whipped cream',
-  'milk',
-  'cream',
-  'half and half',
-  'egg white',
-  'coffee',
-  'espresso',
-]);
-
-function norm(s?: string | null): string {
-  return (s || '').toLowerCase().trim();
-}
-
-type HasIngredientsList = {
-  ingredients_list?: Array<{ ingredient?: { name?: string } }>;
-};
-
-function ingredientSet(c: HasIngredientsList): Set<string> {
-  const out = new Set<string>();
-  (c?.ingredients_list || []).forEach((it) => {
-    const n = norm(it?.ingredient?.name);
-    if (!n || STOP_INGREDIENTS.has(n)) return;
-    out.add(n);
-  });
-  return out;
-}
-
-type WithHighlight<T> = T & {
-  matchedIngredientCount?: number;
-  primaryHighlight?: { text: string };
-};
-
-/**
- * Affina i correlati lato client:
- * - prima tiene quelli con ≥2 ingredienti distintivi in comune
- * - se vuoto, scende a ≥1
- * - ordina per overlap, poi alfabetico
- * - aggiunge un'etichetta (primaryHighlight) senza toccare i template
- */
-function refineRelatedByIngredients<T extends HasIngredientsList>(
-  current: T,
-  candidates: T[],
-  limit = 12
-): Array<WithHighlight<T>> {
-  const cur = ingredientSet(current);
-  if (!cur.size || !candidates?.length) return [];
-
-  const scored = candidates.map((c) => {
-    const s = ingredientSet(c);
-    let shared = 0;
-    const reasons: string[] = [];
-    s.forEach((n) => {
-      if (cur.has(n)) {
-        shared++;
-        if (reasons.length < 2) reasons.push(n);
-      }
-    });
-    return { c, shared, reasons };
-  });
-
-  // soglia adattiva
-  let filtered = scored.filter((x) => x.shared >= 2);
-  if (!filtered.length) filtered = scored.filter((x) => x.shared >= 1);
-
-  filtered.sort(
-    (a, b) =>
-      b.shared - a.shared ||
-      (norm((a.c as any).name) < norm((b.c as any).name) ? -1 : 1)
-  );
-
-  return filtered.slice(0, limit).map(({ c, shared, reasons }) => {
-    const label =
-      reasons.length >= 2
-        ? `Shares ${reasons[0]} + ${reasons[1]}`
-        : reasons.length === 1
-        ? `Shares ${reasons[0]}`
-        : `Good match`;
-    return {
-      ...(c as any),
-      matchedIngredientCount: shared,
-      primaryHighlight: { text: label },
-    };
-  });
-}
-
-interface ProductItem {
-  title: string;
-  imageUrl: string;
-  price: string;
-  link: string;
-  showPlaceholder: boolean;
-}
-
-/** Slot pubblicitario per il loop "Related" */
 interface AdSlot {
   isAd: true;
   id: string;
@@ -216,15 +67,18 @@ interface AdSlot {
 export class CocktailDetailComponent
   implements OnInit, OnDestroy, AfterViewInit
 {
-  // ===== Platform / Zone =====
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly ngZone = inject(NgZone);
   private adjacentSub?: Subscription;
 
+  // route-anim (emesso da AppComponent)
+  routeAnimating = false;
+  private routeAnimUnsub?: () => void;
+
   @ViewChild('relatedSentinel') relatedSentinel!: ElementRef;
   private relatedLoaded = false;
-  // ===== State =====
+
   cocktail: Cocktail | undefined;
   loading = true;
   error: string | null = null;
@@ -253,24 +107,18 @@ export class CocktailDetailComponent
   relatedArticles: Article[] = [];
 
   private readonly AD_EVERY = 6;
-
   isMobile = false;
 
-  /** ✅ Sblocca gli Ad solo quando i dati sono pronti e siamo nel browser */
-  contentReady = false;
+  contentReady = false; // sblocca ads solo quando tutto ok
 
-  /** ✅ Base URL assoluta per canonical/og:url in SSR */
   private siteBaseUrl = '';
   private cocktailSchemaScript: HTMLScriptElement | undefined;
 
-  // ===== WEBP support & helpers =====
   private supportsWebp = false;
 
-  // ===== Refs / listeners =====
   @ViewChild('affiliateCardList') affiliateCardList!: ElementRef;
   private wheelListenerCleanup?: () => void;
 
-  // ===== Subs =====
   private routeSubscription?: Subscription;
   private allCocktailsSubscription?: Subscription;
   private similarCocktailsSubscription?: Subscription;
@@ -305,19 +153,13 @@ export class CocktailDetailComponent
     }
   }
 
-  // ======================
-  // Utilities (defer)
-  // ======================
-  /** Esegue la callback dopo il primo paint, solo in browser */
+  // utils (defer)
   private runAfterFirstPaint(cb: () => void): void {
     if (!this.isBrowser) return;
     this.ngZone.runOutsideAngular(() => {
-      // rAF garantisce paint; setTimeout 0 sposta fuori dalla rAF
       requestAnimationFrame(() => setTimeout(() => cb(), 0));
     });
   }
-
-  /** Sblocca gli ads dopo il primo paint */
   private unlockAdsWhenStable(): void {
     if (!this.isBrowser) return;
     this.runAfterFirstPaint(() => {
@@ -327,24 +169,33 @@ export class CocktailDetailComponent
 
   // ===== Lifecycle =====
   ngOnInit(): void {
-    // 1) SSR/resolver: abbiamo già il cocktail → render immediato
+    // ascolta lo stato animazione pagina
+    if (this.isBrowser) {
+      const handler = (e: Event) => {
+        const detail = (e as CustomEvent<boolean>).detail;
+        this.routeAnimating = !!detail;
+      };
+      window.addEventListener('route-anim', handler as EventListener);
+      this.routeAnimUnsub = () =>
+        window.removeEventListener('route-anim', handler as EventListener);
+    }
+
+    // resolver SSR
     const resolved = this.route.snapshot.data['cocktail'] as Cocktail | null;
     if (resolved) {
       this.cocktail = resolved;
       this.loading = false;
 
-      // hero + SEO
       this.heroSrc = this.getPreferred(this.getCocktailHeroUrl(this.cocktail));
       this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
       this.setSeoTagsAndSchema();
       this.loadPrevNextBySlug(this.cocktail.slug);
 
-      // 3) routing reattivo per navigazioni client-side
       this.subscribeToRouteParams(false);
       return;
     }
 
-    // Fallback: nessun resolver → gestisci route subito (CSR/edge cases)
+    // fallback CSR
     this.subscribeToRouteParams(true);
   }
 
@@ -352,7 +203,6 @@ export class CocktailDetailComponent
     if (!this.isBrowser || !this.affiliateCardList) return;
     const listElement = this.affiliateCardList.nativeElement as HTMLElement;
 
-    // Scorrimento orizzontale con wheel fuori da Angular
     this.ngZone.runOutsideAngular(() => {
       const handler = (event: WheelEvent) => {
         event.preventDefault();
@@ -384,6 +234,7 @@ export class CocktailDetailComponent
     this.cocktailDetailSubscription?.unsubscribe();
     this.adjacentSub?.unsubscribe();
     if (this.wheelListenerCleanup) this.wheelListenerCleanup();
+    if (this.routeAnimUnsub) this.routeAnimUnsub();
     this.cleanupSeo();
   }
 
@@ -398,7 +249,6 @@ export class CocktailDetailComponent
       }
 
       if (!handleFirst) {
-        // la prima navigazione è già stata renderizzata dal resolver
         handleFirst = true;
         return;
       }
@@ -406,19 +256,10 @@ export class CocktailDetailComponent
     });
   }
 
-  /** Avvia le richieste non critiche solo in browser e dopo il paint */
   private kickOffNonCritical(): void {
     if (!this.isBrowser) return;
-
-    // A) Prev/Next: indice ordinato (usa in-memory cache del service)
-
-    // B) Simili
     this.loadSimilarCocktails();
-
-    // C) Articoli correlati
     this.fetchRelatedArticles();
-
-    // D) Ads dopo paint
     this.unlockAdsWhenStable();
   }
 
@@ -427,27 +268,23 @@ export class CocktailDetailComponent
     this.error = null;
     this.similarCocktails = [];
     this.relatedWithAds = [];
-    this.contentReady = false; // blocca ads tra una navigazione e l’altra
+    this.contentReady = false;
     this.cleanupSeo();
-    // Se abbiamo già l’indice in memoria, prova cache rapida per UX
+
     const cached = this.allCocktails.find((c) => c.slug === slug);
     if (cached) {
       this.cocktail = cached;
       this.loading = false;
 
-      // hero + SEO
       this.heroSrc = this.getPreferred(this.getCocktailHeroUrl(this.cocktail));
       this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
       this.setSeoTagsAndSchema();
-
       this.loadPrevNextBySlug(this.cocktail.slug);
 
-      // non critiche, ma sempre deferite (browser)
       this.runAfterFirstPaint(() => this.kickOffNonCritical());
       return;
     }
 
-    // Dettaglio dall’API
     this.cocktailDetailSubscription = this.cocktailService
       .getCocktailBySlug(slug)
       .subscribe({
@@ -459,22 +296,15 @@ export class CocktailDetailComponent
             return;
           }
           this.cocktail = res;
-          //this.fetchAllCocktailsIndex();
           this.setNavigationCocktails(this.cocktail.external_id);
           this.loading = false;
 
-          // hero + SEO
           this.heroSrc = this.getPreferred(
             this.getCocktailHeroUrl(this.cocktail)
           );
           this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
           this.setSeoTagsAndSchema();
-
-          // prev/next: se abbiamo già l’elenco lo aggiorniamo subito,
-          // altrimenti lo calcoleremo quando l’indice arriva
           this.loadPrevNextBySlug(this.cocktail.slug);
-
-          // non critiche deferite
           this.runAfterFirstPaint(() => this.kickOffNonCritical());
         },
         error: () => {
@@ -534,13 +364,11 @@ export class CocktailDetailComponent
           if (used.has(c.id)) return false;
           if (out.length >= LIMIT) return false;
 
-          // Short pill (chip) for the UI
           const existing = (c as Highlightable).primaryHighlight;
           const pill = tag
             ? { text: `With ${tag}` }
             : existing || { text: 'Suggested match' };
 
-          // Style reasons to inform the richer motto
           const styleReasons: string[] = [];
           if (
             this.cocktail?.preparation_type &&
@@ -552,7 +380,6 @@ export class CocktailDetailComponent
           if (this.cocktail?.category && c.category === this.cocktail.category)
             styleReasons.push(c.category!);
 
-          // Friendly, American-English motto for the card’s top line
           const motto = this.makeFriendlyMotto(this.cocktail!, c as Cocktail, {
             tagIngredient: tag || null,
             styleReasons,
@@ -564,12 +391,12 @@ export class CocktailDetailComponent
             similarityMeta?: any;
           };
 
-          enriched.primaryHighlight = pill; // pill/label (short)
-          enriched.matchLabel = pill.text; // legacy support
-          enriched.matchReason = pill.text; // legacy support
+          enriched.primaryHighlight = pill;
+          enriched.matchLabel = pill.text;
+          enriched.matchReason = pill.text;
           enriched.similarityMeta = {
             ...(enriched.similarityMeta || {}),
-            motto, // <-- card reads this (displayMotto)
+            motto,
           };
 
           out.push(enriched);
@@ -603,7 +430,7 @@ export class CocktailDetailComponent
           }
         }
 
-        // 3) Riempi col “base” già rankato (ingredienti/stile/abv…)
+        // 3) Riempi col base
         const baseRanked = (baseList as CocktailWithLayoutAndMatch[]) ?? [];
         for (const c of baseRanked) {
           if (out.length >= LIMIT) break;
@@ -626,7 +453,7 @@ export class CocktailDetailComponent
             push({ ...(c as any), primaryHighlight: label } as Highlightable);
         }
 
-        // 4) Fallback: ricicla prim/sec
+        // 4) Fallback
         if (out.length < LIMIT) {
           for (const c of primList as Cocktail[]) {
             if (out.length >= LIMIT) break;
@@ -639,47 +466,40 @@ export class CocktailDetailComponent
             push(c, secondaryName || undefined);
           }
         }
-        // 🔀 MIX: 2 dal primario, 1 dal base, 1 dal secondario, poi ripeti + riempi con resto
+
+        // Mix 2:1 prim/base/sec
         const isPrim = (x: Highlightable) =>
           primaryName ? hasIng(x as Cocktail, primaryName) : false;
         const isSec = (x: Highlightable) =>
           secondaryName ? hasIng(x as Cocktail, secondaryName) : false;
 
         const primArr = out.filter(isPrim);
-        const secArr = out.filter((x) => !isPrim(x) && isSec(x)); // evita duplicati tra prim/sec
-        const baseArr = out.filter((x) => !isPrim(x) && !isSec(x)); // tutto il resto (base + filler)
+        const secArr = out.filter((x) => !isPrim(x) && isSec(x));
+        const baseArr = out.filter((x) => !isPrim(x) && !isSec(x));
 
         const mixed: Highlightable[] = [];
         const take = (arr: Highlightable[]) =>
           arr.length ? mixed.push(arr.shift()!) : null;
 
-        // ciclo finché abbiamo roba e non superiamo LIMIT
         while (
           mixed.length < LIMIT &&
           (primArr.length || baseArr.length || secArr.length)
         ) {
           take(primArr);
           if (mixed.length >= LIMIT) break;
-
           take(baseArr);
           if (mixed.length >= LIMIT) break;
-
           take(primArr);
           if (mixed.length >= LIMIT) break;
-
           take(secArr);
           if (mixed.length >= LIMIT) break;
-
-          // spezia con un altro base se c’è
           take(baseArr);
         }
 
-        // se avanza spazio, svuota in ordine residuo
         [primArr, baseArr, secArr].forEach((arr) => {
           while (mixed.length < LIMIT && arr.length) take(arr);
         });
 
-        // dedup by id (paranoia) e taglio
         const seenIds = new Set<number>();
         const finalList = mixed.filter((x) =>
           seenIds.has(x.id) ? false : (seenIds.add(x.id), true)
@@ -695,7 +515,6 @@ export class CocktailDetailComponent
     });
   }
 
-  /** Intercala un ad ogni N card, evitando ad in coda, con id stabili */
   private buildRelatedWithAds(): void {
     const list: Highlightable[] = this.similarCocktails ?? [];
     const out: Array<Highlightable | AdSlot> = [];
@@ -709,7 +528,6 @@ export class CocktailDetailComponent
     this.relatedWithAds = out;
   }
 
-  /** trackBy per misto card/ad (id stabili) */
   trackByRelated = (_: number, item: any) =>
     item?.isAd ? item.id : item?.slug ?? item?.id ?? _;
 
@@ -771,7 +589,7 @@ export class CocktailDetailComponent
     this.location.back();
   }
 
-  // --- URL assoluti immagine cocktail/ingredienti (originali) ---
+  // --- IMG utils ---
   getCocktailImageUrl(cocktail: Cocktail | undefined): string {
     if (cocktail?.image?.url) {
       return cocktail.image.url.startsWith('http')
@@ -780,7 +598,6 @@ export class CocktailDetailComponent
     }
     return 'assets/no-image.png';
   }
-
   getIngredientImageUrl(ingredientEntry: any): string {
     if (ingredientEntry?.ingredient?.image?.url) {
       const raw = ingredientEntry.ingredient.image.url.startsWith('http')
@@ -790,22 +607,17 @@ export class CocktailDetailComponent
     }
     return 'assets/no-image.png';
   }
-
-  /** URL thumbnail per miniature nav: thumbnail → small → original */
   getCocktailThumbUrl(cocktail?: Cocktail): string {
     const img: any = cocktail?.image;
     if (!img) return 'assets/no-image.png';
-
     const abs = (u?: string | null) =>
       u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
-
-    if (img?.formats?.thumbnail?.url) return abs(img.formats.thumbnail.url); // ~150w
-    if (img?.formats?.small?.url) return abs(img.formats.small.url); // ~320w
-    if (img?.url) return abs(img.url); // fallback
+    if (img?.formats?.thumbnail?.url) return abs(img.formats.thumbnail.url);
+    if (img?.formats?.small?.url) return abs(img.formats.small.url);
+    if (img?.url) return abs(img.url);
     return 'assets/no-image.png';
   }
 
-  // --- Preferenze WebP + fallback ---
   private checkWebpSupport(): boolean {
     try {
       const canvas = document.createElement('canvas');
@@ -818,19 +630,16 @@ export class CocktailDetailComponent
       return false;
     }
   }
-
   toWebp(url?: string | null): string {
     if (!url) return '';
-    if (url.startsWith('assets/')) return url; // non toccare placeholder locali
+    if (url.startsWith('assets/')) return url;
     return url.replace(/\.(jpe?g|png)(\?.*)?$/i, '.webp$2');
   }
-
   getPreferred(originalUrl?: string | null): string {
     if (!originalUrl) return '';
     if (!this.supportsWebp) return originalUrl;
     return this.toWebp(originalUrl) || originalUrl;
   }
-
   onImgError(evt: Event, originalUrl: string): void {
     const img = evt.target as HTMLImageElement | null;
     if (!img) return;
@@ -839,7 +648,6 @@ export class CocktailDetailComponent
     img.src = originalUrl;
     img.removeAttribute('srcset');
   }
-
   onImgErrorWithSrcset(
     evt: Event,
     originalSrc: string,
@@ -852,14 +660,11 @@ export class CocktailDetailComponent
     img.srcset = originalSrcset || '';
     img.src = originalSrc;
   }
-
   getCocktailImageSrcset(cocktail?: Cocktail): string {
     const img: any = cocktail?.image;
     if (!img) return '';
-
     const abs = (u?: string | null) =>
       u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
-
     const entries: Array<[string, number]> = [];
     if (img?.formats?.thumbnail?.url)
       entries.push([abs(img.formats.thumbnail.url), 150]);
@@ -870,44 +675,37 @@ export class CocktailDetailComponent
     if (img?.formats?.large?.url)
       entries.push([abs(img.formats.large.url), 1024]);
     if (img?.url) entries.push([abs(img.url), 1600]);
-
     return entries
       .filter(([u, w]) => !!u && !!w)
       .map(([u, w]) => `${u.trim()} ${w}w`)
       .join(', ');
   }
-
   getCocktailImageSrcsetPreferred(cocktail?: Cocktail): string {
     const original = this.getCocktailImageSrcset(cocktail);
     if (!this.supportsWebp || !original) return original;
-
     return original
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean)
       .map((entry) => {
         const m = entry.match(/^(?<url>\S+)\s+(?<w>\d+)w$/);
-        if (!m?.groups) return entry; // fallback safe
+        if (!m?.groups) return entry;
         const url = this.toWebp(m.groups['url']);
         return `${url} ${m.groups['w']}w`;
       })
       .join(', ');
   }
-
   getCocktailHeroUrl(cocktail?: Cocktail): string {
     const img: any = cocktail?.image;
     if (!img) return 'assets/no-image.png';
-
     const abs = (u?: string | null) =>
       u ? (u.startsWith('http') ? u : env.apiUrl + u) : '';
-
     const original =
       (img?.formats?.medium?.url && abs(img.formats.medium.url)) ||
       (img?.formats?.large?.url && abs(img.formats.large.url)) ||
       (img?.url && abs(img.url)) ||
       (img?.formats?.small?.url && abs(img.formats.small.url)) ||
       'assets/no-image.png';
-
     return original;
   }
 
@@ -915,7 +713,6 @@ export class CocktailDetailComponent
   onResize(): void {
     this.checkScreenWidth();
   }
-
   checkScreenWidth(): void {
     this.isMobile = this.isBrowser ? window.innerWidth <= 768 : false;
   }
@@ -952,7 +749,6 @@ export class CocktailDetailComponent
       "name='description'"
     );
 
-    // canonical
     const canonicalHref = cocktailUrl || this.router.url;
     const canonicalTag = this.document.querySelector<HTMLLinkElement>(
       'link[rel="canonical"]'
@@ -966,7 +762,6 @@ export class CocktailDetailComponent
       this.renderer.appendChild(this.document.head, linkTag);
     }
 
-    // OG / Twitter
     this.metaService.updateTag({ property: 'og:title', content: cocktailName });
     this.metaService.updateTag({
       property: 'og:description',
@@ -1040,7 +835,6 @@ export class CocktailDetailComponent
     this.metaService.removeTag("name='twitter:image'");
     this.cleanupJsonLd();
 
-    // Rimuovi eventuale preload precedente
     const oldPreload = this.document.querySelector(
       'link[rel="preload"][as="image"][data-preload-hero="1"]'
     );
@@ -1134,105 +928,24 @@ export class CocktailDetailComponent
     };
   }
 
-  /** Scarica tutto l’indice cocktail paginando lato client (rispetta il maxPageSize di Strapi) 
-  private fetchAllCocktailsIndex(): void {
-    const PAGE_SIZE = 100;
-    const collected: Cocktail[] = [];
-
-    this.indexReady = false;
-
-    const first$ = this.cocktailService.getCocktails(
-      1,
-      PAGE_SIZE,
-      undefined,
-      undefined,
-      undefined,
-      true, // sort=slug:asc
-      false
-    );
-
-    this.allCocktailsSubscription = first$.subscribe({
-      next: (firstResp) => {
-        const pageData: Cocktail[] = firstResp?.data || [];
-        collected.push(...pageData);
-
-        const totalPages = firstResp?.meta?.pagination?.pageCount || 1;
-
-        // Caso 1 pagina: già pronto
-        if (totalPages <= 1) {
-          this.allCocktails = collected.slice(); // già ordinati dal backend
-          this.indexReady = true;
-          if (this.cocktail)
-            this.setNavigationCocktails(this.cocktail.external_id);
-          return;
-        }
-
-        // Catena sequenziale 2..N
-        let chain$ = of(null as unknown);
-        for (let p = 2; p <= totalPages; p++) {
-          chain$ = (chain$ as Observable<unknown>).pipe(
-            concatMap(() =>
-              this.cocktailService.getCocktails(
-                p,
-                PAGE_SIZE,
-                undefined,
-                undefined,
-                undefined,
-                true, // sort=slug:asc
-                false
-              )
-            )
-          );
-        }
-
-        this.allCocktailsSubscription?.add(
-          (chain$ as Observable<any>).subscribe({
-            next: (resp) => {
-              if (resp?.data) collected.push(...(resp.data as Cocktail[]));
-            },
-            complete: () => {
-              this.allCocktails = collected; // già in ordine
-              this.indexReady = true;
-              if (this.cocktail)
-                this.setNavigationCocktails(this.cocktail.external_id);
-            },
-            error: () => {
-              this.allCocktails = collected; // usa parziale ma sblocca
-              this.indexReady = true;
-              if (this.cocktail)
-                this.setNavigationCocktails(this.cocktail.external_id);
-            },
-          })
-        );
-      },
-      error: () => {
-        // Non bloccare la UI
-        this.indexReady = true;
-        // opz.: this.error = 'Could not load all cocktails for navigation.';
-      },
-    });
-  }
-*/
-  /** Tipi pubblicitari centralizzati */
+  // ====== AD helpers (mancavano) ======
   getTopAdType(): 'mobile-banner' | 'leaderboard' {
     return this.isMobile ? 'mobile-banner' : 'leaderboard';
   }
   getBottomAdType(): 'mobile-banner' | 'leaderboard' {
     return this.isMobile ? 'mobile-banner' : 'leaderboard';
   }
-  /** Nel loop related: mobile=mobile-banner, desktop=square */
   getLoopAdType(): 'mobile-banner' | 'square' {
     return this.isMobile ? 'mobile-banner' : 'square';
   }
-
-  /** Classe slot: aggiunge la classe specifica per width fissa in CSS */
   adSlotClass(type: string): string {
     return `ad-slot ${type}`;
   }
 
+  // ====== Prev/Next by slug (mancava) ======
   private loadPrevNextBySlug(slug: string): void {
     if (!slug) return;
-    this.indexReady = false; // usiamo lo stesso flag per sbloccare la UI quando pronto
+    this.indexReady = false;
 
     this.adjacentSub?.unsubscribe();
     this.adjacentSub = this.cocktailService
@@ -1268,278 +981,11 @@ export class CocktailDetailComponent
       });
   }
 
-  // -- STOP set "snello" per non contare ingredienti troppo generici --
-  private static readonly STOP = new Set([
-    'vodka',
-    'gin',
-    'rum',
-    'white rum',
-    'light rum',
-    'dark rum',
-    'tequila',
-    'whiskey',
-    'whisky',
-    'bourbon',
-    'scotch',
-    'lemon juice',
-    'lime juice',
-    'simple syrup',
-    'sugar',
-    'sugar syrup',
-    'soda water',
-    'club soda',
-    'water',
-    'ice',
-    'orange juice',
-  ]);
-
-  private norm(s?: string | null) {
-    return (s || '').toLowerCase().trim();
-  }
-
-  private distinctivesOf(c: Cocktail): string[] {
-    const seen = new Set<string>();
-    const firstTwo: string[] = [];
-    const others: string[] = [];
-
-    const pushIfNew = (name?: string | null, force = false) => {
-      const n = this.norm(name);
-      if (!n || seen.has(n)) return;
-      if (force || !CocktailDetailComponent.STOP.has(n)) {
-        seen.add(n);
-        if (force) firstTwo.push(n);
-        else others.push(n);
-      }
-    };
-
-    const list = c?.ingredients_list || [];
-    // 1) prendi SEMPRE i primi 2 ingredienti (forzati)
-    for (let i = 0; i < Math.min(2, list.length); i++) {
-      pushIfNew(list[i]?.ingredient?.name, true);
-    }
-    // 2) poi aggiungi gli altri (escludendo STOP)
-    for (let i = 2; i < list.length; i++) {
-      pushIfNew(list[i]?.ingredient?.name, false);
-    }
-
-    return [...firstTwo, ...others];
-  }
-
-  private countSharedWithSource(c: Cocktail, srcSet: Set<string>): number {
-    let k = 0;
-    (c?.ingredients_list || []).forEach((it: any) => {
-      const n = this.norm(it?.ingredient?.name);
-      if (n && srcSet.has(n)) k++;
-    });
-    return k;
-  }
-
-  private firstSharedKey(
-    c: Cocktail,
-    srcOrder: string[], // lista sorgente ordinata per priorità (1°, 2°, 3°...)
-    srcSet: Set<string>
-  ): string | null {
-    // restituisce il "primo" ingrediente condiviso in base all'ordine del cocktail sorgente
-    for (const key of srcOrder) {
-      const has = (c?.ingredients_list || []).some(
-        (it: any) => this.norm(it?.ingredient?.name) === key
-      );
-      if (has) return key;
-    }
-    return null;
-  }
-  // helper: applica un'etichetta se manca
-  private setLabel(c: Highlightable, text: string) {
-    if (!c.primaryHighlight?.text) c.primaryHighlight = { text };
-  }
-
-  // shuffle deterministica (semplificata) per non avere file incolonnati
-  private seededShuffle<T>(arr: T[], seedStr: string): T[] {
-    let seed = 0;
-    for (let i = 0; i < seedStr.length; i++)
-      seed = (seed * 31 + seedStr.charCodeAt(i)) | 0;
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      seed = (seed * 1664525 + 1013904223) | 0;
-      const j = Math.abs(seed) % (i + 1);
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  private rebalanceByIngredient(
-    ranked: Highlightable[],
-    limit: number
-  ): Highlightable[] {
-    if (!this.cocktail) return ranked.slice(0, limit);
-
-    // 1) distintivi in ordine (1°, 2°, 3°...)
-    const srcOrder = this.distinctivesOf(this.cocktail);
-    const srcSet = new Set(srcOrder);
-    const first = srcOrder[0] || null;
-    const second = srcOrder[1] || null;
-
-    // 2) split strong / weak / filler
-    const strong: Highlightable[] = [];
-    const weak: Highlightable[] = [];
-    const filler: Highlightable[] = [];
-
-    ranked.forEach((c) => {
-      const shared = this.countSharedWithSource(c, srcSet);
-      if (shared >= 2) strong.push(c);
-      else if (shared === 1) weak.push(c);
-      else filler.push(c);
-    });
-
-    // 3) bucket deboli per ingrediente condiviso (rispettando priorità 1°, 2°, …)
-    const buckets = new Map<string, Highlightable[]>();
-    const pickKey = (c: Highlightable): string | null => {
-      for (const k of srcOrder) {
-        if (
-          (c.ingredients_list || []).some(
-            (it) => this.norm(it?.ingredient?.name) === k
-          )
-        )
-          return k;
-      }
-      return null;
-    };
-    weak.forEach((c) => {
-      const k = pickKey(c);
-      if (!k) return;
-      if (!buckets.has(k)) buckets.set(k, []);
-      buckets.get(k)!.push(c);
-    });
-
-    // 4) shuffle leggero per evitare “fiumi di gin”
-    const seed = this.cocktail.slug || String(this.cocktail.id || '');
-    if (first && buckets.get(first))
-      buckets.set(first, this.seededShuffle(buckets.get(first)!, seed + '|1'));
-    if (second && buckets.get(second))
-      buckets.set(
-        second,
-        this.seededShuffle(buckets.get(second)!, seed + '|2')
-      );
-    for (let i = 2; i < srcOrder.length; i++) {
-      const k = srcOrder[i];
-      if (buckets.get(k))
-        buckets.set(
-          k,
-          this.seededShuffle(buckets.get(k)!, seed + '|' + (i + 1))
-        );
-    }
-    const fillerShuffled = this.seededShuffle(filler, seed + '|F');
-
-    const out: Highlightable[] = [];
-    const used = new Set<number>();
-    const push = (c: Highlightable) => {
-      if (!used.has(c.id)) {
-        out.push(c);
-        used.add(c.id);
-      }
-    };
-
-    // 5) prima i forti (≥2 ingredienti)
-    for (const c of strong) {
-      if (out.length >= limit) break;
-      if (!c.primaryHighlight?.text) this.setLabel(c, 'Shares 2+ ingredients');
-      push(c);
-    }
-    if (out.length >= limit) return out.slice(0, limit);
-
-    // 6) round-robin 2:1 tra primo e secondo ingrediente
-    const takeFrom = (key: string | null): boolean => {
-      if (!key) return false;
-      const arr = buckets.get(key);
-      if (!arr?.length) return false;
-      while (arr.length) {
-        const c = arr.shift()!;
-        if (used.has(c.id)) continue;
-        this.setLabel(c, `Shares ${key}`);
-        push(c);
-        return true;
-      }
-      return false;
-    };
-
-    let picksSinceBreak = 0;
-    while (
-      out.length < limit &&
-      (buckets.get(first || '')?.length || buckets.get(second || '')?.length)
-    ) {
-      if (takeFrom(first)) {
-        picksSinceBreak++;
-        if (out.length >= limit) break;
-      }
-      if (takeFrom(first)) {
-        picksSinceBreak++;
-        if (out.length >= limit) break;
-      }
-      if (takeFrom(second)) {
-        picksSinceBreak++;
-        if (out.length >= limit) break;
-      }
-
-      if (picksSinceBreak >= 3 && out.length < limit && fillerShuffled.length) {
-        const f = fillerShuffled.shift()!;
-        const reasons: string[] = [];
-        if (
-          this.cocktail.preparation_type &&
-          f.preparation_type === this.cocktail.preparation_type
-        )
-          reasons.push(f.preparation_type!);
-        if (this.cocktail.glass && f.glass === this.cocktail.glass)
-          reasons.push(f.glass!);
-        if (this.cocktail.category && f.category === this.cocktail.category)
-          reasons.push(f.category!);
-        if (reasons.length) this.setLabel(f, reasons.slice(0, 2).join(' · '));
-        push(f);
-        picksSinceBreak = 0;
-      }
-    }
-
-    // 7) altri ingredienti (3°, 4°, …)
-    for (let i = 2; i < srcOrder.length && out.length < limit; i++) {
-      const k = srcOrder[i];
-      const arr = buckets.get(k) || [];
-      while (arr.length && out.length < limit) {
-        const c = arr.shift()!;
-        if (used.has(c.id)) continue;
-        this.setLabel(c, `Shares ${k}`);
-        push(c);
-      }
-    }
-
-    // 8) riempi con filler
-    while (out.length < limit && fillerShuffled.length) {
-      const f = fillerShuffled.shift()!;
-      if (used.has(f.id)) continue;
-      const reasons: string[] = [];
-      if (
-        this.cocktail.preparation_type &&
-        f.preparation_type === this.cocktail.preparation_type
-      )
-        reasons.push(f.preparation_type!);
-      if (this.cocktail.glass && f.glass === this.cocktail.glass)
-        reasons.push(f.glass!);
-      if (this.cocktail.category && f.category === this.cocktail.category)
-        reasons.push(f.category!);
-      if (reasons.length) this.setLabel(f, reasons.slice(0, 2).join(' · '));
-      push(f);
-    }
-
-    return out.slice(0, limit);
-  }
-
-  /** Genera un motto friendly/SEO per la card in base al motivo di correlazione */
-  /** US-English, concise & editorial-friendly motto generator */
+  // Motto helper
   private makeFriendlyMotto(
     source: Cocktail,
     candidate: Cocktail,
-    opts?: {
-      tagIngredient?: string | null;
-      styleReasons?: string[];
-    }
+    opts?: { tagIngredient?: string | null; styleReasons?: string[] }
   ): string {
     const seed = (candidate.slug || String(candidate.id || '')).toLowerCase();
     const pick = (arr: string[]) => {
@@ -1549,21 +995,12 @@ export class CocktailDetailComponent
       return arr[Math.abs(h) % arr.length];
     };
 
-    const name = candidate.name || 'This cocktail';
     const cat = (candidate.category || 'cocktail').toLowerCase();
-    const meth = candidate.preparation_type || '';
-    const glass = candidate.glass || '';
     const ingr = (candidate.ingredients_list || [])
       .map((i) => (i?.ingredient?.name || '').trim())
       .filter(Boolean);
-
-    const service: string[] = [];
-    if (meth) service.push(meth[0].toUpperCase() + meth.slice(1));
-    if (glass) service.push(glass.toLowerCase());
-    const serviceText = service.join(' · ');
     const twoKeyIngr = ingr.slice(0, 2).join(' + ');
 
-    // 1) Ingredient-driven
     if (opts?.tagIngredient) {
       const tag = opts.tagIngredient;
       return pick([
@@ -1574,7 +1011,6 @@ export class CocktailDetailComponent
       ]);
     }
 
-    // 2) Style-driven (method/glass/category)
     if (opts?.styleReasons?.length) {
       const style = opts.styleReasons.slice(0, 2).join(' · ');
       return pick([
@@ -1585,7 +1021,6 @@ export class CocktailDetailComponent
       ]);
     }
 
-    // 3) Fallback with brief flavor tone
     if (twoKeyIngr) {
       return pick([
         `${twoKeyIngr} — a balanced ${cat}.`,
@@ -1595,7 +1030,6 @@ export class CocktailDetailComponent
       ]);
     }
 
-    // 4) Neutral fallback
     return pick([
       `A related ${cat} in similar style.`,
       `Another classic within the same family.`,

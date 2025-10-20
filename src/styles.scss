@@ -360,3 +360,9 @@ h1 {
 .app-main.is-animating {
   overflow: hidden; // evita comparsa/scomparsa scrollbar durante il transition
 }
+@media (prefers-reduced-motion: reduce) {
+  :root .app-main.allow-route-anim > * {
+    animation: initial !important;
+    transition: initial !important;
+  }
+}
