@@ -167,61 +167,69 @@ export class AppComponent {
         const path = e.urlAfterRedirects.split('?')[0];
         const pathChanged = lastPath !== path;
         lastPath = path;
-
         if (!pathChanged) return;
+
         const nav = this.router.getCurrentNavigation();
 
-        // ✅ conta SOLO lo state della navigazione corrente
+        // SOLO lo state della navigazione corrente
         const suppress =
           !!nav?.extras?.state &&
           (nav.extras.state as any).suppressScroll === true;
-
         if (suppress) return;
 
-        // ✅ esegui solo in browser (evita SSR) e usa DOCUMENT iniettato
         if (!this.isBrowser) return;
 
-        // --- iOS-safe micro scroll ---
         const doScrollTop = () => {
           const doc = this.document as Document;
-          const main = doc.querySelector('.app-main') as HTMLElement | null;
 
-          const isScrollable = (el: HTMLElement | null) => {
-            if (!el) return false;
+          // 🔎 Candidati comuni nelle tue viste
+          const candidates: (Element | null)[] = [
+            doc.querySelector('.app-main'),
+            doc.querySelector('.detail-wrapper'),
+            doc.querySelector('.ingredient-detail-wrapper'),
+            doc.querySelector('.list-wrapper'),
+            doc.scrollingElement || doc.documentElement,
+          ];
+
+          const isScrollable = (el: Element | null) => {
+            if (!el || !(el instanceof HTMLElement)) return false;
             const s = getComputedStyle(el);
-            return s.overflowY === 'auto' || s.overflowY === 'scroll';
+            const canScroll =
+              s.overflowY === 'auto' ||
+              s.overflowY === 'scroll' ||
+              s.overflowY === 'overlay';
+            return canScroll && el.scrollHeight > el.clientHeight;
           };
 
-          const target: HTMLElement | Element = isScrollable(main)
-            ? (main as HTMLElement)
-            : doc.scrollingElement || doc.documentElement;
+          // Primo scrollable valido, altrimenti fallback al documento
+          const target =
+            (candidates.find(isScrollable) as HTMLElement | null) ||
+            (doc.scrollingElement as HTMLElement) ||
+            (doc.documentElement as HTMLElement);
 
-          const currentTop =
-            target instanceof HTMLElement
-              ? target.scrollTop
-              : (doc.scrollingElement || doc.documentElement).scrollTop;
+          const before = target.scrollTop;
 
           const nudge = () => {
-            if (target instanceof HTMLElement) {
-              if (currentTop <= 4)
-                target.scrollTo({ top: 1, left: 0, behavior: 'auto' });
-              target.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-            } else {
-              const el = doc.scrollingElement || doc.documentElement;
-              if (currentTop <= 4)
-                el.scrollTo({ top: 1, left: 0, behavior: 'auto' });
-              el.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-            }
+            // 👇 nudge “forte” per test su iPhone. Quando confermi che si vede, riporta 24→1.
+            if (before <= 4)
+              target.scrollTo({ top: 24, left: 0, behavior: 'auto' });
+            target.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+
+            // LOG diagnostico: verifica container e valori
+            console.log('[scrollTop]', {
+              path,
+              target:
+                (target as HTMLElement).className ||
+                (target as HTMLElement).tagName,
+              before,
+              after: target.scrollTop,
+            });
           };
 
-          // doppio rAF: aspetta il paint della nuova route (critico su iOS Safari)
-          const raf =
-            (window as any).requestAnimationFrame?.bind(window) ||
-            ((cb: any) => setTimeout(cb, 0));
+          const raf = window.requestAnimationFrame.bind(window);
           raf(() => raf(nudge));
         };
 
-        // ⬅️ chiama la funzione al posto di viewportScroller.scrollToPosition([0,0])
         doScrollTop();
       });
   }
