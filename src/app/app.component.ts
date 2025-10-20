@@ -9,6 +9,7 @@ import {
   ViewportScroller,
   CommonModule,
   isPlatformBrowser,
+  DOCUMENT,
 } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import {
@@ -140,6 +141,8 @@ export class AppComponent {
   private readonly viewportService = inject(ViewportService);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
+  private readonly document = inject(DOCUMENT);
+
   // 👉 params “mobile-safe”
   protected readonly isTouch =
     this.isBrowser &&
@@ -168,14 +171,58 @@ export class AppComponent {
         if (!pathChanged) return;
         const nav = this.router.getCurrentNavigation();
 
-        // considera SOLO lo state della navigazione corrente
+        // ✅ conta SOLO lo state della navigazione corrente
         const suppress =
           !!nav?.extras?.state &&
           (nav.extras.state as any).suppressScroll === true;
 
         if (suppress) return;
 
-        this.viewportScroller.scrollToPosition([0, 0]);
+        // ✅ esegui solo in browser (evita SSR) e usa DOCUMENT iniettato
+        if (!this.isBrowser) return;
+
+        // --- iOS-safe micro scroll ---
+        const doScrollTop = () => {
+          const doc = this.document as Document;
+          const main = doc.querySelector('.app-main') as HTMLElement | null;
+
+          const isScrollable = (el: HTMLElement | null) => {
+            if (!el) return false;
+            const s = getComputedStyle(el);
+            return s.overflowY === 'auto' || s.overflowY === 'scroll';
+          };
+
+          const target: HTMLElement | Element = isScrollable(main)
+            ? (main as HTMLElement)
+            : doc.scrollingElement || doc.documentElement;
+
+          const currentTop =
+            target instanceof HTMLElement
+              ? target.scrollTop
+              : (doc.scrollingElement || doc.documentElement).scrollTop;
+
+          const nudge = () => {
+            if (target instanceof HTMLElement) {
+              if (currentTop <= 4)
+                target.scrollTo({ top: 1, left: 0, behavior: 'auto' });
+              target.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            } else {
+              const el = doc.scrollingElement || doc.documentElement;
+              if (currentTop <= 4)
+                el.scrollTo({ top: 1, left: 0, behavior: 'auto' });
+              el.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            }
+          };
+
+          // doppio rAF: aspetta il paint della nuova route (critico su iOS Safari)
+          const raf =
+            (window as any).requestAnimationFrame?.bind(window) ||
+            ((cb: any) => setTimeout(cb, 0));
+          raf(() => raf(nudge));
+        };
+
+        // ⬅️ chiama la funzione al posto di viewportScroller.scrollToPosition([0,0])
+        doScrollTop();
       });
   }
 
