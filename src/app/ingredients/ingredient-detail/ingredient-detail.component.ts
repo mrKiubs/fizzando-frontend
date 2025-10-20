@@ -192,6 +192,7 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.relatedCocktailsSubscription?.unsubscribe();
     this.cleanupSeo();
+    if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
   }
 
   // === router / data ========================================================
@@ -576,7 +577,6 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
       const nextIsMobile = window.innerWidth <= 768;
       if (nextIsMobile !== this.isMobile) {
         this.isMobile = nextIsMobile;
-        this.updateAdSlotTypes();
         this.cdr.markForCheck();
       }
     });

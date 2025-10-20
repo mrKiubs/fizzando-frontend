@@ -1,3 +1,4 @@
+// src/app/cocktails/cocktail-detail/cocktail-detail.component.ts
 import {
   Component,
   OnInit,
@@ -12,7 +13,7 @@ import {
   HostListener,
   inject,
 } from '@angular/core';
-import { concatMap, map } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import {
   CommonModule,
   DOCUMENT,
@@ -24,7 +25,7 @@ import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
-import { forkJoin, Observable, of, Subscription } from 'rxjs';
+import { firstValueFrom, forkJoin, Observable, of, Subscription } from 'rxjs';
 import { Title, Meta } from '@angular/platform-browser';
 
 import {
@@ -42,6 +43,7 @@ import { SentenceBreaksDirective } from '../../assets/pipes/sentence-breaks.pipe
 type Highlightable = CocktailWithLayoutAndMatch & {
   primaryHighlight?: { text: string };
 };
+
 interface AdSlot {
   isAd: true;
   id: string;
@@ -51,6 +53,7 @@ interface AdSlot {
 @Component({
   selector: 'app-cocktail-detail',
   standalone: true,
+  // NOTA: niente OnPush qui, per stabilità
   imports: [
     CommonModule,
     MatIconModule,
@@ -70,14 +73,11 @@ export class CocktailDetailComponent
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly ngZone = inject(NgZone);
-  private adjacentSub?: Subscription;
-
-  // route-anim (emesso da AppComponent)
-  routeAnimating = false;
-  private routeAnimUnsub?: () => void;
 
   @ViewChild('relatedSentinel') relatedSentinel!: ElementRef;
   private relatedLoaded = false;
+  private io?: IntersectionObserver;
+  private relatedFallbackTimer?: any;
 
   cocktail: Cocktail | undefined;
   loading = true;
@@ -108,8 +108,7 @@ export class CocktailDetailComponent
 
   private readonly AD_EVERY = 6;
   isMobile = false;
-
-  contentReady = false; // sblocca ads solo quando tutto ok
+  contentReady = false;
 
   private siteBaseUrl = '';
   private cocktailSchemaScript: HTMLScriptElement | undefined;
@@ -120,9 +119,9 @@ export class CocktailDetailComponent
   private wheelListenerCleanup?: () => void;
 
   private routeSubscription?: Subscription;
-  private allCocktailsSubscription?: Subscription;
   private similarCocktailsSubscription?: Subscription;
   private cocktailDetailSubscription?: Subscription;
+  private adjacentSub?: Subscription;
 
   private _bo = inject(BreakpointObserver);
   isHandset = toSignal(
@@ -153,34 +152,9 @@ export class CocktailDetailComponent
     }
   }
 
-  // utils (defer)
-  private runAfterFirstPaint(cb: () => void): void {
-    if (!this.isBrowser) return;
-    this.ngZone.runOutsideAngular(() => {
-      requestAnimationFrame(() => setTimeout(() => cb(), 0));
-    });
-  }
-  private unlockAdsWhenStable(): void {
-    if (!this.isBrowser) return;
-    this.runAfterFirstPaint(() => {
-      this.ngZone.run(() => (this.contentReady = true));
-    });
-  }
-
   // ===== Lifecycle =====
   ngOnInit(): void {
-    // ascolta lo stato animazione pagina
-    if (this.isBrowser) {
-      const handler = (e: Event) => {
-        const detail = (e as CustomEvent<boolean>).detail;
-        this.routeAnimating = !!detail;
-      };
-      window.addEventListener('route-anim', handler as EventListener);
-      this.routeAnimUnsub = () =>
-        window.removeEventListener('route-anim', handler as EventListener);
-    }
-
-    // resolver SSR
+    // SSR resolver pronto?
     const resolved = this.route.snapshot.data['cocktail'] as Cocktail | null;
     if (resolved) {
       this.cocktail = resolved;
@@ -192,50 +166,108 @@ export class CocktailDetailComponent
       this.loadPrevNextBySlug(this.cocktail.slug);
 
       this.subscribeToRouteParams(false);
+      // Lancia subito le non-critiche (non blocca il paint)
+      this.runAfterFirstPaint(() => this.kickOffNonCritical());
       return;
     }
 
-    // fallback CSR
+    // Fallback CSR
     this.subscribeToRouteParams(true);
   }
 
   ngAfterViewInit(): void {
-    if (!this.isBrowser || !this.affiliateCardList) return;
-    const listElement = this.affiliateCardList.nativeElement as HTMLElement;
+    if (!this.isBrowser) return;
 
-    this.ngZone.runOutsideAngular(() => {
-      const handler = (event: WheelEvent) => {
-        event.preventDefault();
-        listElement.scrollLeft += event.deltaY;
-      };
-      listElement.addEventListener('wheel', handler, { passive: false });
-      this.wheelListenerCleanup = () =>
-        listElement.removeEventListener('wheel', handler as any);
-    });
+    // Scroll orizzontale “wheel” per lista affiliati (se presente in DOM)
+    if (this.affiliateCardList?.nativeElement) {
+      const listElement = this.affiliateCardList.nativeElement as HTMLElement;
+      this.ngZone.runOutsideAngular(() => {
+        const handler = (event: WheelEvent) => {
+          event.preventDefault();
+          listElement.scrollLeft += event.deltaY;
+        };
+        listElement.addEventListener('wheel', handler, { passive: false });
+        this.wheelListenerCleanup = () =>
+          listElement.removeEventListener('wheel', handler as any);
+      });
+    }
 
-    if (!this.isBrowser || !this.relatedSentinel) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (!this.relatedLoaded && entries.some((e) => e.isIntersecting)) {
+    // Lazy correlati con IO + fallback timer
+    if (this.relatedSentinel?.nativeElement) {
+      this.io = new IntersectionObserver(
+        (entries) => {
+          if (!this.relatedLoaded && entries.some((e) => e.isIntersecting)) {
+            this.relatedLoaded = true;
+            this.loadSimilarCocktails();
+            this.io?.disconnect();
+            clearTimeout(this.relatedFallbackTimer);
+          }
+        },
+        { rootMargin: '200px' }
+      );
+      this.io.observe(this.relatedSentinel.nativeElement);
+
+      // Fallback: se il sentinel non entra presto, carica comunque
+      this.relatedFallbackTimer = setTimeout(() => {
+        if (!this.relatedLoaded) {
           this.relatedLoaded = true;
           this.loadSimilarCocktails();
-          io.disconnect();
+          this.io?.disconnect();
         }
-      },
-      { rootMargin: '200px' }
-    );
-    io.observe(this.relatedSentinel.nativeElement);
+      }, 800);
+    }
   }
 
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
-    this.allCocktailsSubscription?.unsubscribe();
     this.similarCocktailsSubscription?.unsubscribe();
     this.cocktailDetailSubscription?.unsubscribe();
     this.adjacentSub?.unsubscribe();
     if (this.wheelListenerCleanup) this.wheelListenerCleanup();
-    if (this.routeAnimUnsub) this.routeAnimUnsub();
+    if (this.io) this.io.disconnect();
+    clearTimeout(this.relatedFallbackTimer);
     this.cleanupSeo();
+  }
+
+  private async ensureHydratedCocktail(): Promise<void> {
+    if (!this.cocktail?.slug) return;
+
+    const needsHydration =
+      !Array.isArray(this.cocktail.ingredients_list) ||
+      this.cocktail.ingredients_list.length === 0 ||
+      !this.cocktail.image?.url;
+
+    if (!needsHydration) return;
+
+    try {
+      const fresh = await firstValueFrom(
+        this.cocktailService.getCocktailBySlug(this.cocktail.slug)
+      );
+      if (fresh) {
+        this.cocktail = fresh;
+        // aggiorna hero/srcset se servono
+        this.heroSrc = this.getPreferred(
+          this.getCocktailHeroUrl(this.cocktail)
+        );
+        this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
+        this.setSeoTagsAndSchema();
+      }
+    } catch {
+      // non bloccare la pagina se l'idratazione fallisce
+    }
+  }
+
+  // ===== Helpers defer =====
+  private runAfterFirstPaint(cb: () => void): void {
+    if (!this.isBrowser) return;
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => setTimeout(() => cb(), 0));
+    });
+  }
+
+  private unlockAdsWhenStable(): void {
+    if (!this.isBrowser) return;
+    this.runAfterFirstPaint(() => (this.contentReady = true));
   }
 
   // ===== Routing/Data =====
@@ -247,7 +279,6 @@ export class CocktailDetailComponent
         this.loading = false;
         return;
       }
-
       if (!handleFirst) {
         handleFirst = true;
         return;
@@ -256,9 +287,24 @@ export class CocktailDetailComponent
     });
   }
 
-  private kickOffNonCritical(): void {
+  private async kickOffNonCritical(): Promise<void> {
     if (!this.isBrowser) return;
+
+    // 1) assicurati di avere una cocktail “completa”
+    await this.ensureHydratedCocktail();
+
+    // 2) calcola i correlati subito (anche se il sentinel non è entrato)
+    if (!this.relatedLoaded) this.relatedLoaded = true;
     this.loadSimilarCocktails();
+
+    // 3) fallback: se dopo un attimo sono ancora vuoti, riprova una volta
+    setTimeout(() => {
+      if (!this.similarCocktails?.length) {
+        this.loadSimilarCocktails();
+      }
+    }, 700);
+
+    // 4) resto delle non-critiche
     this.fetchRelatedArticles();
     this.unlockAdsWhenStable();
   }
@@ -296,7 +342,6 @@ export class CocktailDetailComponent
             return;
           }
           this.cocktail = res;
-          this.setNavigationCocktails(this.cocktail.external_id);
           this.loading = false;
 
           this.heroSrc = this.getPreferred(
@@ -305,6 +350,7 @@ export class CocktailDetailComponent
           this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
           this.setSeoTagsAndSchema();
           this.loadPrevNextBySlug(this.cocktail.slug);
+
           this.runAfterFirstPaint(() => this.kickOffNonCritical());
         },
         error: () => {
@@ -315,6 +361,68 @@ export class CocktailDetailComponent
       });
   }
 
+  // helper: “safe” observable che non fa fallire forkJoin/combine
+  private safeList$<T>(
+    obs: Observable<T[] | null | undefined>
+  ): Observable<T[]> {
+    return obs.pipe(
+      map((v) => (Array.isArray(v) ? v : [])),
+      catchError(() => of([]))
+    );
+  }
+
+  // helper: aggiunge in “out” rispettando limiti / esclusioni
+  private pushCandidate(
+    out: Highlightable[],
+    used: Set<string | number>,
+    currentId: string | number,
+    cand: Cocktail | Highlightable,
+    opts: {
+      tag?: string;
+      source?: Cocktail; // this.cocktail
+      limit: number;
+    }
+  ) {
+    if (!cand) return false;
+    const cid = (cand as any).id as string | number | undefined;
+    if (cid == null) return false;
+    if (cid == (currentId as any)) return false; // evita self anche se string/number
+    if (used.has(cid)) return false;
+    if (out.length >= opts.limit) return false;
+
+    const pill = opts.tag
+      ? { text: `With ${opts.tag}` }
+      : (cand as any).primaryHighlight || { text: 'Suggested match' };
+
+    // mini “styleReasons” come prima
+    const s = opts.source;
+    const styleReasons: string[] = [];
+    if (s?.preparation_type && cand.preparation_type === s.preparation_type)
+      styleReasons.push(cand.preparation_type!);
+    if (s?.glass && cand.glass === s.glass) styleReasons.push(cand.glass!);
+    if (s?.category && cand.category === s.category)
+      styleReasons.push(cand.category!);
+
+    const motto = this.makeFriendlyMotto(opts.source!, cand as Cocktail, {
+      tagIngredient: opts.tag || null,
+      styleReasons,
+    });
+
+    const enriched = { ...(cand as any) } as Highlightable & {
+      matchLabel?: string;
+      matchReason?: string;
+      similarityMeta?: any;
+    };
+    enriched.primaryHighlight = pill;
+    enriched.matchLabel = pill.text;
+    enriched.matchReason = pill.text;
+    enriched.similarityMeta = { ...(enriched.similarityMeta || {}), motto };
+
+    out.push(enriched);
+    used.add(cid);
+    return true;
+  }
+
   loadSimilarCocktails(): void {
     if (!this.isBrowser || !this.cocktail) {
       this.similarCocktails = [];
@@ -323,6 +431,7 @@ export class CocktailDetailComponent
     }
 
     const LIMIT = 21;
+    const MIN = 8; // minimo “dignitoso” prima dei fallback
     const Q_PRIMARY = 9;
     const Q_SECONDARY = 5;
 
@@ -332,105 +441,71 @@ export class CocktailDetailComponent
         (it: any) => norm(it?.ingredient?.name) === norm(name)
       );
 
-    const currentId = this.cocktail.id;
-    const primaryName =
-      this.cocktail.ingredients_list?.[0]?.ingredient?.name || null;
-    const primaryId =
-      this.cocktail.ingredients_list?.[0]?.ingredient?.external_id || null;
-    const secondaryName =
-      this.cocktail.ingredients_list?.[1]?.ingredient?.name || null;
-    const secondaryId =
-      this.cocktail.ingredients_list?.[1]?.ingredient?.external_id || null;
+    const currentId = this.cocktail.id as any;
+    const ingList = (this.cocktail.ingredients_list || [])
+      .map((x) => x?.ingredient)
+      .filter(Boolean);
+    const primary = ingList[0] || null;
+    const secondary = ingList[1] || null;
 
-    const base$ = this.cocktailService.getSimilarCocktails(this.cocktail);
+    const primaryName = primary?.name || null;
+    const primaryId = primary?.external_id || null;
+    const secondaryName = secondary?.name || null;
+    const secondaryId = secondary?.external_id || null;
+
+    // richieste “safe”
+    const base$ = this.safeList$(
+      this.cocktailService.getSimilarCocktails(this.cocktail)
+    );
     const prim$ = primaryId
-      ? this.cocktailService.getRelatedCocktailsForIngredient(primaryId)
+      ? this.safeList$(
+          this.cocktailService.getRelatedCocktailsForIngredient(primaryId)
+        )
       : of([]);
     const sec$ = secondaryId
-      ? this.cocktailService.getRelatedCocktailsForIngredient(secondaryId)
+      ? this.safeList$(
+          this.cocktailService.getRelatedCocktailsForIngredient(secondaryId)
+        )
       : of([]);
 
-    this.similarCocktailsSubscription = forkJoin([
-      base$,
-      prim$,
-      sec$,
-    ]).subscribe({
-      next: ([baseList, primList, secList]) => {
-        const used = new Set<number>();
+    forkJoin([base$, prim$, sec$]).subscribe({
+      next: async ([baseList, primList, secList]) => {
+        const used = new Set<string | number>();
         const out: Highlightable[] = [];
-
-        const push = (c: Cocktail | Highlightable, tag?: string) => {
-          if (!c || c.id === currentId) return false;
-          if (used.has(c.id)) return false;
-          if (out.length >= LIMIT) return false;
-
-          const existing = (c as Highlightable).primaryHighlight;
-          const pill = tag
-            ? { text: `With ${tag}` }
-            : existing || { text: 'Suggested match' };
-
-          const styleReasons: string[] = [];
-          if (
-            this.cocktail?.preparation_type &&
-            c.preparation_type === this.cocktail.preparation_type
-          )
-            styleReasons.push(c.preparation_type!);
-          if (this.cocktail?.glass && c.glass === this.cocktail.glass)
-            styleReasons.push(c.glass!);
-          if (this.cocktail?.category && c.category === this.cocktail.category)
-            styleReasons.push(c.category!);
-
-          const motto = this.makeFriendlyMotto(this.cocktail!, c as Cocktail, {
-            tagIngredient: tag || null,
-            styleReasons,
+        const push = (c: Cocktail | Highlightable, tag?: string) =>
+          this.pushCandidate(out, used, currentId, c, {
+            tag,
+            source: this.cocktail!,
+            limit: LIMIT,
           });
 
-          const enriched = { ...(c as any) } as Highlightable & {
-            matchLabel?: string;
-            matchReason?: string;
-            similarityMeta?: any;
-          };
-
-          enriched.primaryHighlight = pill;
-          enriched.matchLabel = pill.text;
-          enriched.matchReason = pill.text;
-          enriched.similarityMeta = {
-            ...(enriched.similarityMeta || {}),
-            motto,
-          };
-
-          out.push(enriched);
-          used.add(enriched.id);
-          return true;
-        };
-
-        // 1) 9 dal PRIMO ingrediente
+        // 1) fino a 9 dal primo ingrediente
         if (primaryName && primList?.length) {
-          for (const c of primList as Cocktail[]) {
-            if (out.length >= LIMIT) break;
+          for (const c of primList) {
             if (hasIng(c, primaryName)) push(c, primaryName);
             if (
               out.filter((x) => hasIng(x as Cocktail, primaryName)).length >=
               Q_PRIMARY
             )
               break;
+            if (out.length >= LIMIT) break;
           }
         }
 
-        // 2) 5 dal SECONDO ingrediente
+        // 2) fino a 5 dal secondo
         if (secondaryName && secList?.length) {
-          for (const c of secList as Cocktail[]) {
-            if (out.length >= LIMIT) break;
+          for (const c of secList) {
             if (hasIng(c, secondaryName)) push(c, secondaryName);
             if (
               out.filter((x) => hasIng(x as Cocktail, secondaryName)).length >=
               Q_SECONDARY
             )
               break;
+            if (out.length >= LIMIT) break;
           }
         }
 
-        // 3) Riempi col base
+        // 3) base rankato (con pill “style” se coincide)
         const baseRanked = (baseList as CocktailWithLayoutAndMatch[]) ?? [];
         for (const c of baseRanked) {
           if (out.length >= LIMIT) break;
@@ -441,76 +516,122 @@ export class CocktailDetailComponent
             c.preparation_type === this.cocktail.preparation_type
           )
             reasons.push(c.preparation_type!);
-          if (this.cocktail?.glass && c.glass === this?.cocktail.glass)
+          if (this.cocktail?.glass && c.glass === this.cocktail.glass)
             reasons.push(c.glass!);
-          if (this.cocktail?.category && c.category === this.cocktail?.category)
+          if (this.cocktail?.category && c.category === this.cocktail.category)
             reasons.push(c.category!);
 
           const label = reasons.length
             ? { text: reasons.slice(0, 2).join(' · ') }
             : undefined;
-          if (!used.has(c.id))
-            push({ ...(c as any), primaryHighlight: label } as Highlightable);
+          const withLabel = label
+            ? ({ ...(c as any), primaryHighlight: label } as Highlightable)
+            : (c as any);
+          push(withLabel);
         }
 
-        // 4) Fallback
-        if (out.length < LIMIT) {
-          for (const c of primList as Cocktail[]) {
+        // 4) riempitivi “largheggianti” (togliendo il vincolo hasIng)
+        if (out.length < LIMIT && primList?.length) {
+          for (const c of primList) {
             if (out.length >= LIMIT) break;
             push(c, primaryName || undefined);
           }
         }
-        if (out.length < LIMIT) {
-          for (const c of secList as Cocktail[]) {
+        if (out.length < LIMIT && secList?.length) {
+          for (const c of secList) {
             if (out.length >= LIMIT) break;
             push(c, secondaryName || undefined);
           }
         }
 
-        // Mix 2:1 prim/base/sec
-        const isPrim = (x: Highlightable) =>
-          primaryName ? hasIng(x as Cocktail, primaryName) : false;
-        const isSec = (x: Highlightable) =>
-          secondaryName ? hasIng(x as Cocktail, secondaryName) : false;
+        // -------- Fallback robusti --------
 
-        const primArr = out.filter(isPrim);
-        const secArr = out.filter((x) => !isPrim(x) && isSec(x));
-        const baseArr = out.filter((x) => !isPrim(x) && !isSec(x));
+        // Fallback A: se sotto soglia MIN, prova più ingredienti (fino a 5) in parallelo
+        if (out.length < MIN && ingList.length) {
+          const extraIds = ingList
+            .map((i: any) => i?.external_id)
+            .filter(Boolean)
+            .slice(0, 5) as string[];
 
-        const mixed: Highlightable[] = [];
-        const take = (arr: Highlightable[]) =>
-          arr.length ? mixed.push(arr.shift()!) : null;
-
-        while (
-          mixed.length < LIMIT &&
-          (primArr.length || baseArr.length || secArr.length)
-        ) {
-          take(primArr);
-          if (mixed.length >= LIMIT) break;
-          take(baseArr);
-          if (mixed.length >= LIMIT) break;
-          take(primArr);
-          if (mixed.length >= LIMIT) break;
-          take(secArr);
-          if (mixed.length >= LIMIT) break;
-          take(baseArr);
+          if (extraIds.length) {
+            const extra$ = forkJoin(
+              extraIds.map((id) =>
+                this.safeList$(
+                  this.cocktailService.getRelatedCocktailsForIngredient(id)
+                )
+              )
+            );
+            const extraGroups = await firstValueFrom(extra$);
+            for (const group of extraGroups) {
+              for (const c of group) {
+                if (out.length >= LIMIT) break;
+                push(c);
+              }
+              if (out.length >= LIMIT) break;
+            }
+          }
         }
 
-        [primArr, baseArr, secArr].forEach((arr) => {
-          while (mixed.length < LIMIT && arr.length) take(arr);
-        });
+        // Fallback B: ancora pochi? usa prev/next dello slug (se disponibili) come “mini correlati”
+        if (out.length < MIN && this.cocktail?.slug) {
+          try {
+            const adj = await firstValueFrom(
+              this.cocktailService.getAdjacentCocktailsBySlug(
+                this.cocktail.slug
+              )
+            );
+            if (adj?.prev) push(adj.prev);
+            if (adj?.next) push(adj.next);
+          } catch {
+            // silenzioso: niente crash se fallisce
+          }
+        }
 
-        const seenIds = new Set<number>();
-        const finalList = mixed.filter((x) =>
-          seenIds.has(x.id) ? false : (seenIds.add(x.id), true)
-        );
+        // dedup rigoroso
+        const seen = new Set<string | number>();
+        const finalList = out.filter((x: any) => {
+          const id = x?.id as any;
+          if (id == null) return false;
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
 
         this.similarCocktails = finalList.slice(0, LIMIT);
         this.buildRelatedWithAds();
+
+        // se davvero è rimasto vuoto, tenta un'ultima volta solo “base”
+        if (!this.similarCocktails.length && this.cocktail) {
+          try {
+            const baseOnly = await firstValueFrom(
+              this.safeList$(
+                this.cocktailService.getSimilarCocktails(this.cocktail)
+              )
+            );
+            this.similarCocktails = (baseOnly || []).slice(0, LIMIT) as any;
+            this.buildRelatedWithAds();
+          } catch {
+            // ignora
+          }
+        }
       },
       error: () => {
-        this.similarCocktails = [];
-        this.relatedWithAds = [];
+        // fallback totale ma “non muto”: metti prev/next se li hai
+        const mini: Highlightable[] = [];
+        if (this.previousCocktail) {
+          mini.push({
+            ...(this.previousCocktail as any),
+            id: this.previousCocktail.externalId,
+          } as any);
+        }
+        if (this.nextCocktail) {
+          mini.push({
+            ...(this.nextCocktail as any),
+            id: this.nextCocktail.externalId,
+          } as any);
+        }
+        this.similarCocktails = mini;
+        this.relatedWithAds = mini;
       },
     });
   }
@@ -928,7 +1049,7 @@ export class CocktailDetailComponent
     };
   }
 
-  // ====== AD helpers (mancavano) ======
+  // ====== AD helpers ======
   getTopAdType(): 'mobile-banner' | 'leaderboard' {
     return this.isMobile ? 'mobile-banner' : 'leaderboard';
   }
@@ -942,7 +1063,7 @@ export class CocktailDetailComponent
     return `ad-slot ${type}`;
   }
 
-  // ====== Prev/Next by slug (mancava) ======
+  // ====== Prev/Next by slug ======
   private loadPrevNextBySlug(slug: string): void {
     if (!slug) return;
     this.indexReady = false;
