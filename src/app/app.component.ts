@@ -11,7 +11,7 @@ import {
   CommonModule,
   isPlatformBrowser,
   DOCUMENT,
-  ViewportScroller, // 👈
+  ViewportScroller,
 } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import {
@@ -41,6 +41,7 @@ import { ViewportService } from './services/viewport.service';
   ],
   animations: [
     trigger('pageTransition', [
+      // percorso senza animazioni (skip)
       transition('noanim <=> *', [
         style({ position: 'relative' }),
         query(':enter, :leave', [style({ opacity: 1, transform: 'none' })], {
@@ -48,34 +49,33 @@ import { ViewportService } from './services/viewport.service';
         }),
         query(':leave', [style({ display: 'none' })], { optional: true }),
       ]),
+      // percorso animato
       transition(
         '* <=> *',
         [
           style({ position: 'relative' }),
+
+          // layering
           query(':leave', [style({ zIndex: 1, pointerEvents: 'none' })], {
             optional: true,
           }),
           query(':enter', [style({ zIndex: 0 })], { optional: true }),
+
+          // stato iniziale di :enter
           query(
             ':enter',
-            [
-              style({
-                opacity: 0,
-                transform: 'translateY({{enterY}})',
-              }),
-            ],
+            [style({ opacity: 0, transform: 'translateY({{enterY}})' })],
             { optional: true }
           ),
+
+          // animazioni in parallelo
           group([
             query(
               ':leave',
               [
                 animate(
                   '{{leaveDuration}} {{leaveEasing}}',
-                  style({
-                    opacity: 0,
-                    transform: 'translateY({{leaveY}})',
-                  })
+                  style({ opacity: 0, transform: 'translateY({{leaveY}})' })
                 ),
               ],
               { optional: true }
@@ -111,13 +111,11 @@ import { ViewportService } from './services/viewport.service';
 
     <main
       class="app-main"
-      [class.is-animating]="isAnimating"
       [@pageTransition]="{
         value: getRouteAnimationData(routerOutlet),
         params: animParams
       }"
-      (@pageTransition.start)="onAnimStart()"
-      (@pageTransition.done)="onAnimDone()"
+      (@pageTransition.done)="onRouteAnimDone()"
     >
       <router-outlet #routerOutlet="outlet"></router-outlet>
     </main>
@@ -136,16 +134,12 @@ import { ViewportService } from './services/viewport.service';
     `
       @use './assets/style/main.scss' as *;
 
-      .app-main.is-animating {
-        overflow: hidden;
-      }
-
+      /* niente overflow:hidden qui: non tocchiamo il contenitore di scroll */
       .app-footer-placeholder {
         display: block;
         min-height: 120px;
         width: 100%;
       }
-
       .cocktail-bubbles-placeholder {
         position: fixed;
         inset: auto 0 0 0;
@@ -160,10 +154,9 @@ export class AppComponent {
   private readonly viewportService = inject(ViewportService);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly document = inject(DOCUMENT);
-  private readonly viewportScroller = inject(ViewportScroller); // 👈
+  private readonly scroller = inject(ViewportScroller);
 
   private skipMotionNext = false;
-  protected isAnimating = false;
 
   protected readonly isTouch =
     this.isBrowser &&
@@ -176,16 +169,8 @@ export class AppComponent {
 
   protected readonly showAmbient = !this.prefersReduced;
 
-  // --- Scroll lock state
-  private lockedScrollY = 0;
-
   constructor() {
-    // 1) Disabilita *qualsiasi* ripristino scroll (browser/router)
-    if (this.isBrowser) {
-      this.viewportScroller.setHistoryScrollRestoration('manual'); // 👈 blocca il jump nativo
-    }
-
-    // Flag skip
+    // intercetta start: flag per skip
     this.router.events
       .pipe(filter((e): e is NavigationStart => e instanceof NavigationStart))
       .subscribe(() => {
@@ -194,7 +179,7 @@ export class AppComponent {
         this.skipMotionNext = !!(st.suppressMotion || st.suppressScroll);
       });
 
-    // Cleanup flag
+    // pulizia flag su end
     let lastPath = '';
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
@@ -210,7 +195,6 @@ export class AppComponent {
   ngOnInit() {
     if (this.isBrowser) {
       this.viewportService.init();
-
       const doc = this.document as Document;
       const htmlEl = doc.documentElement as HTMLElement;
       if ('fonts' in (doc as any)) {
@@ -223,47 +207,12 @@ export class AppComponent {
     }
   }
 
-  // ---------- ANIMATION HOOKS (fix anti "jump to top") ----------
-  onAnimStart() {
-    this.isAnimating = true;
-
-    // Se stiamo saltando l'animazione, non bloccare nulla
-    if (!this.isBrowser || this.skipMotionNext) return;
-
-    // 1) cattura Y corrente
-    this.lockedScrollY =
-      window.scrollY || this.document.documentElement.scrollTop || 0;
-
-    // 2) blocca visivamente lo scroll fissando il body al viewport
-    const body = this.document.body as HTMLBodyElement;
-    body.style.position = 'fixed';
-    body.style.top = `-${this.lockedScrollY}px`;
-    body.style.left = '0';
-    body.style.right = '0';
-    body.style.width = '100%';
+  // dopo l'animazione: porta in alto (SSR-friendly) se non c'è un #fragment
+  onRouteAnimDone() {
+    if (!this.isBrowser) return;
+    if (this.router.url.includes('#')) return; // lascia gestire l'anchor ad Angular
+    this.scroller.scrollToPosition([0, 0]);
   }
-
-  onAnimDone() {
-    // 1) sblocca il body
-    const body = this.document.body as HTMLBodyElement;
-    body.style.position = '';
-    body.style.top = '';
-    body.style.left = '';
-    body.style.right = '';
-    body.style.width = '';
-
-    // 2) resetta lo scroll: vai in cima SOLO se non è uno skip
-    if (this.isBrowser && !this.skipMotionNext) {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: 'instant' as ScrollBehavior,
-      }); // niente smooth qui
-    }
-
-    this.isAnimating = false;
-  }
-  // --------------------------------------------------------------
 
   get animParams() {
     const reduce = this.isTouch || this.prefersReduced;
@@ -306,10 +255,8 @@ export class AppComponent {
 
   getRouteAnimationData(outlet: RouterOutlet) {
     if (this.skipMotionNext) return 'noanim';
-
     const dataAnim = outlet?.activatedRouteData?.['animation'];
     if (dataAnim) return dataAnim;
-
     return this.router.url.split('?')[0] || 'default';
   }
 }
