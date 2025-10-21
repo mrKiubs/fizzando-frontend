@@ -20,8 +20,8 @@
         class="cocktail-card-image"
         width="96"
         height="96"
-        loading="eager"
-        fetchpriority="high"
+        [attr.loading]="isLcp ? 'eager' : 'lazy'"
+        [attr.fetchpriority]="isLcp ? 'high' : 'low'"
         decoding="async"
         (error)="onCardImgError($event)"
       />
@@ -62,10 +62,15 @@
             class="cocktail-card-image-link"
             [routerLink]="['/cocktails', cocktail.slug]"
             [attr.href]="'/cocktails/' + cocktail.slug"
-            [attr.aria-label]="'Open ' + cocktail.name"
+            [attr.aria-labelledby]="'title-' + (cocktail.slug || cocktail.id)"
+            [attr.aria-describedby]="
+              showCorrelation && (displayMotto || primaryHighlight)
+                ? 'motto-' + (cocktail.slug || cocktail.id)
+                : null
+            "
           >
             <picture>
-              <!-- MOBILE: max 80px di slot → cap a 160w (DPR 2), ma forziamo il più piccolo disponibile -->
+              <!-- mobile -->
               <source
                 media="(max-width: 700px)"
                 [srcset]="srcsetMaxWebp(cocktail.image, 160)"
@@ -78,6 +83,7 @@
                 sizes="80px"
               />
 
+              <!-- desktop -->
               <source
                 media="(min-width: 701px)"
                 [srcset]="srcsetMaxWebp(cocktail.image, 800)"
@@ -98,8 +104,8 @@
                     : 'Cocktail photo'
                 "
                 class="cocktail-card-image"
-                [attr.loading]="isLcp ? 'eager' : 'lazy'"
-                [attr.fetchpriority]="isLcp ? 'high' : 'low'"
+                loading="lazy"
+                fetchpriority="low"
                 decoding="async"
                 (error)="onCardImgError($event)"
               />
@@ -125,11 +131,17 @@
             ></span>
           </span>
         </div>
+
         <div class="name-cocktail">
           <h3
             class="cocktail-card-title no-color"
+            [id]="'title-' + (cocktail.slug || cocktail.id)"
             [attr.aria-describedby]="
-              cocktail.slug ? 'motto-' + cocktail.slug : null
+              showCorrelation &&
+              (displayMotto || primaryHighlight) &&
+              cocktail.slug
+                ? 'motto-' + cocktail.slug
+                : null
             "
             [class.fonts-loaded]="fontsLoaded"
           >
@@ -138,7 +150,6 @@
                 class="stretched-link"
                 [routerLink]="['/cocktails', cocktail.slug]"
                 [attr.href]="'/cocktails/' + cocktail.slug"
-                [attr.aria-label]="'Open ' + cocktail.name"
               >
                 {{ cocktail.name }}
               </a>
@@ -175,7 +186,7 @@
         <div
           class="cocktail-chips-container"
           role="group"
-          aria-label="Category and method"
+          aria-labelledby="service-label"
         >
           <p class="info-method">Method and glass:</p>
           <!-- METHOD hub -->

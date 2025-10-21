@@ -83,6 +83,7 @@
             <li *ngFor="let item of cocktail.ingredients_list">
               <a
                 [routerLink]="['/ingredients', item.ingredient.external_id]"
+                [attr.href]="'/ingredients/' + item.ingredient.external_id"
                 class="ingredient-link"
               >
                 <div class="image-ingredient-wrapper">

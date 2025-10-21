@@ -9,18 +9,17 @@
   </div>
 
   <ng-container *ngIf="article && !loading && !error">
-    <main role="main">
+    <div>
       <!-- RELATED COCKTAILS -->
-      <section
-        *ngIf="(article.related_cocktails?.length ?? 0) > 0"
-        class="related-content"
-      >
-        <app-cocktail-card
-          *ngIf="(article?.related_cocktails?.length || 0) > 0"
-          [cocktail]="article.related_cocktails[0]"
-          [asArticleBanner]="true"
-          bannerLabel="This article is about"
-        />
+      <section class="related-content">
+        <ng-container *ngIf="(article.related_cocktails?.length ?? 0) > 0">
+          <app-cocktail-card
+            *ngIf="(article?.related_cocktails?.length || 0) > 0"
+            [cocktail]="article.related_cocktails[0]"
+            [asArticleBanner]="true"
+            bannerLabel="This article is about"
+          />
+        </ng-container>
       </section>
 
       <article class="glass-card content-article">
@@ -135,7 +134,7 @@
           ></app-article-card>
         </div>
       </section>
-    </main>
+    </div>
 
     <!-- SIDEBAR -->
     <aside class="sidebar" role="complementary" aria-label="Sidebar">
