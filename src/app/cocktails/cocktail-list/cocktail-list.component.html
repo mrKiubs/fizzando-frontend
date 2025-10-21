@@ -29,6 +29,7 @@
     <button
       id="tab-method"
       role="tab"
+      aria-controls="panel-method"
       type="button"
       [class.active]="selectedTab === 'method'"
       [attr.aria-selected]="selectedTab === 'method'"
@@ -41,6 +42,7 @@
     <button
       id="tab-glass"
       role="tab"
+      aria-controls="panel-method"
       type="button"
       [class.active]="selectedTab === 'glass'"
       [attr.aria-selected]="selectedTab === 'glass'"
@@ -53,6 +55,7 @@
     <button
       id="tab-category"
       role="tab"
+      aria-controls="panel-method"
       type="button"
       [class.active]="selectedTab === 'category'"
       [attr.aria-selected]="selectedTab === 'category'"
@@ -65,6 +68,7 @@
     <button
       id="tab-alcoholic"
       role="tab"
+      aria-controls="panel-method"
       type="button"
       [class.active]="selectedTab === 'alcoholic'"
       [attr.aria-selected]="selectedTab === 'alcoholic'"
@@ -266,7 +270,7 @@
 <!-- FILTERS (accordion) — TUTTE LE PAGINE, SOLO LETTERE -->
 <div class="filters-accordion" [class.expanded]="isExpanded()">
   <div class="accordion-header" #filtersToggle (click)="toggleExpansion()">
-    <h3 class="accordion-title">
+    <h3 id="filtersTitle" class="accordion-title">
       <mat-icon
         class="accordion-icon"
         svgIcon="filter_list"
@@ -280,7 +284,12 @@
   </div>
 
   @defer (on interaction(filtersToggle); prefetch on idle) {
-  <div class="accordion-content" *ngIf="isExpanded()">
+  <div
+    class="accordion-content"
+    id="filtersPanel"
+    role="region"
+    [attr.aria-labelledby]="'filtersTitle'"
+  >
     <div class="letter-filter">
       <div
         class="letter-filter__chips"
@@ -289,6 +298,7 @@
       >
         <!-- All -->
         <a
+          role="button"
           [attr.href]="buildUrlWithParams({ letter: null, page: 1 })"
           class="chip"
           [class.active]="!selectedLetter()"
@@ -664,7 +674,8 @@
       <button
         class="faq-question"
         type="button"
-        (click)="toggleFaq(i)"
+        [attr.id]="'faq-q-' + i"
+        [attr.aria-controls]="'faq-a-' + i"
         [attr.aria-expanded]="faqStates[i].isExpanded"
       >
         <span>{{ faq.question }}</span>
@@ -673,7 +684,10 @@
 
       <div
         #answer
+        id="faq-a-{{ i }}"
+        role="region"
         class="faq-answer-wrapper"
+        [attr.aria-labelledby]="'faq-q-' + i"
         [style.maxHeight.px]="faqStates[i].isExpanded ? answer.scrollHeight : 0"
       >
         <p class="faq-answer">
