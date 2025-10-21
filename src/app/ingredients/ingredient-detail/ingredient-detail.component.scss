@@ -1,10 +1,12 @@
 .detail-wrapper {
-  max-width: 1200px; /* Mantieni questo per il wrapper generale */
+  max-width: 1200px;
   margin: 0 auto;
 }
+
 h2 {
   margin: 0 0 16px 0;
 }
+
 /* Base Glass Card Styles */
 .glass-card {
   background-color: rgba(255, 255, 255, 0.05);
@@ -15,6 +17,7 @@ h2 {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   padding: 16px;
   color: #fff;
+
   @media (max-width: 600px) {
     padding: 8px;
   }
@@ -53,7 +56,7 @@ h2 {
   }
 }
 
-/* Loading and Error States */
+/* Loading / Error */
 .loading-message,
 .error-message {
   text-align: center;
@@ -64,6 +67,7 @@ h2 {
   align-items: center;
   justify-content: center;
   gap: 1rem;
+
   background-color: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -80,47 +84,44 @@ h2 {
   }
 }
 
-/* Basic loading icon style (since mat-spinner is removed) */
+/* Loading icon */
 .loading-icon {
   font-size: 3rem;
   color: #87ceeb;
-  animation: spin 2s linear infinite; /* Simple spin animation */
+  animation: spin 2s linear infinite;
 }
-
 @keyframes spin {
   0% {
-    transform: rotate(0deg);
+    transform: rotate(0);
   }
   100% {
     transform: rotate(360deg);
   }
 }
 
-/* Main Ingredient Detail Grid Layout - AGGIORNATO */
+/* ====== GRID PRINCIPALE ====== */
 .ingredient-detail-grid {
   display: grid;
-  gap: 32px;
-  grid-template-columns: 1fr; /* Default: one column for mobile */
+  gap: 8px;
+  grid-template-columns: 1fr;
   grid-template-areas:
     "header"
     "ad-block"
     "ai-insights"
     "ad-block-second"
-    "related-cocktails" /* Spostato sotto ai-insights */
+    "related-cocktails"
     "actions";
 
-  /* Aggiungi max-width a tutte le sezioni principali qui, così da non doverlo ripetere */
   .main-ingredient-header,
   .ai-insights-section,
   .related-cocktails-section {
-    max-width: 1200px; /* Riferimento al max-width del detail-wrapper */
+    max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;
   }
 }
 
-/* Grid Area Definitions */
 .main-ingredient-header {
   grid-area: header;
 }
@@ -135,7 +136,7 @@ h2 {
   text-align: center;
 }
 
-/* Main Ingredient Header Section */
+/* Header ingredient */
 .main-ingredient-header {
   .header-content {
     display: flex;
@@ -180,8 +181,7 @@ h2 {
     font-size: 18px;
     color: rgba(255, 255, 255, 0.7);
     font-weight: 400;
-    margin-top: 0.4px;
-    margin-bottom: 16px;
+    margin: 0.4px 0 16px;
   }
 
   .ingredient-description {
@@ -192,7 +192,12 @@ h2 {
   }
 }
 
-/* AI Insights Grid and Blocks */
+/* ====== AI Insights ====== */
+.ai-insights-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px; /* stima per evitare CLS; regola se serve */
+}
+
 .ai-blocks-grid {
   display: grid;
   gap: 16px;
@@ -203,37 +208,45 @@ h2 {
 }
 
 .ai-detail-block {
+  min-height: 140px;
   .ai-block-title {
     font-size: 1.2rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
-    margin-top: 0;
-    margin-bottom: 0.5rem;
+    margin: 0 0 0.5rem 0;
     line-height: 1.3;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 0.25rem;
+
     display: flex;
     align-items: center;
     gap: 0.5rem;
-  }
-  .ai-block-title mat-icon {
-    font-size: 1.4rem;
-    width: 1.4rem;
-    height: 1.4rem;
-    color: rgba(255, 255, 255, 0.7);
+
+    mat-icon {
+      font-size: 1.4rem;
+      width: 1.4rem;
+      height: 1.4rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
   }
   p {
     font-size: 0.95rem;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.85);
-    margin-bottom: 0;
+    margin: 0;
   }
 }
 
-/* Related Cocktails Section - AGGIORNATO */
-.related-cocktails-section {
-  /* Non servono stili specifici di larghezza qui, la grid-area e il max-width nella griglia principale gestiranno */
+/* Badge nel sottotitolo: blocca altezza ⇒ no micro-CLS */
+.ingredient-subtitle
+  .ml-2.px-3.py-1.bg-blue-100.text-blue-800.text-sm.rounded-full.inline-block {
+  display: inline-block;
+  height: 24px;
+  line-height: 24px;
+  vertical-align: baseline;
 }
+
+/* ====== Related cocktails ====== */
 .no-related-cocktails {
   text-align: center;
   font-size: 1rem;
@@ -243,33 +256,29 @@ h2 {
 
 .related-cocktail-cards-grid {
   display: grid;
-  gap: 16px; /* Spazio tra le card */
-  grid-template-columns: 1fr; /* Mobile: 1 colonna */
+  gap: 16px;
+  grid-template-columns: 1fr;
 }
-
-/* Responsive Grid Layouts - AGGIORNATO per Full Width e 4 colonne */
 @media (min-width: 600px) {
   .related-cocktail-cards-grid {
-    grid-template-columns: repeat(2, 1fr); /* 2 colonne */
+    grid-template-columns: repeat(2, 1fr);
   }
 }
-
 @media (min-width: 900px) {
   .related-cocktail-cards-grid {
-    grid-template-columns: repeat(3, 1fr); /* 3 colonne */
+    grid-template-columns: repeat(3, 1fr);
   }
 }
-
 @media (min-width: 1200px) {
   .related-cocktail-cards-grid {
-    grid-template-columns: repeat(4, 1fr); /* 4 colonne */
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-/* Media query generale per layout principale, mantiene 1 colonna dopo 768px */
+/* ====== Media principale ====== */
 @media (min-width: 768px) {
   .ingredient-detail-grid {
-    grid-template-columns: 1fr; /* Una colonna singola per tutti i contenuti */
+    grid-template-columns: 1fr;
     grid-template-areas:
       "header"
       "ad-block"
@@ -278,19 +287,13 @@ h2 {
       "related-cocktails"
       "actions";
   }
-
   .main-ingredient-header .header-content {
     flex-direction: row;
     text-align: left;
   }
 }
 
-/* Rimuovi la @media (min-width: 1024px) precedente se non serve più */
-/* L'ho già rimossa nel mio esempio precedente, ma se ce l'hai ancora, toglila */
-// @media (min-width: 1024px) { ... }
-/* Aggiungi questi stili in ingredient-detail.component.scss */
-
-/* Barre di Navigazione in Alto e Basso */
+/* ====== Navigation ====== */
 .navigation-bar {
   width: 100%;
   max-width: 1200px;
@@ -304,16 +307,17 @@ h2 {
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 32px;
-    padding-top: 32px;
+    padding: 32px 0;
 
     a {
       font-size: 18px !important;
       padding: 8px 0 8px 16px;
       text-transform: uppercase;
+
       &:first-child {
-        padding: 8px 16px 8px 0px;
+        padding: 8px 16px 8px 0;
       }
+
       @media (max-width: 600px) {
         font-size: 16px !important;
       }
@@ -347,14 +351,21 @@ h2 {
   }
 }
 
-/* Il resto del tuo CSS esistente rimane invariato */
-/* ... */
+/* ====== ADs: contenitori e placeholders ====== */
+
+/* IMPORTANTISSIMO: niente virgolette nel nome dell’area */
+.ad-block {
+  //grid-area: ad-block;
+}
+.ad-block-second {
+  grid-area: ad-block-second;
+}
 
 .ad-card,
 .ad-desktop-card,
 .mobile-ad-container,
 .banner-container {
-  min-height: 135px; /* o l’altezza media delle tue cocktail-card */
+  min-height: 135px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -366,40 +377,6 @@ h2 {
     min-height: 130px;
   }
 }
-.ad-block {
-  grid-area: "ad-block";
-}
-.ad-block.second-block {
-  grid-area: "ad-block-second";
-}
-
-.ad-slot-placeholder {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  min-height: 90px;
-
-  &.leaderboard,
-  &.mobile-banner {
-    min-height: 90px;
-  }
-
-  &.square {
-    min-height: 250px;
-  }
-}
 
 /* Isola i contenitori principali per evitare reflow a cascata */
 .ingredient-detail-grid,
@@ -407,46 +384,44 @@ h2 {
 .ai-insights-section,
 .related-cocktails-section,
 .ad-block {
-  contain: layout style paint; /* fortissimo ma sicuro per questi blocchi */
+  contain: layout style paint;
 }
 
-/* Le card / elementi ripetuti: render on-demand e dimensione intrinseca “fantasma” */
+/* Card / elementi ripetuti: render on-demand + dimensione intrinseca */
 .cards-grid > * {
   content-visibility: auto;
-  contain-intrinsic-size: 320px 420px; /* stima prudente dell'altezza card */
+  contain-intrinsic-size: 320px 420px;
 }
 
-/* Gli slot ads NON devono far cambiare layout */
-.ad-slot.leaderboard,
-.ad-slot.mobile-banner,
-.ad-slot.square {
-  min-height: 90px; /* leaderboard tipica */
-}
-.ad-slot.mobile-banner {
-  min-height: 50px;
-}
-.ad-slot.square {
-  min-height: 250px;
+/* Placeholder (sempre visibile) e contenuto reale (deferito) */
+.ad-slot-placeholder,
+.ad-slot-inner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
 }
 
-/* I placeholder devono avere la STESSA altezza, così Lighthouse non vede layout thrash */
-.ad-slot-placeholder.leaderboard {
+/* Stessa altezza per placeholder e contenuto, per OGNI variante */
+.ad-block.leaderboard .ad-slot-placeholder,
+.ad-block.leaderboard .ad-slot-inner {
   min-height: 90px;
 }
-.ad-slot-placeholder.mobile-banner {
-  min-height: 50px;
+
+.ad-block.mobile-banner .ad-slot-placeholder,
+.ad-block.mobile-banner .ad-slot-inner {
+  min-height: 90px;
 }
-.ad-slot-placeholder.square {
+
+.ad-block.square .ad-slot-placeholder,
+.ad-block.square .ad-slot-inner {
   min-height: 250px;
 }
 
-.ai-insights-section {
-  /* opzionale se vuoi forzare altezza minima */
-  /* min-height: 280px; */
-}
-
+/* Skeleton AI */
 .ai-blocks-grid.ai-skeleton .ai-detail-block {
-  min-height: 140px; /* stesso ordine di grandezza del reale */
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -478,5 +453,17 @@ h2 {
   }
   100% {
     background-position: -200% 0;
+  }
+}
+
+.ad-badge {
+  opacity: 0;
+  animation: fadeBadge 0.5s ease forwards;
+  animation-delay: 0.5s; /* ritardo di comparsa */
+}
+
+@keyframes fadeBadge {
+  to {
+    opacity: 1;
   }
 }
