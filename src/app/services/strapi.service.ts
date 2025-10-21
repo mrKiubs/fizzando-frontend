@@ -217,8 +217,10 @@ export class CocktailService {
     }
     return h;
   }
-  private _pick<T>(arr: readonly T[], seed: string): T {
-    const idx = Math.abs(this._hash(seed)) % Math.max(1, arr.length);
+  private _pick<T>(arr: readonly T[], seed: string, offset = 0): T {
+    const len = arr?.length ?? 0;
+    if (!len) throw new Error('Empty variants');
+    const idx = (Math.abs(this._hash(seed)) + offset) % len;
     return arr[idx];
   }
   private _truncate(s: string, n = 36): string {
@@ -325,42 +327,168 @@ export class CocktailService {
     return +score.toFixed(4);
   }
 
-  // EN mottos
-  private readonly MOTTO_EN = {
+  // ======================================================
+  //  MOTTO GENERATOR — SEO-friendly correlation phrases
+  // ======================================================
+
+  private static readonly MOTTO_EN = {
+    ingredient: [
+      'Features {{key}} as a primary spirit in the build.',
+      'Built around {{key}} with a balanced, classic profile.',
+      'Showcases {{key}} in a smooth, well-rounded composition.',
+      'Highlights {{key}} with a refined and modern twist.',
+      'Centered on {{key}} with bright, harmonious notes.',
+      'A {{key}}-driven cocktail crafted with balance and clarity.',
+      'Emphasizes {{key}} as the dominant flavor element.',
+      'Blends {{key}} elegantly into a refreshing cocktail structure.',
+      'Celebrates {{key}} in a contemporary interpretation.',
+      'Demonstrates {{key}} versatility within the same flavor family.',
+    ],
     base: [
-      'Shares the base: {{base}}',
-      'Same core: {{base}}',
-      'Shared spirit: {{base}}',
-      'United by {{base}}',
+      'Built on {{base}} as the defining spirit of the drink.',
+      'Anchored in {{base}} for depth and character.',
+      'Showcases {{base}} with a classic balance and smooth finish.',
+      'Highlights {{base}} as the core foundation of flavor.',
+      '{{base}} serves as the backbone of this style.',
+      'A {{base}}-forward cocktail sharing structure and balance.',
+      'Reflects the signature profile of {{base}} spirits.',
+      'Balances {{base}} with citrus and sweetness for harmony.',
+      'Demonstrates {{base}}’s versatility in modern builds.',
+      'Shares a similar {{base}} foundation and mix technique.',
     ],
     service: [
-      'Same serve · {{method}} in {{glass}}',
-      'Method & glass aligned',
-      'Twin serve · {{method}} · {{glass}}',
-      'Same ritual: {{method}} · {{glass}}',
+      'Prepared with {{method}} and served in a {{glass}}, same technique.',
+      'Same service format — {{method}} in a {{glass}} presentation.',
+      'Follows identical service: {{method}} method and {{glass}} glassware.',
+      'Comparable serving style with {{method}} execution and {{glass}}.',
+      'Shares the same preparation and glass service style.',
+      'Aligned service method — {{method}} built for {{glass}}.',
+      'Traditional {{method}} serve presented in {{glass}} glassware.',
+      'Classic {{method}} format using a {{glass}} presentation.',
+      'Employs the same service structure: {{method}} / {{glass}}.',
+      'Served the same way — {{method}} in {{glass}}.',
     ],
     family: [
-      'Same family · {{category}}',
-      'ABV & style aligned',
-      'Similar balance in the glass',
-      'Kindred character',
+      'Belongs to the same {{category}} family of cocktails.',
+      'Shares the {{category}} flavor family and balanced structure.',
+      'Classic example within the {{category}} style tradition.',
+      'Neighboring drink in the {{category}} style group.',
+      'Comparable member of the {{category}} cocktail family.',
+      'Kindred recipe within the {{category}} category.',
+      'Part of the broader {{category}} cocktail lineage.',
+      'Related to other {{category}} drinks in flavor and feel.',
+      'A sibling in the {{category}} style family.',
+      'Echoes the signature traits of {{category}} cocktails.',
     ],
     overlap: [
-      'Shared flavor profile',
-      'Common aromatic thread',
-      'Ingredient footprint aligned',
-      'Coherent flavor line',
-      'Taste affinity',
+      'Shares overlapping ingredients and a similar build philosophy.',
+      'Combines comparable base elements for a related flavor balance.',
+      'Parallel composition with overlapping spirits or mixers.',
+      'Aligned ingredient choices producing similar flavor depth.',
+      'Built from a matching ingredient map and proportions.',
+      'Cohesive structure based on shared cocktail components.',
+      'Features comparable building blocks with minor variations.',
+      'Draws from the same palette of core ingredients.',
+      'Reflects similar mix ratios and shared flavor tones.',
+      'Shows overlap in ingredient use and overall balance.',
     ],
-    methodOnly: ['Same making gesture · {{method}}'],
-    glassOnly: ['Same glass · {{glass}}'],
+    methodOnly: [
+      'Prepared with the same {{method}} technique and balance.',
+      'Follows the same {{method}} process for a comparable feel.',
+      'Crafted using identical {{method}} preparation for clarity.',
+      'Built with the {{method}} method, matching the technique.',
+      'Parallel execution using the {{method}} mixing approach.',
+      'Shares the {{method}} craftsmanship and serving rhythm.',
+      'Employs {{method}} as the key defining technique.',
+      'Relies on the {{method}} method for consistency and texture.',
+      'Classic {{method}} preparation delivering similar balance.',
+      'Unified by the {{method}} approach and presentation style.',
+    ],
+    glassOnly: [
+      'Served in a {{glass}}, matching the presentation style.',
+      'Same glass choice — {{glass}} — linking visual appeal.',
+      'Presented in identical {{glass}} glassware for consistency.',
+      'Shares the {{glass}} format, creating similar aesthetics.',
+      'Parallel presentation served in the same {{glass}} type.',
+      'Glassware match — {{glass}} — reinforcing classic service.',
+      'Uses {{glass}} presentation for a similar serving experience.',
+      'Comparable {{glass}} format emphasizing elegant design.',
+      'Aligned glassware — {{glass}} — classic in both builds.',
+      'Matched {{glass}} serve style for visual harmony.',
+    ],
     flavor: [
-      '{{flavor}}',
-      'Shared notes: {{flavor}}',
-      'Kindred feel: {{flavor}}',
+      'Shares a similar flavor balance of sweetness and acidity.',
+      'Comparable taste structure with bright, citrusy undertones.',
+      'Aligned flavor profile emphasizing freshness and balance.',
+      'Echoes the same aromatic and textural flavor balance.',
+      'Close sensory profile blending fruit and spirit notes.',
+      'Reflects a similar harmony of flavor and intensity.',
+      'Parallel flavor palette with matching finish and tone.',
+      'Carries a related aromatic character and smooth mouthfeel.',
+      'Shows overlapping flavor cues in a lighter composition.',
+      'Balanced flavor direction with shared aromatic depth.',
     ],
-    fallback: ['Good pairing', 'Close in style', 'A coherent choice'],
+    fallback: [
+      'Related cocktail sharing balance and construction philosophy.',
+      'Comparable classic with a similar structure and spirit base.',
+      'Kindred recipe reflecting the same mixing tradition.',
+      'Neighboring drink with matching balance and tone.',
+      'Close companion offering a similar cocktail experience.',
+      'Classic counterpart built with a comparable framework.',
+      'Alternative option within the same mixology family.',
+      'Complementary cocktail echoing the same spirit and style.',
+      'Sibling drink expressing related technique and structure.',
+      'Another refined choice built on comparable fundamentals.',
+    ],
   } as const;
+
+  public buildCorrelationMotto(
+    meta: {
+      type:
+        | 'ingredient'
+        | 'base'
+        | 'service'
+        | 'family'
+        | 'overlap'
+        | 'methodOnly'
+        | 'glassOnly'
+        | 'flavor'
+        | 'fallback';
+      key?: string;
+      base?: string;
+      method?: string;
+      glass?: string;
+      category?: string;
+      twoKeyIngr?: string;
+    },
+    seed: string,
+    offset = 0
+  ): string {
+    const pool = (CocktailService.MOTTO_EN[meta.type] ??
+      CocktailService.MOTTO_EN['fallback']) as readonly string[];
+
+    // usa la _pick d’istanza con offset
+    const picked = this._pick(pool as readonly string[], seed, offset);
+    let tpl: string = `${picked}`;
+
+    const rep: Record<string, string> = {
+      '{{key}}': meta.twoKeyIngr || meta.key || '',
+      '{{base}}': meta.base || meta.key || '',
+      '{{method}}': meta.method || '',
+      '{{glass}}': meta.glass || '',
+      '{{category}}': meta.category || '',
+    };
+
+    for (const [k, v] of Object.entries(rep)) tpl = tpl.replace(k, v);
+    return tpl.replace(/\s{2,}/g, ' ').trim();
+  }
+
+  public rebuildMottoWithOffset(item: any, offset: number): string {
+    const meta = item?.similarityMeta?._mottoMeta;
+    return meta
+      ? this.buildCorrelationMotto(meta, item.slug, offset)
+      : item?.similarityMeta?.motto || '';
+  }
 
   // Build the final EN motto (ordered rules)
   private _buildMottoEn(
@@ -384,50 +512,50 @@ export class CocktailService {
     );
 
     if (candHasBase && baseName) {
-      return this._pick(this.MOTTO_EN.base, cand.slug).replace(
+      return this._pick(CocktailService.MOTTO_EN['base'], cand.slug).replace(
         '{{base}}',
         baseName
       );
     }
 
     if (sm.method && sm.glass) {
-      return this._pick(this.MOTTO_EN.service, cand.slug)
+      return this._pick(CocktailService.MOTTO_EN['service'], cand.slug)
         .replace('{{method}}', method)
         .replace('{{glass}}', glass);
     }
 
     if (sm.cat && sm.abvClass) {
-      return this._pick(this.MOTTO_EN.family, cand.slug).replace(
+      return this._pick(CocktailService.MOTTO_EN['family'], cand.slug).replace(
         '{{category}}',
         category
       );
     }
 
     if ((sm.ingredientOverlap ?? 0) >= 0.45) {
-      return this._pick(this.MOTTO_EN.overlap, cand.slug);
+      return this._pick(CocktailService.MOTTO_EN['overlap'], cand.slug);
     }
 
     if (sm.method) {
-      return this._pick(this.MOTTO_EN.methodOnly, cand.slug).replace(
-        '{{method}}',
-        method
-      );
+      return this._pick(
+        CocktailService.MOTTO_EN['methodOnly'],
+        cand.slug
+      ).replace('{{method}}', method);
     }
     if (sm.glass) {
-      return this._pick(this.MOTTO_EN.glassOnly, cand.slug).replace(
-        '{{glass}}',
-        glass
-      );
+      return this._pick(
+        CocktailService.MOTTO_EN['glassOnly'],
+        cand.slug
+      ).replace('{{glass}}', glass);
     }
 
     if (flavorAI) {
-      return this._pick(this.MOTTO_EN.flavor, cand.slug).replace(
+      return this._pick(CocktailService.MOTTO_EN['flavor'], cand.slug).replace(
         '{{flavor}}',
         this._truncate(flavorAI, 36)
       );
     }
 
-    return this._pick(this.MOTTO_EN.fallback, cand.slug);
+    return this._pick(CocktailService.MOTTO_EN['fallback'], cand.slug);
   }
 
   constructor(private http: HttpClient) {}

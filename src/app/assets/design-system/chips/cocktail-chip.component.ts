@@ -146,7 +146,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
       }
 
       .chip-count {
-        opacity: 0.35;
+        opacity: 0.55;
         background: #ffffff1a;
         border-radius: 12px;
         font-size: 12px;

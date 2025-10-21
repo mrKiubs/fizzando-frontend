@@ -403,11 +403,6 @@ export class CocktailDetailComponent
     if (s?.category && cand.category === s.category)
       styleReasons.push(cand.category!);
 
-    const motto = this.makeFriendlyMotto(opts.source!, cand as Cocktail, {
-      tagIngredient: opts.tag || null,
-      styleReasons,
-    });
-
     const enriched = { ...(cand as any) } as Highlightable & {
       matchLabel?: string;
       matchReason?: string;
@@ -416,7 +411,8 @@ export class CocktailDetailComponent
     enriched.primaryHighlight = pill;
     enriched.matchLabel = pill.text;
     enriched.matchReason = pill.text;
-    enriched.similarityMeta = { ...(enriched.similarityMeta || {}), motto };
+    // NON imporre qui il motto: lo rigeneriamo alla fine con offset
+    enriched.similarityMeta = { ...(enriched.similarityMeta || {}) };
 
     out.push(enriched);
     used.add(cid);
@@ -597,7 +593,98 @@ export class CocktailDetailComponent
           return true;
         });
 
-        this.similarCocktails = finalList.slice(0, LIMIT);
+        // --- SOLO TESTI: diversifica H3 e ammorbidisci le pill senza toccare l'ordine ---
+
+        const s = this.cocktail!;
+        const baseName = s?.ingredients_list?.[0]?.ingredient?.name || '';
+        const norm = (x?: string | null) => (x || '').toLowerCase().trim();
+
+        const diversified = finalList.slice(0, LIMIT).map((cand, idx) => {
+          // segnali “di stile” calcolati live (no _mottoMeta)
+          const sameMethod =
+            !!s.preparation_type &&
+            cand.preparation_type === s.preparation_type;
+          const sameGlass = !!s.glass && cand.glass === s.glass;
+          const sameCat = !!s.category && cand.category === s.category;
+          const candHasBase =
+            !!baseName &&
+            (cand as any).ingredients_list?.some(
+              (it: any) => norm(it?.ingredient?.name) === norm(baseName)
+            );
+
+          // rotazione “umana”: cerco il tipo migliore e, se ripetuto, ruoto sugli altri idonei
+          const typePool: Array<
+            | 'base'
+            | 'service'
+            | 'family'
+            | 'methodOnly'
+            | 'glassOnly'
+            | 'overlap'
+            | 'flavor'
+            | 'fallback'
+          > = [];
+
+          if (candHasBase) typePool.push('base');
+          if (sameMethod && sameGlass) typePool.push('service');
+          if (sameCat) typePool.push('family');
+          if (sameMethod) typePool.push('methodOnly');
+          if (sameGlass) typePool.push('glassOnly');
+          // sempre disponibili come “variazione di stile”
+          typePool.push('overlap', 'flavor', 'fallback');
+
+          // scegli un tipo, ma ruota in base all’indice per evitare blocchi monotoni
+          const type = typePool[idx % typePool.length];
+
+          // ingredienti per le variabili del template
+          const firstIngr =
+            (cand as any).ingredients_list?.[0]?.ingredient?.name || '';
+          const seed = `${s.slug}::${
+            (cand as any).slug || (cand as any).id
+          }::${idx}`;
+
+          const motto = this.cocktailService.buildCorrelationMotto(
+            {
+              type,
+              key: firstIngr,
+              base: baseName,
+              method: (
+                cand.preparation_type ||
+                s.preparation_type ||
+                ''
+              ).trim(),
+              glass: (cand.glass || s.glass || '').trim(),
+              category: (cand.category || s.category || 'Cocktail').trim(),
+            },
+            seed,
+            idx
+          );
+
+          // Ammorbidisci pill ripetitive “With Gin” → varia leggermente il testo se identico
+          const pill = (cand as any).primaryHighlight?.text || '';
+          let newPill = pill;
+          if (/^With\s+/i.test(pill)) {
+            const tag = pill.replace(/^With\s+/i, '').trim();
+            const synonyms = [
+              `With ${tag}`,
+              `${tag} forward`,
+              `Showcases ${tag}`,
+              `${tag}-led`,
+              `Built on ${tag}`,
+              `Centered on ${tag}`,
+            ];
+            newPill = synonyms[idx % synonyms.length];
+          }
+
+          return {
+            ...cand,
+            primaryHighlight: newPill
+              ? { text: newPill }
+              : (cand as any).primaryHighlight,
+            similarityMeta: { ...(cand.similarityMeta || {}), motto },
+          } as typeof cand;
+        });
+
+        this.similarCocktails = diversified;
         this.buildRelatedWithAds();
 
         // se davvero è rimasto vuoto, tenta un'ultima volta solo “base”
