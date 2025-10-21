@@ -605,45 +605,83 @@ app-cocktail-card {
   overflow-anchor: none;
 }
 
-/* i 3 blocchi ad hanno sempre la stessa altezza → zero layout shift */
-.ad-block {
-  min-height: 90px; /* desktop banner */
+/* Card / elementi ripetuti: render on-demand + dimensione intrinseca */
+.cards-grid > * {
+  content-visibility: auto;
+  contain-intrinsic-size: 320px 420px;
 }
-@media (max-width: 768px) {
-  .ad-block {
-    min-height: 50px;
-  } /* mobile banner */
+
+/* Placeholder (sempre visibile) e contenuto reale (deferito) */
+.ad-slot-placeholder,
+.ad-slot-inner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
 }
-.mobile-ad-container {
-  min-height: 50px;
-}
-.ad-desktop-card {
+
+/* Stessa altezza per placeholder e contenuto, per OGNI variante */
+.ad-block.leaderboard .ad-slot-placeholder,
+.ad-block.leaderboard .ad-slot-inner {
   min-height: 90px;
 }
 
-/* immagini: blocca l'aspect-ratio per evitare reflow quando arriva srcset */
-.detail-image {
-  aspect-ratio: 1 / 1; /* 500x500 nel template */
-  width: 100%;
-  height: auto;
-  display: block;
-  contain: paint; /* compositing più economico durante transizione */
+.ad-block.mobile-banner .ad-slot-placeholder,
+.ad-block.mobile-banner .ad-slot-inner {
+  min-height: 90px;
 }
 
-/* contenitori pesanti caricati in differita */
-.ai-details-section,
-.related-articles-section,
-.related-cocktails-section {
-  content-visibility: auto; /* evita lavoro fuori viewport */
-  contain-intrinsic-size: 1px 600px; /* altezza “provvisoria” stabile */
+.ad-block.square .ad-slot-placeholder,
+.ad-block.square .ad-slot-inner {
+  min-height: 250px;
 }
 
-.ad-slot-placeholder {
-  width: 100%;
-  height: 90px;
+/* Skeleton AI */
+.ai-blocks-grid.ai-skeleton .ai-detail-block {
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-@media (max-width: 768px) {
-  .ad-slot-placeholder {
-    height: 50px;
+
+.sk-title,
+.sk-line {
+  background: linear-gradient(90deg, #e9edf3 0%, #f3f6fa 50%, #e9edf3 100%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.2s infinite linear;
+  border-radius: 8px;
+}
+
+.sk-title {
+  height: 20px;
+  width: 60%;
+}
+.sk-line {
+  height: 12px;
+  width: 100%;
+}
+.sk-line.short {
+  width: 70%;
+}
+
+@keyframes sk-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.ad-badge {
+  opacity: 0;
+  animation: fadeBadge 0.5s ease forwards;
+  animation-delay: 0.5s; /* ritardo di comparsa */
+}
+
+@keyframes fadeBadge {
+  to {
+    opacity: 1;
   }
 }

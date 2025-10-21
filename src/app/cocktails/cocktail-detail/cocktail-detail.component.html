@@ -130,30 +130,22 @@
   </div>
 
   <!-- ===================== AD BLOCK #1 (post hero) ===================== -->
-  <ng-container *ngIf="contentReady">
-    @defer (on viewport) {
-    <section
-      class="ad-block"
-      role="complementary"
-      aria-label="Sponsored content"
-    >
-      <span class="ad-badge">Ad</span>
-      <div [class]="adSlotClass(getTopAdType())">
-        <app-dev-ads [type]="getTopAdType()"></app-dev-ads>
-      </div>
-    </section>
+  <section
+    class="ad-block"
+    [ngClass]="adSlotClass(getTopAdType())"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
+
+    @defer (when contentReady; on viewport) {
+    <div class="ad-slot-inner">
+      <app-dev-ads [type]="getTopAdType()"></app-dev-ads>
+    </div>
     } @placeholder {
-    <section
-      class="ad-block"
-      role="complementary"
-      aria-label="Sponsored content"
-      aria-hidden="true"
-    >
-      <span class="ad-badge">Ad</span>
-      <div class="ad-slot-placeholder"></div>
-    </section>
+    <div class="ad-slot-placeholder" aria-hidden="true"></div>
     }
-  </ng-container>
+  </section>
 
   <!-- Deep Dive -->
   <section
@@ -380,30 +372,22 @@
   </section>
 
   <!-- ===================== AD BLOCK #2 (dopo Deep Dive) ===================== -->
-  <ng-container *ngIf="contentReady">
-    @defer (on viewport) {
-    <section
-      class="ad-block"
-      role="complementary"
-      aria-label="Sponsored content"
-    >
-      <span class="ad-badge">Ad</span>
-      <div [class]="adSlotClass(getTopAdType())">
-        <app-dev-ads [type]="getTopAdType()"></app-dev-ads>
-      </div>
-    </section>
+  <section
+    class="ad-block"
+    [ngClass]="adSlotClass(getTopAdType())"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
+
+    @defer (when contentReady; on viewport) {
+    <div class="ad-slot-inner">
+      <app-dev-ads [type]="getTopAdType()"></app-dev-ads>
+    </div>
     } @placeholder {
-    <section
-      class="ad-block"
-      role="complementary"
-      aria-label="Sponsored content"
-      aria-hidden="true"
-    >
-      <span class="ad-badge">Ad</span>
-      <div class="ad-slot-placeholder"></div>
-    </section>
+    <div class="ad-slot-placeholder" aria-hidden="true"></div>
     }
-  </ng-container>
+  </section>
 
   <div #relatedSentinel aria-hidden="true"></div>
 
@@ -456,30 +440,22 @@
   </section>
 
   <!-- ===================== AD BLOCK #3 (bottom banner) ===================== -->
-  <ng-container *ngIf="contentReady">
-    @defer (on viewport) {
-    <div
-      *ngIf="isMobile"
-      class="mobile-ad-container"
-      role="complementary"
-      aria-label="Sponsored content"
-    >
-      <span class="ad-badge">Ad</span>
-      <app-dev-ads [type]="'mobile-banner'"></app-dev-ads>
-    </div>
-    <div
-      *ngIf="!isMobile"
-      class="ad-desktop-card"
-      role="complementary"
-      aria-label="Sponsored content"
-    >
-      <span class="ad-badge">Ad</span>
-      <app-dev-ads [type]="'leaderboard'"></app-dev-ads>
+  <section
+    class="ad-block"
+    [ngClass]="adSlotClass(getTopAdType())"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
+
+    @defer (when contentReady; on viewport) {
+    <div class="ad-slot-inner">
+      <app-dev-ads [type]="getTopAdType()"></app-dev-ads>
     </div>
     } @placeholder {
-    <div class="ad-placeholder ad-slot-placeholder"></div>
+    <div class="ad-slot-placeholder" aria-hidden="true"></div>
     }
-  </ng-container>
+  </section>
 
   <!-- Navigation -->
   <div
