@@ -56,21 +56,6 @@
     [@cardAnimation]
   >
     <div class="glassy-content-container">
-      <ng-container
-        *ngIf="showCorrelation && (displayMotto || primaryHighlight)"
-      >
-        <h3
-          class="match-motto"
-          *ngIf="displayMotto as motto; else highlightTpl"
-        >
-          ✨ {{ motto }}
-        </h3>
-        <ng-template #highlightTpl>
-          <h3 class="match-motto" *ngIf="primaryHighlight as hl">
-            ✨ {{ hl.text }}
-          </h3>
-        </ng-template>
-      </ng-container>
       <div class="glassy-info">
         <div class="glassy-image-container">
           <a
@@ -161,6 +146,27 @@
           </h3>
         </div>
       </div>
+
+      <ng-container
+        *ngIf="showCorrelation && (displayMotto || primaryHighlight)"
+      >
+        <h4
+          id="motto-{{ cocktail.slug }}"
+          class="match-motto"
+          *ngIf="displayMotto as motto; else highlightTpl"
+        >
+          ✨ {{ motto }}
+        </h4>
+        <ng-template #highlightTpl>
+          <h4
+            id="motto-{{ cocktail.slug }}"
+            class="match-motto"
+            *ngIf="primaryHighlight as hl"
+          >
+            ✨ {{ hl.text }}
+          </h4>
+        </ng-template>
+      </ng-container>
 
       <div class="cocktail-extra-info">
         <div
