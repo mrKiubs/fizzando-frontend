@@ -19,7 +19,7 @@
     <section class="main-ingredient-header glass-card">
       <div class="header-content">
         <div class="ingredient-main-image-wrapper">
-          <!-- ✅ LCP-optimized hero + WebP preferito con fallback -->
+          <!-- ✅ LCP-optimized hero -->
           <img
             class="ingredient-image-circular"
             [ngSrc]="getPreferred(getIngredientHeroUrl(ingredient))"
@@ -71,33 +71,24 @@
       </div>
     </section>
 
-    <ng-container *ngIf="!loading && !error && contentReady">
-      @defer (on viewport) {
-      <section
-        class="ad-block"
-        role="complementary"
-        aria-label="Sponsored content"
-      >
-        <span class="ad-badge">Ad</span>
-        <div [class]="adSlotClass(topBannerType)">
-          <app-dev-ads [type]="topBannerType"></app-dev-ads>
-        </div>
-      </section>
-      } @placeholder {
-      <!-- Placeholder IDENTICO → zero-CLS -->
-      <section
-        class="ad-block"
-        role="complementary"
-        aria-label="Sponsored content"
-        aria-hidden="true"
-      >
-        <span class="ad-badge">Ad</span>
-        <div [class]="getAdSlotPlaceholderClass(topBannerType)"></div>
-      </section>
-      }
-    </ng-container>
+    <!-- TOP AD — sezione sempre presente (spazio riservato) -->
+    <section
+      class="ad-block"
+      [ngClass]="adSlotClass(topBannerType)"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
 
-    <!-- AI Insights -->
+      @defer (when contentReady; on viewport) {
+      <div class="ad-slot-inner">
+        <app-dev-ads [type]="topBannerType"></app-dev-ads>
+      </div>
+      } @placeholder {
+      <div class="ad-slot-placeholder" aria-hidden="true"></div>
+      }
+    </section>
+
     <!-- AI Insights -->
     <section class="ai-insights-section glass-card">
       <h2 class="section-title">
@@ -181,31 +172,23 @@
       </ng-template>
     </section>
 
-    <ng-container *ngIf="!loading && !error && contentReady">
-      @defer (on viewport) {
-      <section
-        class="ad-block ad-block-second"
-        role="complementary"
-        aria-label="Sponsored content"
-      >
-        <span class="ad-badge">Ad</span>
-        <div [class]="adSlotClass(topBannerType)">
-          <app-dev-ads [type]="topBannerType"></app-dev-ads>
-        </div>
-      </section>
+    <!-- SECOND AD — sezione sempre presente -->
+    <section
+      class="ad-block"
+      [ngClass]="adSlotClass(topBannerType)"
+      role="complementary"
+      aria-label="Sponsored content"
+    >
+      <span class="ad-badge">Ad</span>
+
+      @defer (when contentReady; on viewport) {
+      <div class="ad-slot-inner">
+        <app-dev-ads [type]="topBannerType"></app-dev-ads>
+      </div>
       } @placeholder {
-      <!-- Placeholder IDENTICO → zero-CLS -->
-      <section
-        class="ad-block"
-        role="complementary"
-        aria-label="Sponsored content"
-        aria-hidden="true"
-      >
-        <span class="ad-badge">Ad</span>
-        <div [class]="getAdSlotPlaceholderClass(topBannerType)"></div>
-      </section>
+      <div class="ad-slot-placeholder" aria-hidden="true"></div>
       }
-    </ng-container>
+    </section>
 
     <!-- Related Cocktails (1 ad ogni 6 card) -->
     <section class="related-cocktails-section glass-card">
@@ -235,32 +218,30 @@
             ></app-cocktail-card>
           </ng-container>
 
+          <!-- BLOCCO AD NEL LOOP: sezione sempre presente -->
           <ng-template #adBlock>
-            <ng-container *ngIf="contentReady">
-              @defer (on viewport) {
-              <section
-                class="ad-block"
-                role="complementary"
-                aria-label="Sponsored content"
-              >
-                <span class="ad-badge">Ad</span>
-                <div [class]="adSlotClass(gridAdType)">
-                  <app-dev-ads [type]="gridAdType"></app-dev-ads>
-                </div>
-              </section>
+            <!-- stessa cella della griglia delle card -->
+            <div
+              class="cocktail-card ad-card"
+              [ngClass]="adSlotClass(gridAdType)"
+              role="complementary"
+              aria-label="Sponsored content"
+            >
+              <!-- badge sempre visibile -->
+              <span class="ad-badge">Ad</span>
+
+              @defer (when contentReady; on viewport) {
+              <!-- contenuto reale dell’ad -->
+              <app-dev-ads [type]="gridAdType"></app-dev-ads>
               } @placeholder {
-              <!-- Placeholder IDENTICO -->
-              <section
-                class="ad-block"
-                role="complementary"
-                aria-label="Sponsored content"
+              <!-- un SOLO root node: nessun CLS -->
+              <div
+                class="ad-slot-placeholder"
+                [ngClass]="adSlotClass(gridAdType)"
                 aria-hidden="true"
-              >
-                <span class="ad-badge">Ad</span>
-                <div [class]="getAdSlotPlaceholderClass(gridAdType)"></div>
-              </section>
+              ></div>
               }
-            </ng-container>
+            </div>
           </ng-template>
         </ng-container>
       </div>
@@ -362,30 +343,21 @@
     </div>
   </div>
 
-  <!-- Bottom banner -->
-  <ng-container *ngIf="!loading && !error && contentReady">
-    @defer (on viewport) {
-    <section
-      class="ad-block"
-      role="complementary"
-      aria-label="Sponsored content"
-    >
-      <span class="ad-badge">Ad</span>
-      <div [class]="adSlotClass(bottomBannerType)">
-        <app-dev-ads [type]="bottomBannerType"></app-dev-ads>
-      </div>
-    </section>
+  <!-- Bottom banner — sezione sempre presente -->
+  <section
+    class="ad-block"
+    [ngClass]="adSlotClass(topBannerType)"
+    role="complementary"
+    aria-label="Sponsored content"
+  >
+    <span class="ad-badge">Ad</span>
+
+    @defer (when contentReady; on viewport) {
+    <div class="ad-slot-inner">
+      <app-dev-ads [type]="topBannerType"></app-dev-ads>
+    </div>
     } @placeholder {
-    <!-- Placeholder IDENTICO -->
-    <section
-      class="ad-block"
-      role="complementary"
-      aria-label="Sponsored content"
-      aria-hidden="true"
-    >
-      <span class="ad-badge">Ad</span>
-      <div [class]="getAdSlotPlaceholderClass(bottomBannerType)"></div>
-    </section>
+    <div class="ad-slot-placeholder" aria-hidden="true"></div>
     }
-  </ng-container>
+  </section>
 </div>
