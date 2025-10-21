@@ -196,6 +196,17 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   }
 
   // === router / data ========================================================
+  get aiReady(): boolean {
+    const i = this.ingredient;
+    if (!i) return false;
+    return !!(
+      i.ai_flavor_profile ||
+      i.ai_common_uses ||
+      i.ai_substitutes ||
+      i.ai_brief_history ||
+      i.ai_interesting_facts
+    );
+  }
 
   private subscribeToRouteParams(): void {
     this.route.paramMap

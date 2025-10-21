@@ -98,51 +98,87 @@
     </ng-container>
 
     <!-- AI Insights -->
+    <!-- AI Insights -->
     <section class="ai-insights-section glass-card">
       <h2 class="section-title">
         ✨ In-depth Details of {{ ingredient.name }}
       </h2>
-      <div class="ai-blocks-grid">
-        <div
-          class="ai-detail-block glass-card-mini"
-          *ngIf="ingredient.ai_flavor_profile"
-        >
-          <h3 class="ai-block-title">👅 Flavor Profile</h3>
-          <p>{{ ingredient.ai_flavor_profile }}</p>
-        </div>
 
-        <div
-          class="ai-detail-block glass-card-mini"
-          *ngIf="ingredient.ai_common_uses"
-        >
-          <h3 class="ai-block-title">🥂 Common Uses</h3>
-          <p>{{ ingredient.ai_common_uses }}</p>
-        </div>
+      <!-- quando i contenuti AI sono disponibili -->
+      <ng-container *ngIf="aiReady; else aiSkeleton">
+        <div class="ai-blocks-grid">
+          <div
+            class="ai-detail-block glass-card-mini"
+            *ngIf="ingredient.ai_flavor_profile"
+          >
+            <h3 class="ai-block-title">👅 Flavor Profile</h3>
+            <p>{{ ingredient.ai_flavor_profile }}</p>
+          </div>
 
-        <div
-          class="ai-detail-block glass-card-mini"
-          *ngIf="ingredient.ai_substitutes"
-        >
-          <h3 class="ai-block-title">🔄 Substitutes</h3>
-          <p>{{ ingredient.ai_substitutes }}</p>
-        </div>
+          <div
+            class="ai-detail-block glass-card-mini"
+            *ngIf="ingredient.ai_common_uses"
+          >
+            <h3 class="ai-block-title">🥂 Common Uses</h3>
+            <p>{{ ingredient.ai_common_uses }}</p>
+          </div>
 
-        <div
-          class="ai-detail-block glass-card-mini"
-          *ngIf="ingredient.ai_brief_history"
-        >
-          <h3 class="ai-block-title">📜 Brief History</h3>
-          <p>{{ ingredient.ai_brief_history }}</p>
-        </div>
+          <div
+            class="ai-detail-block glass-card-mini"
+            *ngIf="ingredient.ai_substitutes"
+          >
+            <h3 class="ai-block-title">🔄 Substitutes</h3>
+            <p>{{ ingredient.ai_substitutes }}</p>
+          </div>
 
-        <div
-          class="ai-detail-block glass-card-mini"
-          *ngIf="ingredient.ai_interesting_facts"
-        >
-          <h3 class="ai-block-title">💡 Interesting Facts</h3>
-          <p>{{ ingredient.ai_interesting_facts }}</p>
+          <div
+            class="ai-detail-block glass-card-mini"
+            *ngIf="ingredient.ai_brief_history"
+          >
+            <h3 class="ai-block-title">📜 Brief History</h3>
+            <p>{{ ingredient.ai_brief_history }}</p>
+          </div>
+
+          <div
+            class="ai-detail-block glass-card-mini"
+            *ngIf="ingredient.ai_interesting_facts"
+          >
+            <h3 class="ai-block-title">💡 Interesting Facts</h3>
+            <p>{{ ingredient.ai_interesting_facts }}</p>
+          </div>
         </div>
-      </div>
+      </ng-container>
+
+      <!-- skeleton a dimensione fissa: evita CLS -->
+      <ng-template #aiSkeleton>
+        <div class="ai-blocks-grid ai-skeleton" aria-hidden="true">
+          <div class="ai-detail-block glass-card-mini">
+            <div class="sk-title"></div>
+            <div class="sk-line"></div>
+            <div class="sk-line short"></div>
+          </div>
+          <div class="ai-detail-block glass-card-mini">
+            <div class="sk-title"></div>
+            <div class="sk-line"></div>
+            <div class="sk-line short"></div>
+          </div>
+          <div class="ai-detail-block glass-card-mini">
+            <div class="sk-title"></div>
+            <div class="sk-line"></div>
+            <div class="sk-line short"></div>
+          </div>
+          <div class="ai-detail-block glass-card-mini">
+            <div class="sk-title"></div>
+            <div class="sk-line"></div>
+            <div class="sk-line short"></div>
+          </div>
+          <div class="ai-detail-block glass-card-mini">
+            <div class="sk-title"></div>
+            <div class="sk-line"></div>
+            <div class="sk-line short"></div>
+          </div>
+        </div>
+      </ng-template>
     </section>
 
     <ng-container *ngIf="!loading && !error && contentReady">

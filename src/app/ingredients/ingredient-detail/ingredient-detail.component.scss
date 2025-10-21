@@ -439,3 +439,44 @@ h2 {
 .ad-slot-placeholder.square {
   min-height: 250px;
 }
+
+.ai-insights-section {
+  /* opzionale se vuoi forzare altezza minima */
+  /* min-height: 280px; */
+}
+
+.ai-blocks-grid.ai-skeleton .ai-detail-block {
+  min-height: 140px; /* stesso ordine di grandezza del reale */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sk-title,
+.sk-line {
+  background: linear-gradient(90deg, #e9edf3 0%, #f3f6fa 50%, #e9edf3 100%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.2s infinite linear;
+  border-radius: 8px;
+}
+
+.sk-title {
+  height: 20px;
+  width: 60%;
+}
+.sk-line {
+  height: 12px;
+  width: 100%;
+}
+.sk-line.short {
+  width: 70%;
+}
+
+@keyframes sk-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
