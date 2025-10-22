@@ -60,38 +60,6 @@
 
   border: 1px solid rgba(255, 255, 255, 0.25);
   transition: 0.2s ease;
-
-  &:hover {
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    background-color: rgba(255, 255, 255, 0.0823529412);
-
-    .cocktail-chip {
-      &.category-chip {
-        background-color: rgba(0, 123, 255, 0.45);
-      }
-
-      &.method-chip {
-        background-color: rgba(215, 73, 87, 0.75) !important;
-      }
-    }
-
-    .ingredient-item-link {
-      background-color: rgba(0, 0, 0, 0.05);
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.25);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-      }
-    }
-
-    /* Stato active solo su device touch */
-    @media (hover: none) {
-      .ingredient-item-link:active {
-        background-color: rgba(255, 255, 255, 0.25);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-      }
-    }
-  }
 }
 
 .glassy-image-container {
@@ -175,12 +143,13 @@
     display: flex;
     flex-wrap: nowrap;
     flex-direction: column;
-    gap: 8px;
-    padding: 8px;
+    gap: 4px;
+    padding: 8px 8px 0 8px;
     background-color: rgba(255, 255, 255, 7%);
 
     @media (max-width: 600px) {
       flex-direction: row;
+      padding: 4px;
     }
   }
 }
@@ -195,7 +164,7 @@
 /* default: riservo 2 righe => no CLS */
 .cocktail-card-title {
   font-size: 28px;
-  line-height: 28px; /* 1.05 ≈ 40px */
+  line-height: 28px;
   font-weight: 600;
   margin: 0;
   background-image: none;
@@ -209,16 +178,15 @@
   white-space: normal;
   word-break: break-word;
   padding-right: 10px;
+  position: relative;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
 
   position: relative;
-  /* riserva 2 righe finché il font non è pronto */
-  min-height: calc(2 * 40px);
 }
 
 /* quando i font sono caricati, togli la riserva */
-.fonts-loaded {
-  min-height: 0; /* torna naturale */
-}
 
 .ingredients-list {
   display: flex;
@@ -239,7 +207,7 @@
 .ingredient-item,
 .ingredient-item-link {
   z-index: 2;
-  font-size: 10px;
+  font-size: 11px;
   color: rgb(255 255 255 / 75%);
   transition: background-color 0.2s ease, text-decoration 0.2s ease;
   text-decoration: none;
@@ -260,7 +228,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #0000001f, #0000001f);
+    background-color: rgba(255, 255, 255, 0.07);
     transform-origin: top left;
     transform: skewX(-8deg) translateX(-2px);
     z-index: -1;
@@ -287,9 +255,6 @@
 .cocktail-extra-info {
   display: flex;
   gap: 4px;
-  /* margin-top: 8px; */
-  /* padding-top: 8px; */
-  /* border-top: 1px solid rgba(255, 255, 255, 0.1); */
 
   flex-direction: column;
   height: 100%;
@@ -298,15 +263,20 @@
 .bottom-card-container {
   display: flex;
   flex-direction: row;
-  gap: 8px;
+  gap: 4px;
   margin-top: 0px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  justify-content: space-between;
-  margin-top: auto;
+  justify-content: flex-start;
   padding: 0;
-  background-color: rgba(255, 255, 255, 7%);
-  @media (main-width: 600px) {
-    margin-top: 8px;
+
+  > :nth-child(2) {
+    flex: 1 1 auto; // prende tutto lo spazio disponibile
+    display: flex; // se deve contenere altri elementi
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  > :first-child {
+    flex: 0 0 auto; // solo quanto serve
   }
 }
 
@@ -658,7 +628,7 @@
   content: "\203a";
   position: absolute;
   right: 0px;
-  top: 1px;
+  top: 16px;
   font-size: 18px;
   opacity: 0.9;
   pointer-events: none;
