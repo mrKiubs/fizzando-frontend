@@ -8,22 +8,19 @@
 @import "@fontsource/inter/300.css";
 @import "@fontsource/inter/700.css";
 
-@font-face {
-  font-family: "Bebas Neue";
-  src: url("/fonts/bebas-neue-latin-400-normal.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap; // con preload non vedrai FOUT nè shift
-}
+/* Bebas Neue */
+@import "@fontsource/bebas-neue/index.css";
+
+/* Font-family globali */
 :root {
-  --font-display: "Bebas Neue", system-ui, Arial, sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial,
     sans-serif;
+  --font-display: "Bebas Neue", var(--font-sans);
 }
 
 html,
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
 }
 
 /* ====== Base font stack ====== */

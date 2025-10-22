@@ -270,25 +270,24 @@
                       (error)="onCardImgError($event)"
                     />
                   </picture>
-                  {{ ingredient }}
+                  <span>{{ ingredient }}</span>
                 </a>
               </ng-container>
-
-              <span
-                class="ingredient-item-more"
-                *ngIf="
-                  (cocktail?.ingredients_list?.length || 0) -
-                    (mainIngredientsFormatted?.length || 0) >
-                  0
-                "
-                aria-hidden="true"
-              >
-                +{{
-                  (cocktail.ingredients_list.length || 0) -
-                    (mainIngredientsFormatted.length || 0)
-                }}
-              </span>
             </div>
+            <span
+              class="ingredient-item-more"
+              *ngIf="
+                (cocktail?.ingredients_list?.length || 0) -
+                  (mainIngredientsFormatted?.length || 0) >
+                0
+              "
+              aria-hidden="true"
+            >
+              +{{
+                (cocktail.ingredients_list.length || 0) -
+                  (mainIngredientsFormatted.length || 0)
+              }}
+            </span>
           </ng-template>
 
           <!-- 2) Mobile: stesso blocco, ma deferito quando entra in viewport -->

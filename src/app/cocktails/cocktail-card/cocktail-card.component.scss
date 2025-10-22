@@ -274,12 +274,14 @@
 }
 
 .ingredient-item-more {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   position: absolute;
+  top: 4px;
+  right: 4px;
 }
 
 .cocktail-extra-info {
@@ -605,6 +607,14 @@
 .mobile-panel-link {
   position: relative;
   z-index: 2; /* vincono sul tappeto dello stretched link */
+  span {
+    width: calc(100% + 4px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    margin-top: 4px;
+  }
 }
 
 /* Cues visivi chiari */
@@ -657,4 +667,9 @@
 
   @media (min-width: 769px) {
   }
+}
+
+.ingredient-item:last-child::before,
+.ingredient-item-link:last-child::before {
+  width: 200%;
 }
