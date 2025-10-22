@@ -1373,12 +1373,18 @@ button.btn-shine:hover span {
 
 .cocktail-chips-container {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
-  padding: 0 4px;
+  padding: 0 0;
 }
+
+.cocktail-chips-container > *:nth-child(2) {
+  flex: 1 1 auto;
+  min-width: 0; /* evita overflow del contenuto interno */
+}
+
 .cocktail-key-info {
-  padding: 0 4px;
+  padding: 0 0;
 }
 
 .cocktail-chip {

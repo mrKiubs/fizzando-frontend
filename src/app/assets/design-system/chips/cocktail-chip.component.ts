@@ -24,7 +24,8 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         'slug-' + slugVal,
         active ? 'active' : '',
         count ? '' : 'no-count',
-        transparent ? 'transparent' : ''
+        transparent ? 'transparent' : '',
+        cardType == true ? 'card-type' : ''
       ]"
       [attr.data-slug]="slugVal"
       [routerLink]="routerLink"
@@ -61,7 +62,8 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
           'variant-' + variant,
           'slug-' + slugVal,
           active ? 'active' : '',
-          transparent ? 'transparent' : ''
+          transparent ? 'transparent' : '',
+          cardType ? 'card-type' : ''
         ]"
         [attr.data-slug]="slugVal"
         [attr.href]="href"
@@ -97,7 +99,8 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
             'variant-' + variant,
             'slug-' + slugVal,
             active ? 'active' : '',
-            transparent ? 'transparent' : ''
+            transparent ? 'transparent' : '',
+            cardType ? 'card-type' : ''
           ]"
           [attr.data-slug]="slugVal"
           [attr.aria-pressed]="active"
@@ -169,6 +172,42 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         mask: no-repeat center / contain;
         -webkit-mask: no-repeat center / contain;
       }
+
+      .card-type {
+        border-radius: 0;
+        backdrop-filter: blur(0px);
+        -webkit-backdrop-filter: blur(5px);
+        border: none;
+
+        &.variant-method {
+          padding: 6px 24px 6px 12px;
+          &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #0000001f, #0000001f);
+            transform-origin: top left;
+            transform: skewX(-8deg) translateX(-2px);
+            z-index: -1;
+            transition: transform 0.3s ease;
+          }
+        }
+        &.variant-glass {
+          width: 100%;
+          padding: 6px 12px 6px 6px;
+          &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #0000001f, #0000001f);
+            transform-origin: top left;
+            transform: skewX(-8deg) translateX(-2px);
+            z-index: -1;
+            transition: transform 0.3s ease;
+            width: calc(100% + 10px);
+          }
+        }
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -194,6 +233,8 @@ export class CocktailChipComponent {
   @Input() href: string | null = null;
 
   @Input() stopClickPropagation = false;
+
+  @Input() cardType = false;
 
   @Output() chipClick = new EventEmitter<void>();
 
