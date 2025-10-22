@@ -399,10 +399,16 @@
 
     <div class="cards-grid limit-4">
       <ng-container
-        *ngFor="let item of relatedWithAds; trackBy: trackByRelated"
+        *ngFor="
+          let item of relatedWithAds;
+          let i = index;
+          trackBy: trackByRelated
+        "
       >
         <ng-container *ngIf="!$any(item).isAd; else adTpl">
+          <!-- ✅ SSR tutte le card, JS zero: niente hydration -->
           <app-cocktail-card
+            ngSkipHydration
             [cocktail]="$any(item)"
             [showCorrelation]="true"
             [routerLink]="['/cocktails', $any(item).slug]"
@@ -410,6 +416,7 @@
         </ng-container>
 
         <ng-template #adTpl>
+          <!-- lascia invariato il tuo blocco ad -->
           <ng-container *ngIf="contentReady">
             @defer (on viewport) {
             <section

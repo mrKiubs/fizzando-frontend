@@ -188,7 +188,6 @@
           role="group"
           aria-labelledby="service-label"
         >
-          <p class="info-method">Method and glass:</p>
           <!-- METHOD hub -->
           <app-cocktail-chip
             *ngIf="cocktail.preparation_type"
@@ -203,6 +202,7 @@
             [queryParams]="{}"
             [stopClickPropagation]="true"
             [showCountWhenUndefined]="false"
+            [cardType]="true"
           >
             <span class="icon">{{
               getPreparationIcon(cocktail.preparation_type)
@@ -223,6 +223,7 @@
             [queryParams]="{}"
             [stopClickPropagation]="true"
             [showCountWhenUndefined]="false"
+            [cardType]="true"
           >
             <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
           </app-cocktail-chip>
@@ -231,8 +232,6 @@
           class="cocktail-key-info"
           *ngIf="mainIngredientsFormatted.length > 0"
         >
-          <p class="info-label">Key Ingredients:</p>
-
           <!-- 1) Markup unico riutilizzabile -->
           <ng-template #richIngredients>
             <div class="ingredients-list">
@@ -253,17 +252,17 @@
                     <source
                       [srcset]="srcsetFromIngredientWebp(ingredient)"
                       type="image/webp"
-                      sizes="20px"
+                      sizes="30px"
                     />
                     <source
                       [srcset]="srcsetFromIngredientJpg(ingredient)"
-                      sizes="20px"
+                      sizes="30px"
                     />
                     <img
                       [src]="getIngredientIconUrlJpg(ingredient)"
                       alt=""
-                      width="20"
-                      height="20"
+                      width="30"
+                      height="30"
                       loading="lazy"
                       fetchpriority="low"
                       decoding="async"

@@ -222,32 +222,54 @@
 
 .ingredients-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-wrap: nowrap;
+  gap: 0px;
   max-height: auto;
   overflow: hidden;
+  padding: 0 0 0 0;
+  justify-content: space-between;
+  gap: 4px;
+
+  & > * {
+    flex: 1;
+    min-width: 0px;
+  }
 }
 
 .ingredient-item,
 .ingredient-item-link {
   z-index: 2;
-  font-size: 12px;
-  line-height: 13px;
+  font-size: 10px;
   color: rgb(255 255 255 / 75%);
-  background-color: rgba(255, 255, 255, 0.08);
-  padding: 4px 6px 4px 2px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  transition: background-color 0.2s ease, text-decoration 0.2s ease; /* Aggiunto text-decoration alla transizione */
-  text-decoration: none; /* Assicura che non ci sia sottolineatura di default */
+  transition: background-color 0.2s ease, text-decoration 0.2s ease;
+  text-decoration: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   font-weight: 100;
+  white-space: nowrap;
+  padding: 8px 16px 4px 6px;
+  flex-direction: column;
+
   &:hover {
-    background-color: rgba(255, 255, 255, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.5);
     color: white;
+    border: none;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #0000001f, #0000001f);
+    transform-origin: top left;
+    transform: skewX(-8deg) translateX(-2px);
+    z-index: -1;
+    transition: transform 0.3s ease;
+  }
+
+  /* ✅ SOLO per l’ultimo figlio */
+  &:last-child::before {
+    width: calc(100% + 10px);
   }
 }
 
@@ -257,11 +279,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
 }
 
 .cocktail-extra-info {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   /* margin-top: 8px; */
   /* padding-top: 8px; */
   /* border-top: 1px solid rgba(255, 255, 255, 0.1); */
