@@ -143,7 +143,6 @@
                 ? 'motto-' + cocktail.slug
                 : null
             "
-            [class.fonts-loaded]="fontsLoaded"
           >
             <ng-container *ngIf="!isHandset(); else mobileTitle">
               <a
@@ -312,7 +311,6 @@
         <div class="bottom-card-container">
           <!-- Category → /cocktails?category=... -->
           <app-cocktail-chip
-            [transparent]="true"
             [label]="cocktail.category"
             [variant]="'category'"
             [slug]="slugifySegment(cocktail.category)"
@@ -323,12 +321,12 @@
             ]"
             [stopClickPropagation]="true"
             [showCountWhenUndefined]="false"
+            [cardType]="true"
           >
           </app-cocktail-chip>
 
           <!-- Alcoholic → /cocktails?alcoholic=... -->
           <app-cocktail-chip
-            [transparent]="true"
             *ngIf="cocktail.alcoholic"
             [label]="cocktail.alcoholic"
             [variant]="'alcoholic'"
@@ -339,6 +337,7 @@
               slugifySegment(cocktail.alcoholic)
             ]"
             [showCountWhenUndefined]="false"
+            [cardType]="true"
           >
           </app-cocktail-chip>
         </div>

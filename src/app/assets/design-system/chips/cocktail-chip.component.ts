@@ -178,28 +178,37 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         backdrop-filter: blur(0px);
         -webkit-backdrop-filter: blur(5px);
         border: none;
+        font-size: 13px;
 
-        &.variant-method {
+        &:hover {
+          background: none;
+          color: #fff;
+          border: none;
+        }
+
+        &.variant-method,
+        &.variant-category {
           padding: 6px 24px 6px 12px;
           &::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, #0000001f, #0000001f);
+            background-color: rgba(255, 255, 255, 0.07);
             transform-origin: top left;
             transform: skewX(-8deg) translateX(-2px);
             z-index: -1;
             transition: transform 0.3s ease;
           }
         }
-        &.variant-glass {
+        &.variant-glass,
+        &.variant-alcoholic {
           width: 100%;
           padding: 6px 12px 6px 6px;
           &::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, #0000001f, #0000001f);
+            background-color: rgba(255, 255, 255, 0.07);
             transform-origin: top left;
             transform: skewX(-8deg) translateX(-2px);
             z-index: -1;
