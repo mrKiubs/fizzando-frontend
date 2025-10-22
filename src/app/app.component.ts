@@ -199,6 +199,12 @@ export class AppComponent {
         htmlEl.classList.add('icons-ready');
       }
     }
+
+    if (typeof document !== 'undefined' && 'fonts' in document) {
+      (document as any).fonts.ready.then(() => {
+        document.documentElement.classList.add('wf-ready');
+      });
+    }
   }
 
   onRouteAnimStart() {
