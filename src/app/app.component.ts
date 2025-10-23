@@ -232,7 +232,6 @@ export class AppComponent implements OnDestroy {
       const doc = this.document as Document;
       const htmlEl = doc.documentElement as HTMLElement;
 
-      // Icon fonts ready → sblocco visibilità icone
       if ('fonts' in (doc as any)) {
         (doc as any).fonts.ready.finally(() =>
           htmlEl.classList.add('icons-ready')
@@ -240,24 +239,32 @@ export class AppComponent implements OnDestroy {
       } else {
         htmlEl.classList.add('icons-ready');
       }
-
-      // Webfonts generali ready
       if ('fonts' in doc) {
         (doc as any).fonts.ready.then(() => {
           htmlEl.classList.add('wf-ready');
         });
       }
 
-      // --- NEW: init scroll reattivo allo sfondo
-      this.lastY = window.scrollY;
-      this.lastT = performance.now();
-      window.addEventListener('scroll', this.onScroll, { passive: true });
+      // --- CALM: attiva la reattività allo sfondo SOLO su device touch
+      const isCoarse =
+        window.matchMedia?.('(pointer: coarse)')?.matches === true;
+      const htmlElRef = (this.document as Document).documentElement;
+
+      if (isCoarse) {
+        htmlElRef.classList.add('route-animating');
+        clearTimeout(this.sheenTimer);
+        this.sheenTimer = setTimeout(() => {
+          htmlElRef.classList.remove('route-animating');
+        }, 420);
+      } else {
+        // desktop: nessun flash extra
+        htmlElRef.classList.remove('route-animating');
+      }
     }
   }
 
   ngOnDestroy() {
     if (!this.isBrowser) return;
-    // cleanup scroll listener & rAF
     window.removeEventListener('scroll', this.onScroll as any);
     if (this.rafId) cancelAnimationFrame(this.rafId);
     this.rafId = null;
