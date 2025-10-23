@@ -9,6 +9,7 @@
    La sintassi più semplice per includere stili da un altro file è:
 */
 //@use "../../cocktails/cocktail-list/cocktail-list.component.scss";
+@use "../../assets/style/mixins" as m;
 
 :host {
   display: block;
@@ -39,6 +40,8 @@
   padding: 32px 0 0 0;
   backdrop-filter: blur(0px);
 
+  @include m.disable-blur-on-touch;
+
   .custom-search-input {
     position: relative;
     width: 100%;
@@ -59,6 +62,8 @@
     &::placeholder {
       color: rgba(255, 255, 255, 0.7);
     }
+
+    @include m.disable-blur-on-touch;
   }
 
   .search-icon,
@@ -195,6 +200,8 @@
   @media (max-width: 768px) {
     padding: 4px;
   }
+
+  @include m.disable-blur-on-touch;
 }
 
 .suggestion-list {
@@ -272,6 +279,8 @@ hr {
   @media (max-width: 600px) {
     padding: 8px;
   }
+
+  @include m.disable-blur-on-touch;
 }
 
 .section-title {

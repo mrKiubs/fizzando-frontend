@@ -178,7 +178,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         -webkit-backdrop-filter: blur(5px);
         border: none;
         font-size: 13px;
-
+        position: relative;
         &:hover {
           background: none;
           color: #fff;

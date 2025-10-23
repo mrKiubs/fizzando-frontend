@@ -1,4 +1,6 @@
 /* Header base */
+@use "../assets/style/mixins" as m;
+
 .app-header {
   color: #fff;
   padding: calc(7px + var(--safe-top)) 20px 7px;
@@ -16,6 +18,8 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   min-height: calc(var(--header-height) + var(--safe-top));
+
+  //@include m.disable-blur-on-touch;
 }
 
 .header-content {
@@ -206,6 +210,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+
+  @include m.disable-blur-on-touch;
 }
 
 .full-screen-menu-overlay.open {
@@ -231,6 +237,8 @@
   padding: 16px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+
+  @include m.disable-blur-on-touch;
 }
 
 .full-screen-menu-overlay.open .overlay-content {
@@ -411,6 +419,8 @@
     opacity: 1;
     visibility: visible;
   }
+
+  @include m.disable-blur-on-touch;
 }
 
 .search-overlay__content {
@@ -429,6 +439,8 @@
   transition: transform 0.3s ease, opacity 0.3s ease;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+
+  @include m.disable-blur-on-touch;
 }
 
 .search-overlay.open .search-overlay__content {
@@ -487,6 +499,8 @@
       color: #555;
     }
   }
+
+  @include m.disable-blur-on-touch;
 }
 
 .overlay-search-input.has-value::placeholder {
@@ -540,6 +554,8 @@
   margin: 8px 0 0 0; /* niente margine orizzontale */
   padding-bottom: 8px; /* piccolo respiro in fondo */
 
+  @include m.disable-blur-on-touch;
+
   .loading-message,
   .no-results-message {
     text-align: center;
@@ -571,6 +587,8 @@
       -webkit-text-fill-color: initial;
       color: #000;
       text-shadow: none;
+
+      @include m.disable-blur-on-touch;
     }
 
     ul {

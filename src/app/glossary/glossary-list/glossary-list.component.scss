@@ -1,3 +1,5 @@
+@use "../../assets/style/mixins" as m;
+
 :host {
   display: block;
   min-height: calc(
@@ -60,6 +62,8 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   overflow: hidden;
+
+  @include m.disable-blur-on-touch;
 
   .accordion-header {
     display: flex;
@@ -259,6 +263,7 @@ hr {
   align-items: center;
   justify-content: center;
   gap: 1rem;
+  @include m.disable-blur-on-touch;
 }
 
 .error-message {

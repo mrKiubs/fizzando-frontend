@@ -143,6 +143,8 @@ a.ingredient-link {
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
+  @include disable-blur-on-touch;
+
   @media (max-width: 600px) {
     padding: 8px; /* Adjusted padding for smaller screens */
     margin: 16px auto;
@@ -245,6 +247,8 @@ a.ingredient-link {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   text-align: center;
 
+  @include disable-blur-on-touch;
+
   @media (max-width: 600px) {
     padding: 8px;
     gap: 12px;
@@ -315,6 +319,8 @@ a.ingredient-link {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+    @include disable-blur-on-touch;
   }
 
   @media (min-width: 600px) {
@@ -424,6 +430,8 @@ body {
   transition: all 0.3s ease;
   font-weight: 600;
 
+  @include disable-blur-on-touch;
+
   &:hover:not([disabled]) {
     background: rgba(255, 255, 255, 0.3);
   }
@@ -469,6 +477,8 @@ body {
   outline: none;
   transition: all 0.3s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  @include disable-blur-on-touch;
 
   &:hover:not(.active) {
     //background: rgba(255, 255, 255, 0.7);
@@ -605,6 +615,8 @@ body {
   max-width: 1200px;
   margin: 0 auto;
 
+  @include disable-blur-on-touch;
+
   @media (max-width: 600px) {
     padding: 16px 8px;
   }
@@ -624,6 +636,7 @@ body {
   @media (max-width: 600px) {
     padding: 8px;
   }
+  @include disable-blur-on-touch;
 }
 .section-title {
   color: rgba(255, 255, 255, 0.85);
@@ -734,6 +747,8 @@ body {
   color: #ffffff7a;
   width: fit-content;
 
+  @include disable-blur-on-touch;
+
   .page-status__sep {
     opacity: 0.6;
   }
@@ -799,6 +814,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   border-radius: 8px;
+  @include disable-blur-on-touch;
 }
 
 .custom-search-input {
@@ -844,6 +860,8 @@ body {
   overflow: hidden;
   transition: all 0.3s ease;
   height: 46px;
+
+  @include disable-blur-on-touch;
 
   &.expanded {
     height: 140px;
@@ -1264,6 +1282,8 @@ button.btn-shine {
   display: flex;
   gap: 4px;
 
+  @include disable-blur-on-touch;
+
   span {
     font-size: 14px;
     line-height: 18px;
@@ -1404,6 +1424,9 @@ button.btn-shine:hover span {
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+
+  @include disable-blur-on-touch;
+
   &:hover {
     background-color: #00000019;
     color: white;

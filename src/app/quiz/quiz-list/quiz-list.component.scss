@@ -1,3 +1,5 @@
+@use "../../assets/style/mixins" as m;
+
 :host {
   display: block;
   min-height: calc(
@@ -16,6 +18,8 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
+
+  @include m.disable-blur-on-touch;
 }
 
 .custom-search-input-wrapper {
@@ -66,6 +70,8 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   overflow: hidden;
+
+  @include m.disable-blur-on-touch;
 
   .accordion-header {
     display: flex;
@@ -248,6 +254,8 @@ hr {
   align-items: center;
   justify-content: center;
   gap: 1rem;
+
+  @include m.disable-blur-on-touch;
 }
 
 .error-message {
@@ -290,6 +298,8 @@ hr {
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+
+  @include m.disable-blur-on-touch;
 
   a {
     text-decoration: none;

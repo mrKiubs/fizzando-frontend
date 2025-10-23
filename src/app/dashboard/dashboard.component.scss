@@ -1,3 +1,5 @@
+@use "../assets/style/mixins" as m;
+
 :host {
   /* reset e guardrail overflow */
   --gap: 16px;
@@ -397,6 +399,8 @@ h4 {
       transition: transform 0.15s ease, border-color 0.15s ease;
       will-change: transform;
 
+      @include m.disable-blur-on-touch;
+
       &:hover {
         transform: translateY(-2px);
         border-color: rgba(255, 255, 255, 0.28);
@@ -523,6 +527,8 @@ h4 {
   justify-content: center;
 
   transition: all 0.3s ease;
+
+  @include m.disable-blur-on-touch;
 }
 .carousel-btn.prev {
   inset-inline-start: 0.5rem;
@@ -580,6 +586,7 @@ h4 {
   &:hover {
     border: 1px solid #fff;
   }
+  @include m.disable-blur-on-touch;
 }
 .carousel-dots .dot.active {
   background: rgba(255, 255, 255, 0.638);

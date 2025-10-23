@@ -1,3 +1,5 @@
+@use "../../assets/style/mixins" as m;
+
 .detail-wrapper {
   max-width: 1200px;
   margin: 0 auto;
@@ -21,6 +23,7 @@ h2 {
   @media (max-width: 600px) {
     padding: 8px;
   }
+  @include m.disable-blur-on-touch;
 }
 
 /* Glass Button Styles */
@@ -75,6 +78,8 @@ h2 {
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   color: #fff;
+
+  @include m.disable-blur-on-touch;
 }
 .error-message {
   color: #f44336;
@@ -168,6 +173,7 @@ h2 {
       width: 100px;
       height: 100px;
     }
+    @include m.disable-blur-on-touch;
   }
 
   .ingredient-main-image {

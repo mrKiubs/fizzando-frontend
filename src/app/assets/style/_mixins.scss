@@ -3,6 +3,18 @@
 @use "variables" as vars;
 @use "sass:color";
 
+@mixin disable-blur-on-touch {
+  @media (hover: none) and (pointer: coarse) {
+    & {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+      filter: none !important;
+      background-color: rgba(255, 255, 255, 0.06) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+    }
+  }
+}
+
 // Mixin base per l'effetto Glassmorphism
 // Utilizza le CSS Custom Properties per i colori e i valori che cambiano con il tema.
 @mixin liquid-glass-effect(
