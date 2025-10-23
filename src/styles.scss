@@ -99,21 +99,8 @@ h6,
   font-weight: 700;
   line-height: 1.2;
 
-  /* testo trasparente con gradiente applicato */
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-
-  /* gradiente neutro chiaro, effetto vetro */
-  background-image: linear-gradient(
-    120deg,
-    #f7c8c8 0%,
-    #f6e1b9 25%,
-    #d7f8ea 50%,
-    #c9e0f6 75%,
-    #e5d8f7 100%
-  );
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
 
   /* leggerissimo contorno per leggibilità su sfondi chiari */
   text-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.12);
@@ -130,6 +117,32 @@ h6,
     color: #ffffff !important;
     text-shadow: none !important;
     filter: none !important;
+  }
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .logo-text,
+  .ingredient-link {
+    /* testo trasparente con gradiente applicato */
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+
+    /* gradiente neutro chiaro, effetto vetro */
+    background-image: linear-gradient(
+      120deg,
+      #f7c8c8 0%,
+      #f6e1b9 25%,
+      #d7f8ea 50%,
+      #c9e0f6 75%,
+      #e5d8f7 100%
+    );
   }
 }
 
