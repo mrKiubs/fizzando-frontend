@@ -59,35 +59,42 @@ a {
   font-size: 36px;
   letter-spacing: 3px;
   line-height: 32px;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(
-      110deg,
-      #ff8c8c 0%,
-      #ffd28a 18%,
-      #fff176 33%,
-      #7de5b8 50%,
-      #82b1ff 68%,
-      #b388ff 85%
-    ),
-    linear-gradient(
-      120deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0) 42%,
-      rgba(255, 255, 255, 0.92) 49%,
-      rgb(255, 255, 255) 50%,
-      rgba(255, 255, 255, 0.92) 51%,
-      rgba(255, 255, 255, 0) 58%,
-      rgba(255, 255, 255, 0) 100%
-    );
-  background-size: 200% 100%, 250% 100%;
-  background-position: 0% 50%, -200% 50%;
-  background-repeat: no-repeat;
-  background-blend-mode: normal, screen;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
   text-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.18);
-  will-change: background-position;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .logo-text {
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    background-image: linear-gradient(
+        110deg,
+        #ff8c8c 0%,
+        #ffd28a 18%,
+        #fff176 33%,
+        #7de5b8 50%,
+        #82b1ff 68%,
+        #b388ff 85%
+      ),
+      linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0) 42%,
+        rgba(255, 255, 255, 0.92) 49%,
+        rgb(255, 255, 255) 50%,
+        rgba(255, 255, 255, 0.92) 51%,
+        rgba(255, 255, 255, 0) 58%,
+        rgba(255, 255, 255, 0) 100%
+      );
+    background-size: 200% 100%, 250% 100%;
+    background-position: 0% 50%, -200% 50%;
+    background-repeat: no-repeat;
+    background-blend-mode: normal, screen;
+    will-change: background-position;
+  }
 }
 
 /* hover: sweep della luce */
