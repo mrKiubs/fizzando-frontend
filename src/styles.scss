@@ -44,6 +44,7 @@ body {
   padding-top: 0;
   scroll-padding-top: calc(var(--header-height) + var(--safe-top));
   overscroll-behavior: contain;
+  padding-top: 62px;
 }
 
 header.app-header {
@@ -408,9 +409,4 @@ h1 {
   .cocktail-chip:active {
     background-color: rgba(255, 255, 255, 0.12); /* flash leggero nel blur */
   }
-}
-
-:where(*) {
-  /* se avevi anche filter: blur(...) */
-  filter: none !important;
 }
