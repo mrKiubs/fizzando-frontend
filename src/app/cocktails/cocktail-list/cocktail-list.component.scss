@@ -348,6 +348,7 @@ section.container-tab {
   max-width: 800px;
   margin: 16px auto;
   padding: 0;
+  @include m.blur-always(2px, 6px);
 }
 
 p.chip-lead {

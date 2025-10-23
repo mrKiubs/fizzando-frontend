@@ -103,6 +103,7 @@
 
 /* Main content */
 .cocktail-main-content {
+  @include m.blur-always(2px, 6px);
 }
 .main-content-grid {
   display: grid;
@@ -266,6 +267,7 @@
 /* AI Details */
 .ai-details-section {
   padding: 16px;
+  @include m.blur-always(2px, 6px);
 }
 .ai-blocks-grid {
   display: grid;
