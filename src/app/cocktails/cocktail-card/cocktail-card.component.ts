@@ -6,6 +6,7 @@ import {
   inject,
   signal,
   PLATFORM_ID,
+  SimpleChanges,
 } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,6 +17,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
 import { env } from '../../config/env';
 import {
+  CocktailIngredientListItem,
   CocktailWithLayoutAndMatch,
   StrapiImage,
 } from '../../services/strapi.service';
@@ -62,6 +64,8 @@ export class CocktailCardComponent implements OnInit {
   /** Label in alto al banner */
   @Input() bannerLabel = 'This article is about';
 
+  @Input() priorityIngredientName?: string; // oppure priorityIngredientSlug/Id se preferisci
+
   isMobile = false;
   public fontsLoaded = false;
   mainIngredientsFormatted: string[] = [];
@@ -78,17 +82,18 @@ export class CocktailCardComponent implements OnInit {
   // Lifecycle
   // ========================
   ngOnInit(): void {
-    if (this.cocktail?.ingredients_list) {
-      this.mainIngredientsFormatted = this.cocktail.ingredients_list
-        .map((item) => item.ingredient?.name)
-        .filter((name): name is string => !!name)
-        .slice(0, 3);
-    }
+    this.computeMainIngredientsFormatted();
 
     if (this.isBrowser && (document as any)?.fonts?.ready) {
       (document as any).fonts.ready.then(() => (this.fontsLoaded = true));
     } else if (this.isBrowser) {
       requestAnimationFrame(() => (this.fontsLoaded = true));
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['cocktail'] || changes['priorityIngredientName']) {
+      this.computeMainIngredientsFormatted();
     }
   }
 
@@ -586,5 +591,41 @@ export class CocktailCardComponent implements OnInit {
   }
   glassSlug(v?: string) {
     return (v || '').toLowerCase().replace(/\s+/g, '-');
+  }
+
+  private computeMainIngredientsFormatted(): void {
+    // Lista ingredienti come oggetti (Strapi): { ingredient: { name: string }, ... }
+    const list = Array.isArray(this.cocktail?.ingredients_list)
+      ? [...this.cocktail!.ingredients_list]
+      : [];
+
+    if (!list.length) {
+      this.mainIngredientsFormatted = [];
+      return;
+    }
+
+    const getName = (it: any) => (it?.ingredient?.name ?? '').trim();
+    const norm = (s: string) => s.trim().toLowerCase();
+    const pri = this.priorityIngredientName
+      ? norm(this.priorityIngredientName)
+      : null;
+
+    const priority: any[] = [];
+    const others: any[] = [];
+
+    for (const ing of list) {
+      const name = getName(ing);
+      if (pri && name && norm(name) === pri) {
+        priority.push(ing);
+      } else {
+        others.push(ing);
+      }
+    }
+
+    const ordered = [...priority, ...others];
+
+    this.mainIngredientsFormatted = Array.from(
+      new Set(ordered.slice(0, 3).map(getName).filter(Boolean))
+    );
   }
 }

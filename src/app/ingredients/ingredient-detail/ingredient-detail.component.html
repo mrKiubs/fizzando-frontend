@@ -217,6 +217,7 @@
                   item.slug === firstRelatedCocktailSlug ||
                   item.id === firstRelatedCocktailId
                 "
+                [priorityIngredientName]="ingredient.name"
               ></app-cocktail-card>
             </ng-container>
 
@@ -226,6 +227,7 @@
                 ngSkipHydration
                 [cocktail]="item"
                 [routerLink]="['/cocktails', item.slug]"
+                [priorityIngredientName]="ingredient.name"
               ></app-cocktail-card>
             </ng-template>
           </ng-container>
