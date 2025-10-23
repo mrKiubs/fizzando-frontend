@@ -239,7 +239,7 @@
     inset: 0;
     background-color: rgba(255, 255, 255, 0.07);
     transform-origin: top left;
-    transform: skewX(-8deg) translateX(-2px);
+    transform: skewX(8deg) translateX(-10px);
     z-index: -1;
     transition: transform 0.3s ease;
   }

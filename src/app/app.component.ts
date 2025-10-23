@@ -170,13 +170,17 @@ export class AppComponent implements OnDestroy {
 
   private skipMotionNext = false;
 
-  // --- NEW: sheen/route state
+  // Sheen/route state
   private sheenTimer: any = null;
 
-  // --- NEW: scroll-reactive bg speed
+  // Scroll-reactive bg speed (solo touch)
   private rafId: number | null = null;
   private lastY = 0;
   private lastT = 0;
+
+  // iOS visualViewport fix
+  private vvResizeHandler?: () => void;
+  private isIOS = false;
 
   protected readonly isTouch =
     this.isBrowser &&
@@ -197,28 +201,34 @@ export class AppComponent implements OnDestroy {
         this.skipMotionNext = !!(st.suppressMotion || st.suppressScroll);
       });
 
-    // --- NEW: after NavEnd → theme class + route-animating sheen
+    // After NavEnd → tema + sheen (solo touch, preset Calm)
     let lastPath = '';
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
+        if (!this.isBrowser) return;
+
         const path = e.urlAfterRedirects.split('?')[0];
         const pathChanged = lastPath !== path;
         lastPath = path;
 
-        if (!this.isBrowser) return;
-
-        const html = (this.document as Document).documentElement;
+        const htmlElRef = (this.document as Document).documentElement;
 
         // A) Toggle classe tema da route.data.themeClass (deepest child)
-        this.applyThemeClassFromRoute(html);
+        this.applyThemeClassFromRoute(htmlElRef);
 
-        // B) Sheen “accent” durante la transizione
-        html.classList.add('route-animating');
-        clearTimeout(this.sheenTimer);
-        this.sheenTimer = setTimeout(() => {
-          html.classList.remove('route-animating');
-        }, 450); // allinea alla tua enterDuration+delay
+        // B) Sheen “accent” durante la transizione — SOLO su touch
+        const isCoarse =
+          window.matchMedia?.('(pointer: coarse)')?.matches === true;
+        if (isCoarse) {
+          htmlElRef.classList.add('route-animating');
+          clearTimeout(this.sheenTimer);
+          this.sheenTimer = setTimeout(() => {
+            htmlElRef.classList.remove('route-animating');
+          }, 420);
+        } else {
+          htmlElRef.classList.remove('route-animating');
+        }
 
         // C) reset flag “skipMotionNext” per la prossima
         if (pathChanged) setTimeout(() => (this.skipMotionNext = false), 50);
@@ -226,52 +236,66 @@ export class AppComponent implements OnDestroy {
   }
 
   ngOnInit() {
-    if (this.isBrowser) {
-      this.viewportService.init();
+    if (!this.isBrowser) return;
 
-      const doc = this.document as Document;
-      const htmlEl = doc.documentElement as HTMLElement;
+    this.viewportService.init();
 
-      if ('fonts' in (doc as any)) {
-        (doc as any).fonts.ready.finally(() =>
-          htmlEl.classList.add('icons-ready')
-        );
-      } else {
-        htmlEl.classList.add('icons-ready');
-      }
-      if ('fonts' in doc) {
-        (doc as any).fonts.ready.then(() => {
-          htmlEl.classList.add('wf-ready');
-        });
-      }
+    const doc = this.document as Document;
+    const htmlEl = doc.documentElement as HTMLElement;
 
-      // --- CALM: attiva la reattività allo sfondo SOLO su device touch
-      const isCoarse =
-        window.matchMedia?.('(pointer: coarse)')?.matches === true;
-      const htmlElRef = (this.document as Document).documentElement;
+    // Icon fonts ready → sblocco visibilità icone
+    if ('fonts' in (doc as any)) {
+      (doc as any).fonts.ready.finally(() =>
+        htmlEl.classList.add('icons-ready')
+      );
+    } else {
+      htmlEl.classList.add('icons-ready');
+    }
+    if ('fonts' in doc) {
+      (doc as any).fonts.ready.then(() => {
+        htmlEl.classList.add('wf-ready');
+      });
+    }
 
-      if (isCoarse) {
-        htmlElRef.classList.add('route-animating');
-        clearTimeout(this.sheenTimer);
-        this.sheenTimer = setTimeout(() => {
-          htmlElRef.classList.remove('route-animating');
-        }, 420);
-      } else {
-        // desktop: nessun flash extra
-        htmlElRef.classList.remove('route-animating');
-      }
+    // iOS 16+ toolbar dinamiche → sincronizza --app-vh con visualViewport
+    this.setupIOSViewportFix();
+
+    // CALM: scroll-reactive solo su device touch
+    const isCoarse = window.matchMedia?.('(pointer: coarse)')?.matches === true;
+    if (isCoarse) {
+      this.lastY = window.scrollY;
+      this.lastT = performance.now();
+      window.addEventListener('scroll', this.onScroll, { passive: true });
+    } else {
+      // Desktop: fissa lo speed a 1 (nessun boost)
+      htmlEl.style.setProperty('--bg-speed', '1');
     }
   }
 
   ngOnDestroy() {
     if (!this.isBrowser) return;
+
+    // cleanup scroll listener & rAF
     window.removeEventListener('scroll', this.onScroll as any);
     if (this.rafId) cancelAnimationFrame(this.rafId);
     this.rafId = null;
     if (this.sheenTimer) clearTimeout(this.sheenTimer);
+
+    // Cleanup iOS listeners
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    if (this.isIOS && this.vvResizeHandler) {
+      try {
+        vv?.removeEventListener('resize', this.vvResizeHandler as any);
+      } catch {}
+      window.removeEventListener(
+        'orientationchange',
+        this.vvResizeHandler as any
+      );
+      window.removeEventListener('scroll', this.vvResizeHandler as any);
+    }
   }
 
-  // --- NEW: aggiorna --bg-speed in base alla velocità di scroll
+  // Aggiorna --bg-speed in base alla velocità di scroll (solo touch)
   private onScroll = () => {
     if (this.rafId) return;
     this.rafId = requestAnimationFrame(() => {
@@ -282,7 +306,7 @@ export class AppComponent implements OnDestroy {
       const vel = Math.min(1, dy / dt / 0.8); // 0..1
       (this.document as Document).documentElement.style.setProperty(
         '--bg-speed',
-        1 + vel * 0.4 + ''
+        String(1 + vel * 0.4)
       );
       this.lastY = y;
       this.lastT = now;
@@ -290,22 +314,54 @@ export class AppComponent implements OnDestroy {
     });
   };
 
-  // --- NEW: applica classe tema definita nelle route data
+  // Fix iOS: usa visualViewport.height per --app-vh quando cambiano le toolbar
+  private setupIOSViewportFix() {
+    const ua = navigator.userAgent || '';
+    const isAppleTouch =
+      /iP(hone|od|ad)/.test(ua) ||
+      (ua.includes('Mac') && 'ontouchend' in document);
+
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    this.isIOS = isAppleTouch && !!vv;
+
+    if (!this.isIOS) return;
+
+    const htmlEl = (this.document as Document).documentElement as HTMLElement;
+    htmlEl.classList.add('ios-fixed');
+
+    const updateVh = () => {
+      const h = Math.round((vv!.height + Number.EPSILON) * 10) / 10;
+      htmlEl.style.setProperty('--app-vh', `${h}px`);
+    };
+
+    // Primo set
+    updateVh();
+
+    // Listener coalescati
+    const handler = () => requestAnimationFrame(updateVh);
+    this.vvResizeHandler = handler;
+
+    vv!.addEventListener('resize', handler as any, { passive: true } as any);
+    window.addEventListener('orientationchange', handler as any, {
+      passive: true,
+    });
+    // alcune versioni iOS aggiornano durante lo scroll
+    window.addEventListener('scroll', handler as any, { passive: true });
+  }
+
+  // Applica classe tema definita nelle route data
   private applyThemeClassFromRoute(html: HTMLElement) {
-    // rimuovi classi esistenti che iniziano con "theme-"
-    // (evita accumulo quando cambi pagina)
+    // rimuovi classi che iniziano con "theme-"
     for (const cls of Array.from(html.classList)) {
       if (cls.startsWith('theme-')) html.classList.remove(cls);
     }
-
-    // cerca la child route più profonda con data.themeClass
+    // trova la child più profonda con data.themeClass
     let r: any = this.route;
     let theme: string | undefined;
     while (r?.firstChild) r = r.firstChild;
     if (r?.snapshot?.data?.['themeClass']) {
       theme = r.snapshot.data['themeClass'];
     } else {
-      // fallback: risali nel tree originale se necessario
       r = this.route.firstChild;
       while (r) {
         theme = r.snapshot.data?.['themeClass'] ?? theme;
@@ -317,7 +373,6 @@ export class AppComponent implements OnDestroy {
 
   onRouteAnimStart() {
     if (!this.isBrowser) return;
-    // segnale soft per componenti che vogliono “sincronizzarsi”
     window.dispatchEvent(
       new CustomEvent<boolean>('route-anim', { detail: true })
     );
