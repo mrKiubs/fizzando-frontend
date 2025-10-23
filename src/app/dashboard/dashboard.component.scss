@@ -130,6 +130,10 @@ section {
   border-radius: 10px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
+.section-block,
+.quick-links-section {
+  @include m.blur-always(2px, 6px);
+}
 
 /* Full-width sections */
 .quick-links-section,
@@ -307,6 +311,7 @@ h4 {
   position: relative; // obbligatorio per l'overlay assoluto
   overflow: hidden; // tiene i coriandoli dentro al box
   min-height: 220px;
+  @include m.blur-always(2px, 6px);
   img {
     max-width: 210px;
     opacity: 0.7;
@@ -346,6 +351,7 @@ h4 {
 }
 
 .cocktail-display-button {
+  @include m.blur-always(2px, 6px);
   h3 {
     text-align: center;
     margin-bottom: 8px;
@@ -394,12 +400,10 @@ h4 {
       padding: 12px 14px;
       border: 1px solid rgba(255, 255, 255, 0.16);
       border-radius: 14px;
-      backdrop-filter: blur(6px);
+
       text-decoration: none;
       transition: transform 0.15s ease, border-color 0.15s ease;
       will-change: transform;
-
-      @include m.disable-blur-on-touch;
 
       &:hover {
         transform: translateY(-2px);
@@ -447,6 +451,8 @@ h4 {
   max-width: 1200px;
   margin-inline: auto;
   border-radius: 16px;
+
+  @include m.blur-always(2px, 6px);
 }
 
 .carousel-viewport {
@@ -510,8 +516,7 @@ h4 {
   top: 50%;
   transform: translateY(-50%);
   z-index: 2;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+
   background: rgba(255, 255, 255, 0.0784313725);
   border-radius: 50%;
   line-height: 0;
@@ -527,8 +532,6 @@ h4 {
   justify-content: center;
 
   transition: all 0.3s ease;
-
-  @include m.disable-blur-on-touch;
 }
 .carousel-btn.prev {
   inset-inline-start: 0.5rem;
@@ -570,8 +573,7 @@ h4 {
   padding: 2px;
   border-radius: 50%;
   font-weight: 600;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+
   background: #ffffff14;
   font-size: 0.85rem;
   line-height: 1.2;
@@ -586,7 +588,6 @@ h4 {
   &:hover {
     border: 1px solid #fff;
   }
-  @include m.disable-blur-on-touch;
 }
 .carousel-dots .dot.active {
   background: rgba(255, 255, 255, 0.638);

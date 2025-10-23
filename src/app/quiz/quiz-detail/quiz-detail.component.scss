@@ -21,13 +21,11 @@
   );
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  backdrop-filter: blur(10px); /* Aumentato blur per maggiore effetto */
-  -webkit-backdrop-filter: blur(10px);
+  /* Aumentato blur per maggiore effetto */
+
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
   padding: 16px; /* Padding di base per i contenitori */
-
-  @include m.disable-blur-on-touch;
 }
 
 /* Contenitore principale del quiz */
@@ -100,8 +98,7 @@
   );
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px; /* Mantenuto 8px per le opzioni */
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+
   transition: all 0.3s ease-in-out;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 
@@ -114,8 +111,6 @@
   justify-content: center; /* Centra il testo nel bottone */
   text-align: center;
   color: white;
-
-  @include m.disable-blur-on-touch;
 }
 
 .options-list li.option-button:hover {
@@ -261,8 +256,7 @@ related-item-card {
   );
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+
   transition: transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
   padding: 15px; /* Padding per le card degli item */
@@ -274,8 +268,6 @@ related-item-card {
   color: #333;
   width: 150px; /* Fixed width for consistency */
   text-align: center;
-
-  @include m.disable-blur-on-touch;
 }
 
 .related-item-card:hover {

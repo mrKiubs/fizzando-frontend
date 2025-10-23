@@ -3,15 +3,13 @@
 
 .app-footer {
   background: rgba(255, 255, 255, 0.1); /* Light translucent background */
-  backdrop-filter: blur(10px); /* Glass blur effect */
-  -webkit-backdrop-filter: blur(10px); /* Safari compatibility */
+  /* Glass blur effect */
+  /* Safari compatibility */
   border-top: 1px solid rgba(255, 255, 255, 0.1); /* Light top border */
   padding: 2rem 1rem;
   color: #e0e0e0; /* Light text */
   font-family: "Poppins", sans-serif; /* Consistent font */
   box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1); /* Subtle top shadow */
-
-  @include m.disable-blur-on-touch;
 
   .footer-content-wrapper {
     display: flex;

@@ -18,13 +18,10 @@
   padding: 0.75rem 1rem;
 
   background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-
-  @include m.disable-blur-on-touch;
 }
 
 .custom-search-input {
@@ -65,11 +62,8 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  overflow: hidden;
 
-  @include m.disable-blur-on-touch;
+  overflow: hidden;
 
   .accordion-header {
     display: flex;
@@ -471,8 +465,7 @@ p.ingredient-card-legend {
   padding: 0.625rem 0.875rem;
   margin: 16px auto;
   border-radius: 12px;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+
   background: rgba(255, 255, 255, 0.08);
   /* border: 1px solid rgba(255, 255, 255, 0.12); */
   font-size: 0.85rem;
@@ -481,8 +474,6 @@ p.ingredient-card-legend {
   text-align: center;
   color: #ffffff7a;
   width: fit-content;
-
-  @include m.disable-blur-on-touch;
 
   .page-status__sep {
     opacity: 0.6;

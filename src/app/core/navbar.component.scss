@@ -15,11 +15,10 @@
     rgba(157, 142, 252, 0.062745098) 100%
   );
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   min-height: calc(var(--header-height) + var(--safe-top));
 
-  //@include m.disable-blur-on-touch;
+  @include m.blur-always(4px, 8px);
 }
 
 .header-content {
@@ -200,8 +199,6 @@
     rgba(157, 142, 252, 0.062745098) 100%
   );
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 
   opacity: 0;
   visibility: hidden;
@@ -210,8 +207,6 @@
   display: flex;
   justify-content: center;
   align-items: center;
-
-  @include m.disable-blur-on-touch;
 }
 
 .full-screen-menu-overlay.open {
@@ -235,10 +230,6 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-
-  @include m.disable-blur-on-touch;
 }
 
 .full-screen-menu-overlay.open .overlay-content {
@@ -403,8 +394,6 @@
     rgba(157, 142, 252, 0.062745098) 100%
   );
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 
   opacity: 0;
   visibility: hidden;
@@ -419,8 +408,6 @@
     opacity: 1;
     visibility: visible;
   }
-
-  @include m.disable-blur-on-touch;
 }
 
 .search-overlay__content {
@@ -437,10 +424,6 @@
   transform: scale(0.95);
   opacity: 0;
   transition: transform 0.3s ease, opacity 0.3s ease;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-
-  @include m.disable-blur-on-touch;
 }
 
 .search-overlay.open .search-overlay__content {
@@ -471,8 +454,7 @@
   align-items: center;
   padding: 0.75rem 1rem;
   background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
@@ -499,8 +481,6 @@
       color: #555;
     }
   }
-
-  @include m.disable-blur-on-touch;
 }
 
 .overlay-search-input.has-value::placeholder {
@@ -542,8 +522,7 @@
   width: 100%;
   z-index: 1001;
   background-color: rgb(255 255 255 / 90%);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   max-height: 300px;
@@ -553,8 +532,6 @@
   color: #fff;
   margin: 8px 0 0 0; /* niente margine orizzontale */
   padding-bottom: 8px; /* piccolo respiro in fondo */
-
-  @include m.disable-blur-on-touch;
 
   .loading-message,
   .no-results-message {
@@ -574,8 +551,7 @@
       top: 0;
       z-index: 10;
       background-color: #f9f9f9d3;
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+
       margin-bottom: 8px;
       font-size: 1.2em;
       display: flex;
@@ -587,8 +563,6 @@
       -webkit-text-fill-color: initial;
       color: #000;
       text-shadow: none;
-
-      @include m.disable-blur-on-touch;
     }
 
     ul {
@@ -713,6 +687,7 @@
 .full-screen-menu-overlay,
 .search-overlay {
   transition: opacity 0.2s ease, visibility 0.2s ease;
+  @include m.blur-always(2px, 6px);
 }
 .overlay-content,
 .search-overlay__content {

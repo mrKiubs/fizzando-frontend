@@ -174,8 +174,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
       }
       .card-type {
         border-radius: 0;
-        backdrop-filter: blur(0px);
-        -webkit-backdrop-filter: blur(5px);
+
         border: none;
         font-size: 13px;
         position: relative;
