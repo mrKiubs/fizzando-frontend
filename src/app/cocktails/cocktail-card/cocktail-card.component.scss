@@ -123,6 +123,13 @@
       #fff 75%,
       #fff 100%
     );
+    display: flex;
+    gap: 8px;
+    align-items: center;
+
+    span {
+      font-size: 24px;
+    }
 
     @media (max-width: 600px) {
       position: static;

@@ -142,7 +142,7 @@
           class="match-motto"
           *ngIf="displayMotto as motto; else highlightTpl"
         >
-          ✨ {{ motto }}
+          <span>✨</span> {{ motto }}
         </h4>
         <ng-template #highlightTpl>
           <h4
@@ -150,7 +150,7 @@
             class="match-motto"
             *ngIf="primaryHighlight as hl"
           >
-            ✨ {{ hl.text }}
+            <span>✨</span> {{ hl.text }}
           </h4>
         </ng-template>
       </ng-container>
