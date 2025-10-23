@@ -681,6 +681,7 @@
 .full-screen-menu-overlay.open,
 .search-overlay.open {
   pointer-events: auto;
+  background-color: #000000b9;
 }
 
 /* già presenti: transizioni solo su opacity/transform, no layout */

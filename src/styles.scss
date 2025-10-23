@@ -1,7 +1,7 @@
 // Custom Theming for Angular Material
 // For more information: https://material.angular.dev/guide/theming
 //@use "@angular/material" as mat;
-
+@use "app/assets/style/mixins" as m;
 @use "app/assets/style/main.scss" as *;
 
 /* Inter: importa solo i pesi che usi davvero */
@@ -340,6 +340,7 @@ h1 {
 .cards-grid {
   display: grid;
   gap: 16px;
+  @include m.blur-always(2px, 6px);
 }
 .cards-grid.limit-4 {
   grid-template-columns: repeat(1, minmax(0, 1fr));
