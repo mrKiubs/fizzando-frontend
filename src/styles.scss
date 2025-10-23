@@ -366,3 +366,29 @@ h1 {
     transition: initial !important;
   }
 }
+
+/* === TOUCH FEEDBACK (solo dispositivi touch, nessun effetto su desktop) === */
+@media (hover: none) and (pointer: coarse) {
+  /* --- principali elementi interattivi --- */
+  .glassy-info-link:active,
+  .cocktail-card-link-wrapper:active,
+  .card-type:active,
+  .cocktail-chip:active {
+    filter: brightness(1.25); /* leggero flash luminoso */
+    transform: scale(0.97); /* effetto “premuto” */
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+
+  /* --- stato neutro: transizione morbida per ritorno --- */
+  .glassy-info-link,
+  .cocktail-card-link-wrapper,
+  .card-type,
+  .cocktail-chip {
+    transition: filter 0.2s ease, transform 0.15s ease;
+  }
+
+  /* --- opzionale: tocco sui chip più evidente --- */
+  .cocktail-chip:active {
+    background-color: rgba(255, 255, 255, 0.12); /* flash leggero nel blur */
+  }
+}
