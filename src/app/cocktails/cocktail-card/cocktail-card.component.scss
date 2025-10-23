@@ -655,3 +655,22 @@
 .ingredient-item-link::before {
   transition: background-color 0.25s ease, transform 0.3s ease;
 }
+
+/* === TOUCH FEEDBACK (solo dispositivi touch, nessun effetto su desktop) === */
+@media (hover: none) and (pointer: coarse) {
+  /* effetto tocco su link principali delle card */
+  .glassy-info-link:active,
+  .cocktail-card-link-wrapper:active,
+  .card-type:active {
+    filter: brightness(1.25); /* piccolo flash luminoso */
+    transform: scale(0.98); /* leggero “press down” */
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+
+  /* evita che l’effetto rimanga dopo il rilascio */
+  .glassy-info-link,
+  .cocktail-card-link-wrapper,
+  .card-type {
+    transition: filter 0.2s ease, transform 0.15s ease;
+  }
+}
