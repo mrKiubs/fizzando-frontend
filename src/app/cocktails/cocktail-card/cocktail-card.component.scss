@@ -146,6 +146,11 @@
     gap: 4px;
     padding: 8px 8px 0 8px;
     background-color: rgba(255, 255, 255, 7%);
+    transition: background-color 0.25s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 20%);
+    }
 
     @media (max-width: 600px) {
       flex-direction: row;
@@ -587,10 +592,6 @@
   }
 }
 
-/* Cues visivi chiari */
-.cocktail-card:hover {
-  cursor: pointer; /* l'intera card comunica click */
-}
 .stretched-link:focus-visible,
 .ingredient-item-link:focus-visible,
 .mobile-ing-link:focus-visible,
@@ -601,7 +602,7 @@
 
 /* Desktop-only hover effetto (evita cambi su mobile) */
 @media (min-width: 769px) {
-  .cocktail-card:hover .glassy-image-container img.cocktail-card-image {
+  .glassy-info-link:hover .glassy-image-container img.cocktail-card-image {
     transform: scale(1.03);
   }
 }
@@ -642,4 +643,15 @@
 .ingredient-item:last-child::before,
 .ingredient-item-link:last-child::before {
   width: 200%;
+}
+/* hover: cambia il colore del ::before */
+.ingredient-item:hover::before,
+.ingredient-item-link:hover::before {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* assicura la transizione morbida del colore */
+.ingredient-item::before,
+.ingredient-item-link::before {
+  transition: background-color 0.25s ease, transform 0.3s ease;
 }

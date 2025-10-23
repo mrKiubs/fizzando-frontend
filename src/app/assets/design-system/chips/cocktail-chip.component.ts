@@ -172,7 +172,6 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         mask: no-repeat center / contain;
         -webkit-mask: no-repeat center / contain;
       }
-
       .card-type {
         border-radius: 0;
         backdrop-filter: blur(0px);
@@ -184,6 +183,11 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
           background: none;
           color: #fff;
           border: none;
+
+          &::before {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            transition: background-color 0.25s ease, transform 0.3s ease;
+          }
         }
 
         &.variant-method,
@@ -197,9 +201,10 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
             transform-origin: top left;
             transform: skewX(-8deg) translateX(-2px);
             z-index: -1;
-            transition: transform 0.3s ease;
+            transition: background-color 0.25s ease, transform 0.3s ease;
           }
         }
+
         &.variant-glass,
         &.variant-alcoholic {
           width: 100%;
@@ -212,7 +217,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
             transform-origin: top left;
             transform: skewX(-8deg) translateX(-2px);
             z-index: -1;
-            transition: transform 0.3s ease;
+            transition: background-color 0.25s ease, transform 0.3s ease;
             width: calc(100% + 10px);
           }
         }

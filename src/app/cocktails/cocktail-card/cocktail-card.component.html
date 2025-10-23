@@ -48,27 +48,18 @@
     class="cocktail-card"
     [class.has-highlight]="showCorrelation"
     role="article"
-    [attr.tabindex]="isHandset() ? 0 : null"
-    (keydown.enter)="router.navigate(['/cocktails', cocktail.slug])"
-    (keydown.space)="
-      $event.preventDefault(); router.navigate(['/cocktails', cocktail.slug])
-    "
     [@cardAnimation]
   >
     <div class="glassy-content-container">
-      <div class="glassy-info">
-        <div class="glassy-image-container">
-          <a
-            class="cocktail-card-image-link"
-            [routerLink]="['/cocktails', cocktail.slug]"
-            [attr.href]="'/cocktails/' + cocktail.slug"
-            [attr.aria-labelledby]="'title-' + (cocktail.slug || cocktail.id)"
-            [attr.aria-describedby]="
-              showCorrelation && (displayMotto || primaryHighlight)
-                ? 'motto-' + (cocktail.slug || cocktail.id)
-                : null
-            "
-          >
+      <!-- LINK UNICO che abbraccia .glassy-info -->
+      <a
+        class="glassy-info-link"
+        [routerLink]="['/cocktails', cocktail.slug]"
+        [attr.href]="'/cocktails/' + cocktail.slug"
+        [attr.aria-label]="'Open ' + cocktail.name + ' recipe'"
+      >
+        <div class="glassy-info">
+          <div class="glassy-image-container">
             <picture>
               <!-- mobile -->
               <source
@@ -110,55 +101,38 @@
                 (error)="onCardImgError($event)"
               />
             </picture>
-          </a>
 
-          <span
-            class="matched-ingredients-badge"
-            [ngClass]="{
-              'perfect-match-badge':
-                cocktail.matchedIngredientCount ===
-                cocktail.ingredients_list.length
-            }"
-            *ngIf="matchedIngredientsBadgeText"
-            aria-hidden="true"
-          >
-            <span class="desktop">{{
-              matchedIngredientsBadgeText.desktop
-            }}</span>
             <span
-              class="mobile"
-              [innerHTML]="matchedIngredientsBadgeText.mobile"
-            ></span>
-          </span>
-        </div>
+              class="matched-ingredients-badge"
+              [ngClass]="{
+                'perfect-match-badge':
+                  cocktail.matchedIngredientCount ===
+                  cocktail.ingredients_list.length
+              }"
+              *ngIf="matchedIngredientsBadgeText"
+              aria-hidden="true"
+            >
+              <span class="desktop">{{
+                matchedIngredientsBadgeText.desktop
+              }}</span>
+              <span
+                class="mobile"
+                [innerHTML]="matchedIngredientsBadgeText.mobile"
+              ></span>
+            </span>
+          </div>
 
-        <div class="name-cocktail">
-          <h3
-            class="cocktail-card-title no-color"
-            [id]="'title-' + (cocktail.slug || cocktail.id)"
-            [attr.aria-describedby]="
-              showCorrelation &&
-              (displayMotto || primaryHighlight) &&
-              cocktail.slug
-                ? 'motto-' + cocktail.slug
-                : null
-            "
-          >
-            <ng-container *ngIf="!isHandset(); else mobileTitle">
-              <a
-                class="stretched-link"
-                [routerLink]="['/cocktails', cocktail.slug]"
-                [attr.href]="'/cocktails/' + cocktail.slug"
-              >
-                {{ cocktail.name }}
-              </a>
-            </ng-container>
-            <ng-template #mobileTitle>
+          <div class="name-cocktail">
+            <h3
+              class="cocktail-card-title no-color"
+              [id]="'title-' + (cocktail.slug || cocktail.id)"
+            >
               {{ cocktail.name }}
-            </ng-template>
-          </h3>
+            </h3>
+          </div>
         </div>
-      </div>
+      </a>
+      <!-- /LINK UNICO -->
 
       <ng-container
         *ngIf="showCorrelation && (displayMotto || primaryHighlight)"
@@ -227,6 +201,7 @@
             <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
           </app-cocktail-chip>
         </div>
+
         <div
           class="cocktail-key-info"
           *ngIf="mainIngredientsFormatted.length > 0"
@@ -240,7 +215,7 @@
                   let last = last
                 "
               >
-                <!-- DOPO: anchor vero, SSR-friendly e accessibile -->
+                <!-- Link ingrediente (fuori dal link principale per evitare annidamenti) -->
                 <a
                   class="ingredient-item-link"
                   [routerLink]="['/ingredients', getIngredientId(ingredient)]"
@@ -289,7 +264,7 @@
             </span>
           </ng-template>
 
-          <!-- 2) Mobile: stesso blocco, ma deferito quando entra in viewport -->
+          <!-- 2) Mobile defer -->
           <ng-container *ngIf="isHandset(); else desktopIngs">
             @defer (on viewport; prefetch on idle) {
             <ng-container *ngTemplateOutlet="richIngredients"></ng-container>
@@ -302,14 +277,14 @@
             }
           </ng-container>
 
-          <!-- 3) Desktop: render immediato dello stesso blocco -->
+          <!-- 3) Desktop immediato -->
           <ng-template #desktopIngs>
             <ng-container *ngTemplateOutlet="richIngredients"></ng-container>
           </ng-template>
         </div>
 
         <div class="bottom-card-container">
-          <!-- Category → /cocktails?category=... -->
+          <!-- Category -->
           <app-cocktail-chip
             [label]="cocktail.category"
             [variant]="'category'"
@@ -325,7 +300,7 @@
           >
           </app-cocktail-chip>
 
-          <!-- Alcoholic → /cocktails?alcoholic=... -->
+          <!-- Alcoholic -->
           <app-cocktail-chip
             *ngIf="cocktail.alcoholic"
             [label]="cocktail.alcoholic"
