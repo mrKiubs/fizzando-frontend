@@ -1,11 +1,18 @@
 // src/app/app.component.ts
-import { Component, PLATFORM_ID, inject } from '@angular/core';
+import {
+  Component,
+  PLATFORM_ID,
+  inject,
+  OnDestroy,
+  Inject,
+} from '@angular/core';
 import {
   Router,
   NavigationEnd,
   NavigationStart,
   RouterOutlet,
   RouterModule,
+  ActivatedRoute,
 } from '@angular/router';
 import {
   CommonModule,
@@ -101,6 +108,12 @@ import { ViewportService } from './services/viewport.service';
   template: `
     <app-navbar></app-navbar>
 
+    <!-- Riflessi glass (conic) -->
+    <div class="page-caustics" aria-hidden="true"></div>
+
+    <!-- Micro-noise anti-banding -->
+    <div class="page-noise" aria-hidden="true"></div>
+
     <main
       class="app-main allow-route-anim"
       [@.disabled]="false"
@@ -146,8 +159,9 @@ import { ViewportService } from './services/viewport.service';
     `,
   ],
 })
-export class AppComponent {
+export class AppComponent implements OnDestroy {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly viewportService = inject(ViewportService);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
@@ -155,7 +169,14 @@ export class AppComponent {
   private readonly scroller = inject(ViewportScroller);
 
   private skipMotionNext = false;
-  private skipScrollNext = false;
+
+  // --- NEW: sheen/route state
+  private sheenTimer: any = null;
+
+  // --- NEW: scroll-reactive bg speed
+  private rafId: number | null = null;
+  private lastY = 0;
+  private lastT = 0;
 
   protected readonly isTouch =
     this.isBrowser &&
@@ -167,15 +188,16 @@ export class AppComponent {
   protected readonly showAmbient = true;
 
   constructor() {
+    // Pre-cattura stato per eventuale “no motion” su questa navigazione
     this.router.events
       .pipe(filter((e): e is NavigationStart => e instanceof NavigationStart))
       .subscribe(() => {
         const nav = this.router.getCurrentNavigation();
         const st = (nav?.extras?.state as any) || {};
-        this.skipMotionNext = !!st.suppressMotion;
-        this.skipScrollNext = !!st.suppressScroll;
+        this.skipMotionNext = !!(st.suppressMotion || st.suppressScroll);
       });
 
+    // --- NEW: after NavEnd → theme class + route-animating sheen
     let lastPath = '';
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
@@ -183,19 +205,34 @@ export class AppComponent {
         const path = e.urlAfterRedirects.split('?')[0];
         const pathChanged = lastPath !== path;
         lastPath = path;
-        if (!pathChanged) return;
-        setTimeout(() => {
-          this.skipMotionNext = false;
-          this.skipScrollNext = false;
-        }, 50);
+
+        if (!this.isBrowser) return;
+
+        const html = (this.document as Document).documentElement;
+
+        // A) Toggle classe tema da route.data.themeClass (deepest child)
+        this.applyThemeClassFromRoute(html);
+
+        // B) Sheen “accent” durante la transizione
+        html.classList.add('route-animating');
+        clearTimeout(this.sheenTimer);
+        this.sheenTimer = setTimeout(() => {
+          html.classList.remove('route-animating');
+        }, 450); // allinea alla tua enterDuration+delay
+
+        // C) reset flag “skipMotionNext” per la prossima
+        if (pathChanged) setTimeout(() => (this.skipMotionNext = false), 50);
       });
   }
 
   ngOnInit() {
     if (this.isBrowser) {
       this.viewportService.init();
+
       const doc = this.document as Document;
       const htmlEl = doc.documentElement as HTMLElement;
+
+      // Icon fonts ready → sblocco visibilità icone
       if ('fonts' in (doc as any)) {
         (doc as any).fonts.ready.finally(() =>
           htmlEl.classList.add('icons-ready')
@@ -203,18 +240,77 @@ export class AppComponent {
       } else {
         htmlEl.classList.add('icons-ready');
       }
+
+      // Webfonts generali ready
+      if ('fonts' in doc) {
+        (doc as any).fonts.ready.then(() => {
+          htmlEl.classList.add('wf-ready');
+        });
+      }
+
+      // --- NEW: init scroll reattivo allo sfondo
+      this.lastY = window.scrollY;
+      this.lastT = performance.now();
+      window.addEventListener('scroll', this.onScroll, { passive: true });
+    }
+  }
+
+  ngOnDestroy() {
+    if (!this.isBrowser) return;
+    // cleanup scroll listener & rAF
+    window.removeEventListener('scroll', this.onScroll as any);
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.rafId = null;
+    if (this.sheenTimer) clearTimeout(this.sheenTimer);
+  }
+
+  // --- NEW: aggiorna --bg-speed in base alla velocità di scroll
+  private onScroll = () => {
+    if (this.rafId) return;
+    this.rafId = requestAnimationFrame(() => {
+      const now = performance.now();
+      const y = window.scrollY;
+      const dy = Math.abs(y - this.lastY);
+      const dt = Math.max(16, now - this.lastT);
+      const vel = Math.min(1, dy / dt / 0.8); // 0..1
+      (this.document as Document).documentElement.style.setProperty(
+        '--bg-speed',
+        1 + vel * 0.4 + ''
+      );
+      this.lastY = y;
+      this.lastT = now;
+      this.rafId = null;
+    });
+  };
+
+  // --- NEW: applica classe tema definita nelle route data
+  private applyThemeClassFromRoute(html: HTMLElement) {
+    // rimuovi classi esistenti che iniziano con "theme-"
+    // (evita accumulo quando cambi pagina)
+    for (const cls of Array.from(html.classList)) {
+      if (cls.startsWith('theme-')) html.classList.remove(cls);
     }
 
-    if (typeof document !== 'undefined' && 'fonts' in document) {
-      (document as any).fonts.ready.then(() => {
-        document.documentElement.classList.add('wf-ready');
-      });
+    // cerca la child route più profonda con data.themeClass
+    let r: any = this.route;
+    let theme: string | undefined;
+    while (r?.firstChild) r = r.firstChild;
+    if (r?.snapshot?.data?.['themeClass']) {
+      theme = r.snapshot.data['themeClass'];
+    } else {
+      // fallback: risali nel tree originale se necessario
+      r = this.route.firstChild;
+      while (r) {
+        theme = r.snapshot.data?.['themeClass'] ?? theme;
+        r = r.firstChild;
+      }
     }
+    if (theme) html.classList.add(theme);
   }
 
   onRouteAnimStart() {
     if (!this.isBrowser) return;
-    // segnale soft per i componenti che vogliono saperlo (non blocca nulla)
+    // segnale soft per componenti che vogliono “sincronizzarsi”
     window.dispatchEvent(
       new CustomEvent<boolean>('route-anim', { detail: true })
     );
@@ -226,13 +322,8 @@ export class AppComponent {
       new CustomEvent<boolean>('route-anim', { detail: false })
     );
 
-    if (this.router.url.includes('#') || this.skipScrollNext) {
-      if (this.skipScrollNext) {
-        // reset immediately so future navigations are unaffected
-        this.skipScrollNext = false;
-      }
-      return;
-    }
+    // scroll-top only se non è un anchor link
+    if (this.router.url.includes('#')) return;
     setTimeout(() => this.scroller.scrollToPosition([0, 0]), 0);
   }
 

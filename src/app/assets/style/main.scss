@@ -44,29 +44,119 @@ body::before {
   left: 0;
   right: 0;
   top: 0;
-
-  /* Estendi oltre la safe-area in basso (niente “buco” bianco) */
   min-height: 100dvh;
-
-  /* Layering sicuro su iOS (evita -1) */
   z-index: 0;
   pointer-events: none;
 
-  /* La tua sfumatura */
   background-image: var(--page-gradient);
   background-repeat: no-repeat;
   background-position: top left;
-  background-size: cover;
+  /* Aggiunte: */
+  background-size: 108% 108%;
+  animation: bg-pan calc(18s / var(--bg-speed, 1)) ease-in-out infinite
+    alternate;
+  will-change: background-position;
 }
 
-/* livello fisso sotto a tutto che copre sempre il viewport */
+@keyframes bg-pan {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 12% 10%;
+  }
+}
 
-// Puoi applicare stili globali o un effetto di base qui
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.2) 55%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.45;
+}
 
-// Stili globali per elementi generici che useranno le custom properties
+/* Riflessi vetrosi molto leggeri */
+.page-caustics {
+  position: fixed;
+  inset: -10% -10%;
+  z-index: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg at 50% 30%,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0) 75%,
+    rgba(255, 255, 255, 0.12)
+  );
+  opacity: 0.1;
+  animation: caustics-rotate 180s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+}
 
-// Nota: i tuoi componenti Material Design useranno ancora i loro stili di default
-// finché non li sovrascriverai con i tuoi stili custom che usano le CSS variables.
+@keyframes caustics-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Micro-grana anti banding (nessuna immagine esterna) */
+.page-noise {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.02;
+  mix-blend-mode: overlay;
+  background-image: radial-gradient(1px 1px at 10% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 30% 80%, #fff, transparent),
+    radial-gradient(1px 1px at 70% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 60%, #fff, transparent);
+  background-size: 180px 180px, 220px 220px, 200px 200px, 260px 260px;
+  animation: noise-drift 12s ease-in-out infinite alternate;
+}
+
+@keyframes noise-drift {
+  0% {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+  100% {
+    background-position: 10px 8px, -8px 6px, 12px -10px, -6px -12px;
+  }
+}
+
+/* Rispetto per le preferenze utente */
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  .page-caustics,
+  .page-noise {
+    animation: none !important;
+  }
+}
+
+/* Evita blur in overlay a schermo intero (li hai solo sulle card: ok) */
+@media (prefers-reduced-motion: reduce) {
+  .page-caustics,
+  .page-noise,
+  body::before,
+  body::after {
+    animation: none !important;
+  }
+}
+
+/* iOS: evita tap highlight e mantieni overlay fuori dal flow */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
 
 h1 {
   font-size: 46px;
