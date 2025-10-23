@@ -137,8 +137,7 @@ a.ingredient-link {
   margin: 40px auto; /* Margine sopra come da tuo esempio */
   padding: 16px; /* Padding come da tuo esempio */
   background-color: rgba(255, 255, 255, 0.05); /* Stile glassy */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -238,8 +237,7 @@ a.ingredient-link {
   margin: 64px auto 52px auto;
   padding: 16px;
   background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -311,7 +309,7 @@ a.ingredient-link {
     justify-content: center;
     border-radius: 50%;
     padding: 30px;
-    -webkit-backdrop-filter: blur(8px);
+
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -415,7 +413,7 @@ body {
 .glass-button {
   // Stili di base del tuo bottone "vetroso"
   background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(5px);
+
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: var(--text-primary);
   padding: 0.5rem 1rem;
@@ -457,8 +455,7 @@ body {
   border-radius: 50%;
   font-weight: 600;
   cursor: pointer;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+
   background: rgba(255, 255, 255, 0.5);
   font-size: 0.85rem;
   line-height: 1.2;
@@ -593,8 +590,7 @@ body {
 }
 .glass-card {
   background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -611,8 +607,7 @@ body {
 }
 .glass-card-mini {
   background-color: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -620,7 +615,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  backdrop-filter: blur(16px);
+
   @media (max-width: 600px) {
     padding: 8px;
   }
@@ -723,8 +718,7 @@ body {
   padding: 0.625rem 0.875rem;
   margin: 16px auto;
   border-radius: 12px;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+
   background: rgba(255, 255, 255, 0.08);
   /* border: 1px solid rgba(255, 255, 255, 0.12); */
   font-size: 0.85rem;
@@ -794,8 +788,7 @@ body {
   max-width: 800px;
   margin: 16px auto; /* Keep this margin */
   background-color: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   border-radius: 8px;
@@ -839,8 +832,7 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   overflow: hidden;
   transition: all 0.3s ease;
   height: 46px;
@@ -1259,7 +1251,7 @@ button.btn-shine {
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.02, 0.01, 0.47, 1);
   border-radius: 12px;
-  backdrop-filter: blur(5px);
+
   background-color: rgba(255, 255, 255, 0.2);
   display: flex;
   gap: 4px;
@@ -1398,12 +1390,12 @@ button.btn-shine:hover span {
   font-weight: 500;
   color: rgb(255 255 255 / 75%);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
+
   transition: all 0.2s ease-in-out;
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+
   &:hover {
     background-color: #00000019;
     color: white;
@@ -1419,11 +1411,10 @@ button.btn-shine:hover span {
 
   &.transparent {
     border: none;
-    -webkit-backdrop-filter: none !important;
+
     background-color: transparent;
     filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+
     border-radius: 0;
     padding: 6px 8px !important;
     height: 100%;

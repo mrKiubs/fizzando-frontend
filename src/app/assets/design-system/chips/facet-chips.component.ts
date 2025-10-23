@@ -174,8 +174,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
         font-weight: 500;
         color: rgba(255, 255, 255, 0.5411764706);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        -webkit-backdrop-filter: blur(5px);
-        backdrop-filter: blur(5px);
+
         transition: all 0.2s ease-in-out;
         align-items: center;
         gap: 8px;

@@ -3,6 +3,42 @@
 @use "variables" as vars;
 @use "sass:color";
 
+/* ————————————————————————————————
+   A) Blur solo su desktop (>=701px)
+   ———————————————————————————————— */
+@mixin blur-desktop($mobile-radius: 0px, $desktop-radius: 6px) {
+  // mobile: nessun blur
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+
+  // desktop: blur più alto
+  @media (min-width: 701px) {
+    @supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+      -webkit-backdrop-filter: blur($desktop-radius);
+      backdrop-filter: blur($desktop-radius);
+    }
+  }
+}
+
+/* ————————————————————————————————
+   B) Blur sempre (mobile + desktop)
+   ———————————————————————————————— */
+@mixin blur-always($mobile-radius: 2px, $desktop-radius: 6px) {
+  // mobile: blur leggero
+  @supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+    -webkit-backdrop-filter: blur($mobile-radius);
+    backdrop-filter: blur($mobile-radius);
+  }
+
+  // desktop: blur più marcato
+  @media (min-width: 701px) {
+    @supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+      -webkit-backdrop-filter: blur($desktop-radius);
+      backdrop-filter: blur($desktop-radius);
+    }
+  }
+}
+
 // Mixin base per l'effetto Glassmorphism
 // Utilizza le CSS Custom Properties per i colori e i valori che cambiano con il tema.
 @mixin liquid-glass-effect(
@@ -17,8 +53,6 @@
   border-radius: $border-radius;
   box-shadow: 0 4px 30px
     if($shadow-color, $shadow-color, var(--glass-shadow-color));
-  backdrop-filter: blur($blur-amount);
-  -webkit-backdrop-filter: blur($blur-amount);
 
   transition: background-color var(--transition-duration-md, 0.4s)
       var(--ease-in-out-sine, cubic-bezier(0.445, 0.05, 0.55, 0.95)),
@@ -71,8 +105,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
-  backdrop-filter: b©lur(5px);
-  -webkit-backdrop-filter: blur(5px);
+
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: background-color 0.2s ease;
   overflow: hidden;
@@ -89,8 +122,7 @@
 
 @mixin search-filter-bar-bg {
   background-color: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 8px;

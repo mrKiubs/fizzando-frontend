@@ -1,8 +1,10 @@
 /* src/app/components/footer/footer.component.scss (No changes needed) */
+@use "../assets/style/mixins" as m;
+
 .app-footer {
   background: rgba(255, 255, 255, 0.1); /* Light translucent background */
-  backdrop-filter: blur(10px); /* Glass blur effect */
-  -webkit-backdrop-filter: blur(10px); /* Safari compatibility */
+  /* Glass blur effect */
+  /* Safari compatibility */
   border-top: 1px solid rgba(255, 255, 255, 0.1); /* Light top border */
   padding: 2rem 1rem;
   color: #e0e0e0; /* Light text */

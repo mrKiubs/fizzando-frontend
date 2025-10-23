@@ -1,3 +1,5 @@
+@use "../../assets/style/mixins" as m;
+
 .detail-wrapper {
   max-width: 1200px;
   margin: 0 auto;
@@ -10,8 +12,7 @@ h2 {
 /* Base Glass Card Styles */
 .glass-card {
   background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -69,8 +70,7 @@ h2 {
   gap: 1rem;
 
   background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -162,7 +162,6 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(16px);
 
     img {
       width: 100px;

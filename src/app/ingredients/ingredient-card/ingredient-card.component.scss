@@ -32,6 +32,7 @@
     rgba(157, 142, 252, 0.062745098) 100%
   );
   gap: 0px;
+  position: relative;
   &:hover {
     border: 1px solid rgba(255, 255, 255, 0.5);
     background-color: rgba(255, 255, 255, 0.0823529412);

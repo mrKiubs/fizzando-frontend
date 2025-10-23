@@ -9,6 +9,7 @@
    La sintassi più semplice per includere stili da un altro file è:
 */
 //@use "../../cocktails/cocktail-list/cocktail-list.component.scss";
+@use "../../assets/style/mixins" as m;
 
 :host {
   display: block;
@@ -37,7 +38,6 @@
   background: transparent;
   box-shadow: 0 0;
   padding: 32px 0 0 0;
-  backdrop-filter: blur(0px);
 
   .custom-search-input {
     position: relative;
@@ -45,8 +45,7 @@
     display: flex;
     padding: 0.75rem 1rem;
     background-color: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
@@ -186,8 +185,7 @@
 
   /* Glass Card Styles - Replicati o assicurati che siano importati */
   background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -264,8 +262,7 @@ hr {
   margin-right: auto;
   padding: 16px; /* Aumentato padding per sezione */
   background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
