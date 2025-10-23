@@ -155,6 +155,7 @@ export class AppComponent {
   private readonly scroller = inject(ViewportScroller);
 
   private skipMotionNext = false;
+  private skipScrollNext = false;
 
   protected readonly isTouch =
     this.isBrowser &&
@@ -171,7 +172,8 @@ export class AppComponent {
       .subscribe(() => {
         const nav = this.router.getCurrentNavigation();
         const st = (nav?.extras?.state as any) || {};
-        this.skipMotionNext = !!(st.suppressMotion || st.suppressScroll);
+        this.skipMotionNext = !!st.suppressMotion;
+        this.skipScrollNext = !!st.suppressScroll;
       });
 
     let lastPath = '';
@@ -182,7 +184,10 @@ export class AppComponent {
         const pathChanged = lastPath !== path;
         lastPath = path;
         if (!pathChanged) return;
-        setTimeout(() => (this.skipMotionNext = false), 50);
+        setTimeout(() => {
+          this.skipMotionNext = false;
+          this.skipScrollNext = false;
+        }, 50);
       });
   }
 
@@ -221,7 +226,13 @@ export class AppComponent {
       new CustomEvent<boolean>('route-anim', { detail: false })
     );
 
-    if (this.router.url.includes('#')) return;
+    if (this.router.url.includes('#') || this.skipScrollNext) {
+      if (this.skipScrollNext) {
+        // reset immediately so future navigations are unaffected
+        this.skipScrollNext = false;
+      }
+      return;
+    }
     setTimeout(() => this.scroller.scrollToPosition([0, 0]), 0);
   }
 
