@@ -9,13 +9,13 @@ import {
   UrlSegment,
 } from '@angular/router';
 import { Component, EventEmitter, OnInit, Output, inject } from '@angular/core';
-import { combineLatest, Observable, of } from 'rxjs';
-import { filter, map, startWith, switchMap } from 'rxjs/operators';
-import { HubDataService, HubKind } from '../../../services/hub-data.service';
+import { Observable, of } from 'rxjs';
+import { filter, map, startWith } from 'rxjs/operators';
+import { HubKind, labelBySlug } from '../../../cocktails/hubs/hub.catalog';
 
 interface BreadcrumbDefinition {
   url: string[];
-  label: string | Observable<string>;
+  label: string;
 }
 
 interface BreadcrumbViewModel {
@@ -43,7 +43,6 @@ export class BreadcrumbsComponent implements OnInit {
 
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
-  private readonly hubDataService = inject(HubDataService);
 
   private readonly hubCrumbs: Record<
     HubKind,
@@ -76,8 +75,16 @@ export class BreadcrumbsComponent implements OnInit {
       filter((event) => event instanceof NavigationEnd),
       startWith(new NavigationEnd(0, this.router.url, this.router.url)),
       map(() => this.buildDefinitions(this.activatedRoute.root)),
-      switchMap((definitions) => this.resolveDefinitions(definitions))
+      map((definitions) => this.toViewModels(definitions))
     );
+  }
+
+  private toViewModels(defs: BreadcrumbDefinition[]): BreadcrumbViewModel[] {
+    return defs.map((d, i) => ({
+      url: d.url,
+      label: d.label,
+      isLast: i === defs.length - 1,
+    }));
   }
 
   onLinkClicked(): void {
@@ -114,11 +121,8 @@ export class BreadcrumbsComponent implements OnInit {
         }
 
         const slugUrl = this.buildRouterLink(accumulated);
-        const slugLabel$ = this.hubDataService.getLabelBySlug(
-          hubSlug.kind,
-          hubSlug.slug
-        );
-        breadcrumbs.push({ url: slugUrl, label: slugLabel$ });
+        const slugLabel = labelBySlug(hubSlug.kind, hubSlug.slug);
+        breadcrumbs.push({ url: slugUrl, label: slugLabel });
         continue;
       }
 
@@ -144,27 +148,15 @@ export class BreadcrumbsComponent implements OnInit {
   }
 
   private resolveDefinitions(
-    definitions: BreadcrumbDefinition[]
+    defs: BreadcrumbDefinition[]
   ): Observable<BreadcrumbViewModel[]> {
-    if (!definitions.length) {
-      return of([]);
-    }
-
-    const labelStreams = definitions.map((definition) =>
-      typeof definition.label === 'string'
-        ? of(definition.label)
-        : definition.label
-    );
-
-    return combineLatest(labelStreams).pipe(
-      map((labels) =>
-        labels.map((label, index) => ({
-          url: definitions[index].url,
-          label,
-          isLast: index === definitions.length - 1,
-        }))
-      )
-    );
+    if (!defs.length) return of([]);
+    const vms = defs.map((d, i) => ({
+      url: d.url,
+      label: d.label,
+      isLast: i === defs.length - 1,
+    }));
+    return of(vms);
   }
 
   private extractHubSlug(
@@ -194,7 +186,7 @@ export class BreadcrumbsComponent implements OnInit {
   private resolveLabel(
     snapshot: ActivatedRouteSnapshot,
     routeSegments: string[]
-  ): string | Observable<string> | null {
+  ): string | null {
     const data = snapshot.data as { breadcrumb?: string };
     const params = snapshot.params as Record<string, string | undefined>;
 
