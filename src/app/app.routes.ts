@@ -23,6 +23,31 @@ export const routes: Routes = [
 
       // HUB puliti (una sola definizione per ciascuno)
       {
+        path: 'methods',
+        loadComponent: () =>
+          import('./cocktails/hubs/hub.component').then((m) => m.HubComponent),
+        data: { hub: 'method', breadcrumb: 'Methods' },
+      },
+      {
+        path: 'glasses',
+        loadComponent: () =>
+          import('./cocktails/hubs/hub.component').then((m) => m.HubComponent),
+        data: { hub: 'glass', breadcrumb: 'Glasses' },
+      },
+      {
+        path: 'categories',
+        loadComponent: () =>
+          import('./cocktails/hubs/hub.component').then((m) => m.HubComponent),
+        data: { hub: 'category', breadcrumb: 'Categories' },
+      },
+      {
+        path: 'alcoholic',
+        loadComponent: () =>
+          import('./cocktails/hubs/hub.component').then((m) => m.HubComponent),
+        data: { hub: 'alcoholic', breadcrumb: 'Alcoholic' },
+      },
+
+      {
         path: 'method/:methodSlug',
         loadComponent: () =>
           import('./cocktails/cocktail-list/cocktail-list.component').then(
