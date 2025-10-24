@@ -44,7 +44,10 @@ body::before {
   left: 0;
   right: 0;
   top: 0;
-  min-height: 100dvh;
+  min-height: calc(
+    var(--app-vh, 100dvh) + var(--safe-bottom, env(safe-area-inset-bottom, 0px))
+  );
+  bottom: calc(-1 * var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   z-index: 0;
   pointer-events: none;
 
@@ -71,6 +74,7 @@ body::after {
   content: "";
   position: fixed;
   inset: 0;
+  bottom: calc(-1 * var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   pointer-events: none;
   z-index: 0;
   background: radial-gradient(
@@ -87,6 +91,7 @@ body::after {
 .page-caustics {
   position: fixed;
   inset: -10% -10%;
+  bottom: calc(-1 * var(--safe-bottom, env(safe-area-inset-bottom, 0px)) - 10%);
   z-index: 0;
   pointer-events: none;
   background: conic-gradient(
@@ -113,6 +118,7 @@ body::after {
 .page-noise {
   position: fixed;
   inset: 0;
+  bottom: calc(-1 * var(--safe-bottom, env(safe-area-inset-bottom, 0px)) - 10%);
   z-index: 0;
   pointer-events: none;
   opacity: 0.02;

@@ -1,4 +1,8 @@
-<header class="app-header" appStickyHeader [class.scrolled]="isScrolled">
+<header
+  class="app-header"
+  appStickyHeader="fixed"
+  [class.scrolled]="isScrolled"
+>
   <div class="header-content">
     <app-logo (click)="closeMenu()"></app-logo>
 
