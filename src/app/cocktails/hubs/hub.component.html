@@ -1,0 +1,384 @@
+<div class="page-header-container">
+  <h1 class="page-title">{{ pageH1 }}</h1>
+  <h2 class="page-subtitle">{{ pageH2 }}</h2>
+  <p class="page-lead" *ngIf="pageDescription">{{ pageDescription }}</p>
+</div>
+
+<section
+  class="container-tab glass-card"
+  role="navigation"
+  aria-label="Explore sections"
+>
+  <h3 class="hub-switcher__title">Explore sections by</h3>
+
+  <nav
+    class="tabs"
+    role="tablist"
+    aria-label="Explore sections"
+    (keydown)="onTabsKeydown($event)"
+  >
+    <button
+      id="tab-method"
+      role="tab"
+      aria-controls="panel-method"
+      type="button"
+      [class.active]="selectedTab === 'method'"
+      [attr.aria-selected]="selectedTab === 'method'"
+      [attr.tabindex]="selectedTab === 'method' ? 0 : -1"
+      (click)="selectTab('method')"
+    >
+      method
+    </button>
+
+    <button
+      id="tab-glass"
+      role="tab"
+      aria-controls="panel-glass"
+      type="button"
+      [class.active]="selectedTab === 'glass'"
+      [attr.aria-selected]="selectedTab === 'glass'"
+      [attr.tabindex]="selectedTab === 'glass' ? 0 : -1"
+      (click)="selectTab('glass')"
+    >
+      glass
+    </button>
+
+    <button
+      id="tab-category"
+      role="tab"
+      aria-controls="panel-category"
+      type="button"
+      [class.active]="selectedTab === 'category'"
+      [attr.aria-selected]="selectedTab === 'category'"
+      [attr.tabindex]="selectedTab === 'category' ? 0 : -1"
+      (click)="selectTab('category')"
+    >
+      category
+    </button>
+
+    <button
+      id="tab-alcoholic"
+      role="tab"
+      aria-controls="panel-alcoholic"
+      type="button"
+      [class.active]="selectedTab === 'alcoholic'"
+      [attr.aria-selected]="selectedTab === 'alcoholic'"
+      [attr.tabindex]="selectedTab === 'alcoholic' ? 0 : -1"
+      (click)="selectTab('alcoholic')"
+    >
+      profile
+    </button>
+  </nav>
+
+  <section
+    [hidden]="selectedTab !== 'method'"
+    id="panel-method"
+    class="hub-switcher cut"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-method'"
+  >
+    <div class="link-section link-section-method">
+      <p class="chip-lead">
+        Browse cocktails by <strong>preparation method</strong> — shaken,
+        stirred, built, blended and more.
+      </p>
+    </div>
+  </section>
+
+  <section
+    [hidden]="selectedTab !== 'glass'"
+    id="panel-glass"
+    class="hub-switcher cut"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-glass'"
+  >
+    <div class="link-section link-section-glass">
+      <p class="chip-lead">
+        Explore cocktails by <strong>glassware</strong> — highball, coupe, rocks
+        and beyond.
+      </p>
+    </div>
+  </section>
+
+  <section
+    [hidden]="selectedTab !== 'category'"
+    id="panel-category"
+    class="hub-switcher cut"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-category'"
+  >
+    <div class="link-section link-section-categories">
+      <p class="chip-lead">
+        Jump into <strong>categories</strong> by mood or flavor — refreshing,
+        tropical, spirit-forward, sparkling…
+      </p>
+    </div>
+  </section>
+
+  <section
+    [hidden]="selectedTab !== 'alcoholic'"
+    id="panel-alcoholic"
+    class="hub-switcher cut"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-alcoholic'"
+  >
+    <div class="link-section link-section-alcholic">
+      <p class="chip-lead">
+        Filter by <strong>alcohol profile</strong> — from non-alcoholic and
+        low-ABV to full-strength classics.
+      </p>
+    </div>
+  </section>
+</section>
+
+<!-- SEARCH (stesso markup/icone della lista) -->
+<div class="custom-search-input-wrapper">
+  <label for="cocktail-search" class="sr-only">Search cocktails</label>
+  <input
+    type="search"
+    id="cocktail-search"
+    name="q"
+    class="custom-search-input"
+    placeholder="Search cocktails by name..."
+    [value]="searchTerm()"
+    (input)="onSearchInput($event)"
+    autocomplete="off"
+    autocorrect="off"
+    autocapitalize="off"
+    spellcheck="false"
+    inputmode="search"
+    enterkeyhint="search"
+  />
+  <mat-icon
+    class="search-icon"
+    svgIcon="search"
+    aria-hidden="true"
+    *ngIf="!searchTerm()"
+  ></mat-icon>
+  <mat-icon
+    class="clear-search-icon"
+    svgIcon="close"
+    aria-hidden="true"
+    *ngIf="searchTerm()"
+    (click)="setSearch('')"
+  ></mat-icon>
+</div>
+
+<!-- STATUS ALERT (stesso pattern della lista) -->
+<div
+  *ngIf="!error"
+  class="results-alert success bouncy"
+  role="status"
+  aria-live="polite"
+>
+  <ng-container *ngIf="loading; else countsLoadedCL">
+    <mat-icon
+      class="status-icon spinner"
+      svgIcon="search"
+      aria-hidden="true"
+    ></mat-icon>
+    <span>Loading…</span>
+  </ng-container>
+
+  <ng-template #countsLoadedCL>
+    <div class="arrows" aria-hidden="true">
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+    </div>
+
+    <span class="status-text">
+      <b>{{ totalItems }}</b>
+      {{ totalItems === 1 ? "section" : "sections" }} found<br />
+      <ng-container *ngIf="getActiveFiltersText() !== 'No filters active'">
+        filters: <b>{{ getActiveFiltersText() }}</b>
+      </ng-container>
+    </span>
+
+    <div class="arrows" aria-hidden="true">
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+    </div>
+  </ng-template>
+</div>
+
+<hr />
+
+<p class="cocktail-card-legend">
+  Each card links to a curated <b>cocktail list</b> for that selection. You’ll
+  see <b>images</b>, <b>ABV</b>, key <b>ingredients</b>, method and
+  <b>glass</b> on each recipe page.
+</p>
+
+<!-- CARDS GRID (hub items) -->
+<div class="glass-card cards-grid limit-4" *ngIf="!error && items.length > 0">
+  <a
+    class="hub-card"
+    *ngFor="let item of items"
+    [routerLink]="linkFor(item)"
+    role="listitem"
+    [attr.aria-label]="'Browse cocktails: ' + item.label"
+  >
+    <span class="hub-card-title">{{ item.label }}</span>
+    <span class="hub-card-meta" *ngIf="item.count !== undefined">{{
+      item.count
+    }}</span>
+  </a>
+</div>
+
+<div class="no-results-message" *ngIf="!loading && !items.length">
+  <p>No sections available yet. Try again later!</p>
+</div>
+
+<!-- KEY FEATURES -->
+<div class="key-features-section" *ngIf="keyFeatures.length">
+  <h3>{{ keyFeaturesHeading }}</h3>
+  <div class="feature-item" *ngFor="let feature of keyFeatures; let i = index">
+    <span class="feature-icon" aria-hidden="true">{{ feature.icon }}</span>
+    <div class="feature-copy">
+      <h4 class="feature-title">{{ feature.title }}</h4>
+      <p class="feature-description">
+        <ng-container *ngFor="let segment of feature.segments">
+          <ng-container *ngIf="segment.kind === 'text'">
+            <span
+              [style.font-weight]="segment.emphasis === 'strong' ? '600' : null"
+              >{{ segment.value }}</span
+            >
+          </ng-container>
+          <ng-container *ngIf="segment.kind === 'routerLink'">
+            <a
+              [routerLink]="segment.commands"
+              [queryParams]="segment.queryParams || undefined"
+              [fragment]="segment.fragment || undefined"
+            >
+              <span
+                [style.font-weight]="
+                  segment.emphasis === 'strong' ? '600' : null
+                "
+                >{{ segment.label }}</span
+              >
+            </a>
+          </ng-container>
+          <ng-container *ngIf="segment.kind === 'externalLink'">
+            <a
+              [attr.href]="segment.href"
+              [attr.target]="segment.target || null"
+              [attr.rel]="segment.rel || null"
+            >
+              <span
+                [style.font-weight]="
+                  segment.emphasis === 'strong' ? '600' : null
+                "
+                >{{ segment.label }}</span
+              >
+            </a>
+          </ng-container>
+        </ng-container>
+      </p>
+    </div>
+  </div>
+</div>
+
+@defer (on viewport) {
+<div class="bottom-container">
+  <div class="faq-section" *ngIf="faqEntries.length">
+    <h2>{{ faqHeading }}</h2>
+    <p class="faq-lead">
+      Quick answers for these hub pages — definitions, serving tips, and how
+      each selection maps to families across Fizzando.
+    </p>
+
+    <div
+      class="faq-item"
+      *ngFor="let faq of faqEntries; let i = index"
+      [class.expanded]="faqStates()[i]?.isExpanded"
+    >
+      <button
+        class="faq-question"
+        type="button"
+        [attr.id]="'faq-q-' + i"
+        [attr.aria-controls]="'faq-a-' + i"
+        [attr.aria-expanded]="faqStates()[i]?.isExpanded"
+        (click)="toggleFaq(i)"
+      >
+        <span>{{ faq.question }}</span>
+        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+      </button>
+
+      <div
+        #answer
+        id="faq-a-{{ i }}"
+        role="region"
+        class="faq-answer-wrapper"
+        [attr.aria-labelledby]="'faq-q-' + i"
+        [style.maxHeight.px]="
+          faqStates()[i]?.isExpanded ? answer.scrollHeight : 0
+        "
+      >
+        <p class="faq-answer">
+          <ng-container *ngFor="let segment of faq.answer">
+            <ng-container *ngIf="segment.kind === 'text'">
+              <span
+                [style.font-weight]="
+                  segment.emphasis === 'strong' ? '600' : null
+                "
+                >{{ segment.value }}</span
+              >
+            </ng-container>
+            <ng-container *ngIf="segment.kind === 'routerLink'">
+              <a
+                [routerLink]="segment.commands"
+                [queryParams]="segment.queryParams || undefined"
+                [fragment]="segment.fragment || undefined"
+              >
+                <span
+                  [style.font-weight]="
+                    segment.emphasis === 'strong' ? '600' : null
+                  "
+                  >{{ segment.label }}</span
+                >
+              </a>
+            </ng-container>
+            <ng-container *ngIf="segment.kind === 'externalLink'">
+              <a
+                [href]="segment.href"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span
+                  [style.font-weight]="
+                    segment.emphasis === 'strong' ? '600' : null
+                  "
+                  >{{ segment.label }}</span
+                >
+              </a>
+            </ng-container>
+          </ng-container>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  @defer (on viewport) {
+  <section class="ad-block" role="complementary" aria-label="Sponsored content">
+    <span class="ad-badge">Ad</span>
+    <app-dev-ads [type]="'half-page'"></app-dev-ads>
+  </section>
+  } @placeholder {
+  <section
+    class="ad-block"
+    role="complementary"
+    aria-label="Sponsored content"
+    aria-hidden="true"
+  >
+    <span class="ad-badge">Ad</span>
+    <app-dev-ads [type]="'half-page'"></app-dev-ads>
+  </section>
+  }
+</div>
+} @placeholder {
+<div class="bottom-container placeholder" aria-hidden="true">
+  <div class="faq-section skeleton"></div>
+</div>
+}

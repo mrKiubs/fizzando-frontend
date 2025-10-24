@@ -1,28 +1,19 @@
 <nav class="breadcrumb-container" *ngIf="breadcrumbs$ | async as breadcrumbs">
-  <ng-container *ngFor="let bc of breadcrumbs; let last = last">
-    <span class="breadcrumb-item">
-      <!-- Visualizza l'icona se presente -->
-      <span *ngIf="bc.displayIcon" class="breadcrumb-icon">{{
-        bc.displayIcon
-      }}</span>
-
-      <!-- La parte testuale, cliccabile se non è l'ultimo elemento -->
-      <ng-container *ngIf="!last; else currentText">
+  <ol class="breadcrumb-list">
+    <li *ngFor="let breadcrumb of breadcrumbs" class="breadcrumb-item">
+      <ng-container *ngIf="!breadcrumb.isLast; else current">
         <a
-          [routerLink]="bc.url"
-          class="breadcrumb-text-link"
+          [routerLink]="breadcrumb.url"
+          class="breadcrumb-link"
           (click)="onLinkClicked(); $event.stopPropagation()"
         >
-          {{ bc.displayText }}
+          {{ breadcrumb.label }}
         </a>
       </ng-container>
-      <!-- La parte testuale, non cliccabile se è l'ultimo elemento -->
-      <ng-template #currentText>
-        <span class="breadcrumb-current-text">
-          {{ bc.displayText }}
-        </span>
+      <ng-template #current>
+        <span class="breadcrumb-current">{{ breadcrumb.label }}</span>
       </ng-template>
-    </span>
-    <span class="breadcrumb-separator" *ngIf="!last">›</span>
-  </ng-container>
+      <span class="breadcrumb-separator" *ngIf="!breadcrumb.isLast">›</span>
+    </li>
+  </ol>
 </nav>

@@ -21,14 +21,40 @@ export const routes: Routes = [
           ),
       },
 
-      // HUB puliti (una sola definizione per ciascuno)
+      // HUB (stesso componente, hub in data, label plurale)
+      {
+        path: 'methods',
+        loadComponent: () =>
+          import('./cocktails/hubs/hub.component').then((m) => m.HubComponent),
+        data: { hub: 'method', breadcrumb: 'Methods' },
+      },
+      {
+        path: 'glasses',
+        loadComponent: () =>
+          import('./cocktails/hubs/hub.component').then((m) => m.HubComponent),
+        data: { hub: 'glass', breadcrumb: 'Glasses' },
+      },
+      {
+        path: 'categories',
+        loadComponent: () =>
+          import('./cocktails/hubs/hub.component').then((m) => m.HubComponent),
+        data: { hub: 'category', breadcrumb: 'Categories' },
+      },
+      {
+        path: 'alcoholic',
+        loadComponent: () =>
+          import('./cocktails/hubs/hub.component').then((m) => m.HubComponent),
+        data: { hub: 'alcoholic', breadcrumb: 'Alcoholic' },
+      },
+
+      // Liste filtrate (niente breadcrumb: lo calcola il tuo componente dalle route)
       {
         path: 'method/:methodSlug',
         loadComponent: () =>
           import('./cocktails/cocktail-list/cocktail-list.component').then(
             (m) => m.CocktailListComponent
           ),
-        data: { hub: 'method', breadcrumb: 'Method' },
+        data: { hub: 'method' },
       },
       {
         path: 'glass/:glassSlug',
@@ -36,7 +62,7 @@ export const routes: Routes = [
           import('./cocktails/cocktail-list/cocktail-list.component').then(
             (m) => m.CocktailListComponent
           ),
-        data: { hub: 'glass', breadcrumb: 'Glass' },
+        data: { hub: 'glass' },
       },
       {
         path: 'category/:categorySlug',
@@ -44,7 +70,7 @@ export const routes: Routes = [
           import('./cocktails/cocktail-list/cocktail-list.component').then(
             (m) => m.CocktailListComponent
           ),
-        data: { hub: 'category', breadcrumb: 'Category' },
+        data: { hub: 'category' },
       },
       {
         path: 'alcoholic/:alcoholicSlug',
@@ -52,10 +78,10 @@ export const routes: Routes = [
           import('./cocktails/cocktail-list/cocktail-list.component').then(
             (m) => m.CocktailListComponent
           ),
-        data: { hub: 'alcoholic', breadcrumb: 'Alcoholic' },
+        data: { hub: 'alcoholic' },
       },
 
-      // Dettaglio cocktail — tenere per ultimo perché è generico
+      // Dettaglio (lascia com’è)
       {
         path: ':slug',
         loadComponent: () =>
