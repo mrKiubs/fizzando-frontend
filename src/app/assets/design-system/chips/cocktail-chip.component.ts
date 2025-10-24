@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  HostBinding,
   Input,
   Output,
 } from '@angular/core';
@@ -190,6 +191,26 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
           }
         }
 
+        &.active {
+          background-color: transparent !important;
+          color: #cccccc70;
+          &::before {
+            background-color: rgba(000, 000, 000, 0.05) !important;
+          }
+
+          &:hover {
+            background: none;
+            color: #cccccc70;
+            border: none;
+
+            &::before {
+              background-color: rgba(000, 000, 000, 0.05) !important;
+              transition: all 0.25s ease, transform 0.3s ease;
+              border: 1px solid rgba(255, 255, 255, 0.025) !important;
+            }
+          }
+        }
+
         &.variant-method,
         &.variant-category {
           padding: 6px 24px 6px 12px;
@@ -251,6 +272,11 @@ export class CocktailChipComponent {
   @Input() stopClickPropagation = false;
 
   @Input() cardType = false;
+
+  // opzionale: classe diretta sull’host
+  @HostBinding('class.active') get isActive() {
+    return this.active;
+  }
 
   @Output() chipClick = new EventEmitter<void>();
 

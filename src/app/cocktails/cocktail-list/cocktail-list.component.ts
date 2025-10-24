@@ -546,6 +546,8 @@ const cloneSupportingContent = (
   })),
 });
 
+type ActiveVariant = 'glass' | 'method' | 'category' | 'alcoholic';
+
 @Component({
   selector: 'app-cocktail-list',
   standalone: true,
@@ -573,6 +575,9 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   hubSlug = '';
 
   selectedTab: HubTab = 'method';
+
+  public activeVariant?: ActiveVariant;
+  public activeSlug?: string;
 
   get hubLabel(): string {
     if (this.hubKind === 'method') return this.unslugify(this.hubSlug);
@@ -1617,6 +1622,24 @@ export class CocktailListComponent implements OnInit, OnDestroy {
           this.hubSlug = '';
         }
 
+        // === CONTEX ATTIVO PER LE CARD (chips/ingredienti) ===
+        this.activeVariant = undefined;
+        this.activeSlug = undefined;
+
+        // Se stai in un hub per glass/method/category/alcoholic, usa direttamente lo slug di rotta
+        if (
+          this.hubKind === 'glass' ||
+          this.hubKind === 'method' ||
+          this.hubKind === 'category' ||
+          this.hubKind === 'alcoholic'
+        ) {
+          this.activeVariant = this.hubKind;
+          // hubSlug è già uno slug (es. 'old-fashioned-glass' / 'shaken'), quindi lo passo così com'è
+          this.activeSlug = this.hubSlug;
+        }
+
+        // Se la pagina è un elenco per ingrediente (se hai una rotta tipo /ingredients/:ingredientId/cocktails)
+        // prova a leggerne l'id dalla paramMap
         // Signals: usa prima lo slug di rotta, poi eventuale query param
         const catFromHub = categorySlug ? this.unslugify(categorySlug) : '';
         const alcFromHub = alcoholicSlug ? this.unslugify(alcoholicSlug) : '';

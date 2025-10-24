@@ -228,6 +228,7 @@
                 [cocktail]="item"
                 [routerLink]="['/cocktails', item.slug]"
                 [priorityIngredientName]="ingredient.name"
+                [ngClass]="{ active: 'priorityIngredientName' }"
               ></app-cocktail-card>
             </ng-template>
           </ng-container>

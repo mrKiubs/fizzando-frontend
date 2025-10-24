@@ -176,6 +176,9 @@
             [stopClickPropagation]="true"
             [showCountWhenUndefined]="false"
             [cardType]="true"
+            [active]="
+              isChipActive('method', slugifySegment(cocktail.preparation_type))
+            "
           >
             <span class="icon">{{
               getPreparationIcon(cocktail.preparation_type)
@@ -197,6 +200,7 @@
             [stopClickPropagation]="true"
             [showCountWhenUndefined]="false"
             [cardType]="true"
+            [active]="isChipActive('glass', slugifySegment(cocktail.glass))"
           >
             <span class="icon">{{ getGlassIcon(cocktail.glass) }}</span>
           </app-cocktail-chip>
@@ -212,6 +216,7 @@
               <ng-container
                 *ngFor="
                   let ingredient of mainIngredientsFormatted;
+                  let i = index;
                   let last = last
                 "
               >
@@ -221,6 +226,7 @@
                   [routerLink]="['/ingredients', getIngredientId(ingredient)]"
                   [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
                   (click)="$event.stopPropagation()"
+                  [ngClass]="{ active: i === 0 && !!priorityIngredientName }"
                 >
                   <picture>
                     <source
@@ -297,6 +303,9 @@
             [stopClickPropagation]="true"
             [showCountWhenUndefined]="false"
             [cardType]="true"
+            [active]="
+              isChipActive('category', slugifySegment(cocktail.category))
+            "
           >
           </app-cocktail-chip>
 
@@ -313,6 +322,9 @@
             ]"
             [showCountWhenUndefined]="false"
             [cardType]="true"
+            [active]="
+              isChipActive('alcoholic', slugifySegment(cocktail.alcoholic))
+            "
           >
           </app-cocktail-chip>
         </div>

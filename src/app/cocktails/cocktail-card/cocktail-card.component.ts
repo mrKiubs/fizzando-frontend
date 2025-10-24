@@ -32,6 +32,13 @@ type HighlightKind =
   | 'glass'
   | 'fallback';
 
+type ActiveVariant =
+  | 'glass'
+  | 'method'
+  | 'category'
+  | 'alcoholic'
+  | 'ingredient';
+
 @Component({
   selector: 'app-cocktail-card',
   standalone: true,
@@ -58,6 +65,13 @@ export class CocktailCardComponent implements OnInit {
   @Input() totalSelectedIngredientsCount = 0;
   @Input() lazyLoadImage = true;
   @Input() isLcp = false;
+
+  /** CONTEXT: chi sta governando il listato? */
+  @Input() activeVariant?: ActiveVariant;
+  /** Per glass/method/category/alcoholic: passa lo slug normalizzato dell’elenco corrente */
+  @Input() activeSlug?: string;
+  /** Per ingredient lists: passa l'ID (o slug) dell’ingrediente corrente */
+  @Input() activeIngredientId?: string | number;
 
   /** Modalità banner per Article Detail (compatta, orizzontale) */
   @Input() asArticleBanner = false;
@@ -626,6 +640,35 @@ export class CocktailCardComponent implements OnInit {
 
     this.mainIngredientsFormatted = Array.from(
       new Set(ordered.slice(0, 3).map(getName).filter(Boolean))
+    );
+  }
+
+  isChipActive(
+    variant: ActiveVariant,
+    chipSlug: string | undefined | null
+  ): boolean {
+    if (!this.activeVariant || !chipSlug) return false;
+    return this.activeVariant === variant && this.activeSlug === chipSlug;
+  }
+
+  isIngredientActive(ingredient: string): boolean {
+    // Usa lo stesso metodo che usi per ricavare l’ID dell’ingrediente in card
+    const id = this.getIngredientId(ingredient);
+    return (
+      this.activeVariant === 'ingredient' &&
+      String(id) === String(this.activeIngredientId ?? '')
+    );
+  }
+  private normalizeName(v: any): string {
+    return (v ?? '').toString().trim().toLowerCase();
+  }
+
+  isPriorityIngredient(ing: any): boolean {
+    // nel tuo template gli ingredienti sono stringhe ({{ ingredient }})
+    return (
+      !!this.priorityIngredientName &&
+      this.normalizeName(ing) ===
+        this.normalizeName(this.priorityIngredientName)
     );
   }
 }
