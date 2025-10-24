@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -35,9 +35,10 @@ const HUB_HEADINGS: Record<HubKind, string> = {
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './hub.component.html',
-  styleUrl: './hub.component.scss',
+  styleUrls: ['./hub.component.scss'],
 })
 export class HubComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   hubKind!: HubKind;
   heading = '';
   items: HubItem[] = [];
@@ -84,7 +85,7 @@ export class HubComponent implements OnInit {
 
     this.hubData
       .getHubItems(this.hubKind)
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (items) => {
           this.items = items ?? [];

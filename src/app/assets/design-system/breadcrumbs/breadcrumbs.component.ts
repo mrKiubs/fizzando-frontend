@@ -1,45 +1,33 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
-import {
-  ActivatedRoute,
-  Router,
-  NavigationEnd,
-  RouterModule,
-  Data,
-  PRIMARY_OUTLET,
-} from '@angular/router';
 import { CommonModule } from '@angular/common';
 import {
-  filter,
-  distinctUntilChanged,
-  map,
-  startWith,
-  shareReplay,
-} from 'rxjs/operators';
-import { Observable } from 'rxjs';
+  ActivatedRoute,
+  ActivatedRouteSnapshot,
+  NavigationEnd,
+  PRIMARY_OUTLET,
+  Router,
+  RouterModule,
+  UrlSegment,
+} from '@angular/router';
+import { Component, EventEmitter, OnInit, Output, inject } from '@angular/core';
+import { combineLatest, Observable, of } from 'rxjs';
+import { filter, map, startWith, switchMap } from 'rxjs/operators';
+import { HubDataService, HubKind } from '../../../services/hub-data.service';
 
-interface Breadcrumb {
-  displayIcon?: string;
-  displayText: string;
-  url: string;
+interface BreadcrumbDefinition {
+  url: string[];
+  label: string | Observable<string>;
 }
 
-const ROOT_ICONS: Record<string, string> = {
-  '': '🏠',
-  cocktails: '🍸',
-  ingredients: '🍋',
-  glossary: '📚',
-  quiz: '❓',
-  articles: '📄',
-  'find-cocktail': '🔎',
-};
+interface BreadcrumbViewModel {
+  url: string[];
+  label: string;
+  isLast: boolean;
+}
 
-const FILTER_ICONS: Record<string, string> = {
-  category: '📂',
-  type: '📂',
-  alcoholic: '🍸',
-  nonalcoholic: '🧃',
-  page: '📄', // Aggiunto un'icona generica per la pagina
-};
+interface HubSlugContext {
+  kind: HubKind;
+  slug: string;
+}
 
 @Component({
   selector: 'app-breadcrumbs',
@@ -49,213 +37,233 @@ const FILTER_ICONS: Record<string, string> = {
   styleUrls: ['./breadcrumbs.component.scss'],
 })
 export class BreadcrumbsComponent implements OnInit {
-  breadcrumbs$!: Observable<Breadcrumb[]>;
   @Output() linkClicked = new EventEmitter<void>();
 
-  constructor(private router: Router, private activatedRoute: ActivatedRoute) {}
+  breadcrumbs$!: Observable<BreadcrumbViewModel[]>;
+
+  private readonly router = inject(Router);
+  private readonly activatedRoute = inject(ActivatedRoute);
+  private readonly hubDataService = inject(HubDataService);
+
+  private readonly hubCrumbs: Record<
+    HubKind,
+    { link: string[]; label: string; urlKey: string }
+  > = {
+    method: {
+      link: ['/', 'cocktails', 'methods'],
+      label: 'Methods',
+      urlKey: '/cocktails/methods',
+    },
+    glass: {
+      link: ['/', 'cocktails', 'glasses'],
+      label: 'Glasses',
+      urlKey: '/cocktails/glasses',
+    },
+    category: {
+      link: ['/', 'cocktails', 'categories'],
+      label: 'Categories',
+      urlKey: '/cocktails/categories',
+    },
+    alcoholic: {
+      link: ['/', 'cocktails', 'alcoholic'],
+      label: 'Alcoholic',
+      urlKey: '/cocktails/alcoholic',
+    },
+  };
 
   ngOnInit(): void {
     this.breadcrumbs$ = this.router.events.pipe(
-      filter((e) => e instanceof NavigationEnd),
+      filter((event) => event instanceof NavigationEnd),
       startWith(new NavigationEnd(0, this.router.url, this.router.url)),
-      map(() => this.generateBreadcrumbs(this.activatedRoute.root)),
-      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-      shareReplay(1)
+      map(() => this.buildDefinitions(this.activatedRoute.root)),
+      switchMap((definitions) => this.resolveDefinitions(definitions))
     );
-  }
-
-  private normalizeText(text: string | undefined): string {
-    return (text || '').trim().toLowerCase();
-  }
-
-  private getLevelFromUrl(url: string): number {
-    // Conta i segmenti senza query params
-    return url.split('?')[0].split('/').filter(Boolean).length;
-  }
-
-  // Questo metodo non dovrebbe più essere strettamente necessario con la nuova logica,
-  // ma lo manteniamo per sicurezza se la logica di `generateBreadcrumbs` dovesse cambiare.
-  private removeDuplicateLinkBreadcrumbs(
-    breadcrumbs: Breadcrumb[]
-  ): Breadcrumb[] {
-    const result: Breadcrumb[] = [];
-
-    for (let i = 0; i < breadcrumbs.length; i++) {
-      const current = breadcrumbs[i];
-      const next = breadcrumbs[i + 1];
-
-      if (next) {
-        const currentLevel = this.getLevelFromUrl(current.url);
-        const nextLevel = this.getLevelFromUrl(next.url);
-
-        // Se current ha link (url non vuoto), next è allo stesso livello,
-        // e next non ha link o ha lo stesso url, skip current
-        if (
-          current.url &&
-          nextLevel === currentLevel &&
-          (!next.url || next.url === current.url)
-        ) {
-          // Skip breadcrumb con link duplicato al livello
-          continue;
-        }
-      }
-
-      result.push(current);
-    }
-
-    return result;
-  }
-
-  private generateBreadcrumbs(route: ActivatedRoute): Breadcrumb[] {
-    const breadcrumbs: Breadcrumb[] = [];
-    let currentRoute: ActivatedRoute | null = route;
-    let accumulatedUrl = '';
-
-    breadcrumbs.push({
-      displayIcon: ROOT_ICONS[''] || '',
-      displayText: 'Home',
-      url: '/',
-    });
-
-    while (currentRoute) {
-      const primaryChild: ActivatedRoute | undefined =
-        currentRoute.children.find((child) => child.outlet === PRIMARY_OUTLET);
-      if (!primaryChild) break;
-
-      currentRoute = primaryChild;
-      const snapshot = currentRoute.snapshot;
-      const routeURLSegments = snapshot.url.map((segment) => segment.path);
-      const path = routeURLSegments.join('/');
-
-      const hasQueryParams = Object.keys(snapshot.queryParams).length > 0;
-
-      // Se è un segmento vuoto, non creare un breadcrumb di percorso, ma continua ad accumulare l'URL.
-      // Se ci sono query params su un path vuoto (es. /?param=value), li gestirà il blocco successivo.
-      if (!path) {
-        if (!hasQueryParams) {
-          continue;
-        }
-      } else {
-        accumulatedUrl += `/${path}`;
-      }
-
-      const data: Data = snapshot.data; // Corretto: `snapshot.data` non `snapshot.snapshot.data`
-      const params = snapshot.params;
-      let displayIcon: string | undefined;
-      let displayText: string | undefined;
-      const rootSegment = routeURLSegments[0] || '';
-      const predefinedIcon = ROOT_ICONS[rootSegment];
-
-      // Determina il testo e l'icona del breadcrumb
-      if (data['breadcrumb']) {
-        const rawLabel = data['breadcrumb'] as string;
-        if (rawLabel.replace(/^\W*/, '').toLowerCase() === 'home') {
-          displayText = undefined;
-        } else if (predefinedIcon && rawLabel.startsWith(predefinedIcon)) {
-          displayIcon = predefinedIcon;
-          displayText = rawLabel.substring(predefinedIcon.length).trim();
-        } else {
-          displayIcon = predefinedIcon;
-          displayText = rawLabel;
-        }
-      } else if (path) {
-        displayIcon = predefinedIcon;
-        displayText = this.prettyLabel(rootSegment || path);
-      }
-
-      // Override per slug, id, externalId: no icona, testo formattato
-      if (params['slug']) {
-        displayText = this.slugToTitle(params['slug']);
-        displayIcon = undefined;
-      } else if (params['externalId']) {
-        displayText = this.prettifySlug(params['externalId']);
-        displayIcon = undefined;
-      } else if (params['id']) {
-        displayText = `${params['id']}`;
-        displayIcon = undefined;
-      }
-
-      // Aggiungi il breadcrumb del percorso (senza query params)
-      if (displayText) {
-        // Evita di aggiungere breadcrumb di percorso se c'è già un breadcrumb per questo URL
-        // Questo gestisce il caso di path: '' con breadcrumb data
-        if (!breadcrumbs.some((b) => b.url === accumulatedUrl)) {
-          breadcrumbs.push({
-            displayIcon,
-            displayText,
-            url: accumulatedUrl,
-          });
-        }
-      }
-
-      // Aggiungi breadcrumb per i filtri, se ci sono
-      if (hasQueryParams) {
-        const sortedQueryKeys = Object.keys(snapshot.queryParams).sort();
-        let queryStringSoFar = '';
-        for (const key of sortedQueryKeys) {
-          const val = snapshot.queryParams[key];
-          if (!val) continue;
-
-          queryStringSoFar += `${queryStringSoFar ? '&' : ''}${key}=${val}`;
-          const filterUrl = `${accumulatedUrl}?${queryStringSoFar}`;
-          const filterIcon = FILTER_ICONS[key.toLowerCase()] || '📁';
-
-          // Usa prettyLabel per formattare il testo del filtro, inclusi i numeri di pagina
-          const filterText = this.prettyLabel(val, key);
-
-          const isFilterBreadcrumbPresent = breadcrumbs.some(
-            (b) => b.url === filterUrl && b.displayText === filterText
-          );
-          if (!isFilterBreadcrumbPresent) {
-            breadcrumbs.push({
-              displayIcon: filterIcon,
-              displayText: filterText,
-              url: filterUrl,
-            });
-          }
-        }
-      }
-    }
-
-    // `removeDuplicateLinkBreadcrumbs` non è più strettamente necessario
-    // con la logica attuale, ma puoi mantenerlo se preferisci una passata finale.
-    return this.removeDuplicateLinkBreadcrumbs(breadcrumbs);
-  }
-
-  private slugToTitle(slug: string): string {
-    return slug
-      .split('-')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
-  }
-
-  private prettyLabel(val: string, key?: string): string {
-    // Gestione specifica per il parametro 'page'
-    if (key && key.toLowerCase() === 'page') {
-      return `page ${val} of 32`;
-    }
-    // Gestione specifica per il parametro 'alcoholic'
-    if (key && key.toLowerCase() === 'alcoholic') {
-      if (val.toLowerCase() === 'true') return 'Alcolico';
-      if (val.toLowerCase() === 'false') return 'Non Alcoholic';
-    }
-    // Gestione per valori booleani generici
-    if (val.toLowerCase() === 'true') return 'Sì';
-    if (val.toLowerCase() === 'false') return 'No';
-    // Formattazione generica per slug (es. "citrus-juices" -> "Citrus Juices")
-    return val.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   onLinkClicked(): void {
     this.linkClicked.emit();
   }
 
-  private prettifySlug(val: string | null | undefined): string {
-    if (!val) return '';
-    return val
-      .replace(/[-_]+/g, ' ') // trattini/underscore → spazio
-      .replace(/\s+/g, ' ') // spazi multipli → singolo
-      .trim()
-      .replace(/\b\w/g, (c) => c.toUpperCase()); // Title Case
+  private buildDefinitions(route: ActivatedRoute): BreadcrumbDefinition[] {
+    const breadcrumbs: BreadcrumbDefinition[] = [{ url: ['/'], label: 'Home' }];
+    let current: ActivatedRoute | null = route;
+    const accumulated: string[] = [];
+
+    while (current) {
+      const child: ActivatedRoute | undefined = current.children.find(
+        (c: ActivatedRoute) => c.outlet === PRIMARY_OUTLET
+      );
+      if (!child) {
+        break;
+      }
+
+      current = child;
+      const snapshot = child.snapshot;
+      const routeSegments = snapshot.url
+        .map((segment: UrlSegment) => segment.path)
+        .filter(Boolean);
+      if (routeSegments.length) {
+        accumulated.push(...routeSegments);
+      }
+
+      const hubSlug = this.extractHubSlug(snapshot);
+      if (hubSlug) {
+        const hubInfo = this.hubCrumbs[hubSlug.kind];
+        if (hubInfo && !this.hasBreadcrumbForUrl(breadcrumbs, hubInfo.urlKey)) {
+          breadcrumbs.push({ url: hubInfo.link, label: hubInfo.label });
+        }
+
+        const slugUrl = this.buildRouterLink(accumulated);
+        const slugLabel$ = this.hubDataService.getLabelBySlug(
+          hubSlug.kind,
+          hubSlug.slug
+        );
+        breadcrumbs.push({ url: slugUrl, label: slugLabel$ });
+        continue;
+      }
+
+      const label = this.resolveLabel(snapshot, routeSegments);
+      if (!label) {
+        continue;
+      }
+
+      const urlKey = this.buildUrlKey(accumulated);
+      if (
+        (accumulated.length === 0 &&
+          typeof label === 'string' &&
+          this.isHomeLabel(label)) ||
+        this.hasBreadcrumbForUrl(breadcrumbs, urlKey)
+      ) {
+        continue;
+      }
+
+      breadcrumbs.push({ url: this.buildRouterLink(accumulated), label });
+    }
+
+    return breadcrumbs;
+  }
+
+  private resolveDefinitions(
+    definitions: BreadcrumbDefinition[]
+  ): Observable<BreadcrumbViewModel[]> {
+    if (!definitions.length) {
+      return of([]);
+    }
+
+    const labelStreams = definitions.map((definition) =>
+      typeof definition.label === 'string'
+        ? of(definition.label)
+        : definition.label
+    );
+
+    return combineLatest(labelStreams).pipe(
+      map((labels) =>
+        labels.map((label, index) => ({
+          url: definitions[index].url,
+          label,
+          isLast: index === definitions.length - 1,
+        }))
+      )
+    );
+  }
+
+  private extractHubSlug(
+    snapshot: ActivatedRouteSnapshot
+  ): HubSlugContext | null {
+    const params = snapshot.params;
+    const data = snapshot.data as { hub?: HubKind };
+
+    const mappings: Array<{ param: string; kind: HubKind }> = [
+      { param: 'methodSlug', kind: 'method' },
+      { param: 'glassSlug', kind: 'glass' },
+      { param: 'categorySlug', kind: 'category' },
+      { param: 'alcoholicSlug', kind: 'alcoholic' },
+    ];
+
+    for (const mapping of mappings) {
+      const slug = params[mapping.param];
+      if (slug) {
+        const kind = data.hub ?? mapping.kind;
+        return { kind, slug };
+      }
+    }
+
+    return null;
+  }
+
+  private resolveLabel(
+    snapshot: ActivatedRouteSnapshot,
+    routeSegments: string[]
+  ): string | Observable<string> | null {
+    const data = snapshot.data as { breadcrumb?: string };
+    const params = snapshot.params as Record<string, string | undefined>;
+
+    if (data.breadcrumb) {
+      return data.breadcrumb;
+    }
+
+    if (params['slug']) {
+      return this.prettifySlug(params['slug']);
+    }
+
+    if (params['externalId']) {
+      return this.prettifySlug(params['externalId']);
+    }
+
+    if (params['id']) {
+      return `${params['id']}`;
+    }
+
+    if (routeSegments.length) {
+      return this.prettifySlug(routeSegments[routeSegments.length - 1]);
+    }
+
+    return null;
+  }
+
+  private buildRouterLink(segments: string[]): string[] {
+    return segments.length ? ['/', ...segments] : ['/'];
+  }
+
+  private buildUrlKey(segments: string[]): string {
+    return segments.length ? `/${segments.join('/')}` : '/';
+  }
+
+  private hasBreadcrumbForUrl(
+    breadcrumbs: BreadcrumbDefinition[],
+    urlKey: string
+  ): boolean {
+    return breadcrumbs.some(
+      (breadcrumb) => this.buildUrlKeyForLink(breadcrumb.url) === urlKey
+    );
+  }
+
+  private buildUrlKeyForLink(link: string[]): string {
+    if (!link.length) {
+      return '';
+    }
+
+    if (link.length === 1 && link[0] === '/') {
+      return '/';
+    }
+
+    const segments = link[0] === '/' ? link.slice(1) : link;
+    return segments.length ? `/${segments.join('/')}` : '/';
+  }
+
+  private isHomeLabel(label: string): boolean {
+    return label.trim().toLowerCase() === 'home';
+  }
+
+  private prettifySlug(value: string | undefined): string {
+    if (!value) {
+      return '';
+    }
+
+    return value
+      .split(/[-_\s]/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
   }
 }
