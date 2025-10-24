@@ -134,8 +134,10 @@ export class ViewportService {
 
     const scale = viewport.scale ?? 1;
     const offsetTop = viewport.offsetTop ?? 0;
-    const pageTop = viewport.pageTop ?? 0;
-    const topInset = Math.max(offsetTop, pageTop / scale, 0);
+    // On iOS Safari `pageTop` grows with the scroll position, which would
+    // incorrectly inflate the computed safe area when the user scrolls.
+    // We only need the visual viewport offset to represent the top inset.
+    const topInset = Math.max(offsetTop / scale, 0);
     const layoutHeight =
       window.innerHeight || this.doc.documentElement.clientHeight;
     const viewportHeight = viewport.height ?? layoutHeight;
