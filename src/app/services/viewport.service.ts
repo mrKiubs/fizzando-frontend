@@ -7,7 +7,7 @@ interface SafeAreaInsets {
 }
 
 const THROTTLE_MS = 80;
-const IOS_SAFARI_MIN_VERSION = 26;
+const IOS_SAFARI_MIN_VERSION = 16;
 
 @Injectable({ providedIn: 'root' })
 export class ViewportService {
