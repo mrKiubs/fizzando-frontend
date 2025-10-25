@@ -1,4 +1,5 @@
 <header
+  role="banner"
   class="app-header"
   appStickyHeader="fixed"
   [class.scrolled]="isScrolled"
@@ -47,6 +48,7 @@
   role="dialog"
   aria-modal="true"
   aria-labelledby="menu-title"
+  aria-describedby="menu-hint"
   [class.open]="isMenuOpen"
   (keydown.escape)="closeMenu()"
 >
@@ -96,6 +98,7 @@
               >
               <select
                 id="cocktail-category-select"
+                aria-labelledby="cocktail-category-label"
                 [(ngModel)]="selectedCocktailCategory"
                 class="custom-select"
               >
@@ -438,7 +441,11 @@
     <h2 id="search-title" class="visually-hidden">Site search</h2>
 
     <div class="overlay-search-section">
-      <div class="search-input-container" role="search">
+      <div
+        class="search-input-container"
+        role="search"
+        aria-label="Site search"
+      >
         <label class="visually-hidden" for="overlay-search-input"
           >Search site</label
         >
@@ -465,6 +472,9 @@
           spellcheck="false"
           inputmode="search"
           enterkeyhint="search"
+          role="region"
+          aria-label="Search results"
+          aria-live="polite"
         />
         <button
           *ngIf="overlaySearchTerm.length > 0"
