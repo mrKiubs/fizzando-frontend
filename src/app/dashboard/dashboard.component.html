@@ -179,7 +179,7 @@
         (mouseenter)="burstConfetti()"
         (focusin)="burstConfetti()"
       >
-        <h3>Fizzando’s Cocktail of the Day</h3>
+        <h3 id="cotd-heading">Fizzando’s Cocktail of the Day</h3>
 
         @defer (on viewport; prefetch on idle) {
         <app-confetti-burst
@@ -193,6 +193,8 @@
           [minParticleCount]="60"
           [restartIfRunning]="false"
           [cooldownMs]="700"
+          aria-hidden="true"
+          role="presentation"
         ></app-confetti-burst>
         } @placeholder {
         <span aria-hidden="true"></span>
@@ -201,7 +203,13 @@
         <img
           [ngSrc]="getBestImageUrl(randomCocktail.image, 360)"
           [attr.srcset]="getCotdSrcSet(randomCocktail.image)"
-          [alt]="randomCocktail.name || 'Random cocktail'"
+          [alt]="
+            randomCocktail.name
+              ? 'Photo of ' +
+                randomCocktail.name +
+                ', Fizzando’s Cocktail of the Day'
+              : 'Random cocktail photo'
+          "
           width="210"
           height="210"
           decoding="async"
@@ -212,57 +220,99 @@
         />
 
         <div class="content-random">
-          <h4>{{ randomCocktail.name }}</h4>
+          <h4 id="cotd-name">{{ randomCocktail.name }}</h4>
+
           <button
             class="btn-shine"
             type="button"
             (click)="
               celebrateAndGo($event, ['/cocktails', randomCocktail.slug])
             "
+            [attr.aria-label]="
+              'View recipe for ' +
+              randomCocktail.name +
+              ', Fizzando’s Cocktail of the Day'
+            "
           >
+            <span aria-hidden="true">🍸</span>
             <span>View Recipe</span>
           </button>
         </div>
 
         <p class="random-cta">
-          <a [routerLink]="['/cocktails', randomCocktail.slug]"
-            >View the cocktail</a
+          <a
+            [routerLink]="['/cocktails', randomCocktail.slug]"
+            [attr.aria-label]="
+              'Open ' +
+              randomCocktail.name +
+              ' — details page of Fizzando’s Cocktail of the Day'
+            "
           >
+            View the cocktail
+          </a>
         </p>
       </div>
+
       <div class="glass-card cocktail-display-button">
         <h3>Quick links</h3>
         <div class="quick-link-home">
-          <button class="btn-shine" [routerLink]="['/cocktails']">
-            <span class="icon-button">🍹</span>
+          <button
+            class="btn-shine"
+            [routerLink]="['/cocktails']"
+            aria-label="Explore all cocktails"
+          >
+            <span class="icon-button" aria-hidden="true">🍹</span>
             <span>Cocktails<br />Explorer</span>
           </button>
 
-          <button class="btn-shine" [routerLink]="['/ingredients']">
-            <span class="icon-button">🌿</span>
+          <button
+            class="btn-shine"
+            [routerLink]="['/ingredients']"
+            aria-label="Explore all ingredients"
+          >
+            <span class="icon-button" aria-hidden="true">🌿</span>
             <span>Ingredients<br />Explorer</span>
           </button>
-          <button class="btn-shine" [routerLink]="['/cocktails']">
-            <span class="icon-button">🍹</span>
+
+          <button
+            class="btn-shine"
+            [routerLink]="['/cocktails']"
+            aria-label="Explore all cocktails"
+          >
+            <span class="icon-button" aria-hidden="true">🍹</span>
             <span>Cocktails<br />Explorer</span>
           </button>
 
-          <button class="btn-shine" [routerLink]="['/ingredients']">
-            <span class="icon-button">🌿</span>
+          <button
+            class="btn-shine"
+            [routerLink]="['/ingredients']"
+            aria-label="Explore all ingredients"
+          >
+            <span class="icon-button" aria-hidden="true">🌿</span>
             <span>Ingredients<br />Explorer</span>
           </button>
-          <button class="btn-shine" [routerLink]="['/cocktails']">
-            <span class="icon-button">🍹</span>
+
+          <button
+            class="btn-shine"
+            [routerLink]="['/cocktails']"
+            aria-label="Explore all cocktails"
+          >
+            <span class="icon-button" aria-hidden="true">🍹</span>
             <span>Cocktails<br />Explorer</span>
           </button>
 
-          <button class="btn-shine" [routerLink]="['/ingredients']">
-            <span class="icon-button">🌿</span>
+          <button
+            class="btn-shine"
+            [routerLink]="['/ingredients']"
+            aria-label="Explore all ingredients"
+          >
+            <span class="icon-button" aria-hidden="true">🌿</span>
             <span>Ingredients<br />Explorer</span>
           </button>
         </div>
       </div>
     </section>
+
     } @else {
     <!-- Questo non è un placeholder del defer: è l'ELSE del tuo @if -->
     <section
