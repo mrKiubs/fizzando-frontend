@@ -263,7 +263,7 @@ export class CocktailChipComponent {
   @Input() transparent?: boolean = false;
 
   @Input() showCountWhenUndefined = true;
-
+  @Input() ariaLabelOverride?: string | null = null;
   // Link modes
   @Input() routerLink: any[] | string | null = null;
   @Input() queryParams: Record<string, any> | null = null;
@@ -350,6 +350,10 @@ export class CocktailChipComponent {
   }
 
   get ariaLabel(): string {
+    if (this.ariaLabelOverride) {
+      return this.ariaLabelOverride;
+    }
+
     return this.count === undefined
       ? this.label
       : `${this.label} (${this.count})`;

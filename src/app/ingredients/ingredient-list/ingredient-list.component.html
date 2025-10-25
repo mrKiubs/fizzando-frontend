@@ -146,9 +146,9 @@
 
   <ng-template #countsLoadedING>
     <div class="arrows" aria-hidden="true">
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
     </div>
 
     <span class="status-text">
@@ -160,9 +160,9 @@
     </span>
 
     <div class="arrows" aria-hidden="true">
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
     </div>
   </ng-template>
 </div>
@@ -484,7 +484,11 @@
         [attr.aria-expanded]="faqs[0].isExpanded"
       >
         <span>What types of ingredients are included?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon
+          class="faq-toggle-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
       </button>
       <div
         #c0
@@ -509,7 +513,11 @@
         [attr.aria-expanded]="faqs[1].isExpanded"
       >
         <span>What information does each ingredient card show?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon
+          class="faq-toggle-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
       </button>
       <div
         #c1
@@ -534,7 +542,11 @@
         [attr.aria-expanded]="faqs[2].isExpanded"
       >
         <span>Can I substitute one ingredient for another?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon
+          class="faq-toggle-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
       </button>
       <div
         #c2
@@ -560,7 +572,11 @@
         [attr.aria-expanded]="faqs[3].isExpanded"
       >
         <span>How should I store different ingredients?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon
+          class="faq-toggle-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
       </button>
       <div
         #c3
@@ -586,7 +602,11 @@
         [attr.aria-expanded]="faqs[4].isExpanded"
       >
         <span>How do I know if an ingredient contains alcohol?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon
+          class="faq-toggle-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
       </button>
       <div
         #c4
@@ -611,7 +631,11 @@
         [attr.aria-expanded]="faqs[5].isExpanded"
       >
         <span>Are there non-alcoholic alternatives for common spirits?</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon
+          class="faq-toggle-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
       </button>
       <div
         #c5

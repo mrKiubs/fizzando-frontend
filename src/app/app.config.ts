@@ -46,7 +46,7 @@ export const appConfig: ApplicationConfig = {
           document,
           errorHandler
         );
-        // Default font set (per <mat-icon>menu</mat-icon> o fontIcon="menu")
+        // Default font set (per <mat-icon aria-hidden="true">menu</mat-icon> o fontIcon="menu")
         reg.setDefaultFontSetClass('material-icons');
 
         // SOLO lato client puoi caricare sprite SVG (se lo usi davvero).

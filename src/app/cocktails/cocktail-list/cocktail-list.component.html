@@ -32,7 +32,7 @@
       aria-controls="panel-method"
       type="button"
       [class.active]="selectedTab === 'method'"
-      [attr.aria-selected]="selectedTab === 'method'"
+      [attr.aria-selected]="selectedTab === 'method' ? 'true' : 'false'"
       [attr.tabindex]="selectedTab === 'method' ? 0 : -1"
       (click)="selectTab('method')"
     >
@@ -45,7 +45,7 @@
       aria-controls="panel-glass"
       type="button"
       [class.active]="selectedTab === 'glass'"
-      [attr.aria-selected]="selectedTab === 'glass'"
+      [attr.aria-selected]="selectedTab === 'glass' ? 'true' : 'false'"
       [attr.tabindex]="selectedTab === 'glass' ? 0 : -1"
       (click)="selectTab('glass')"
     >
@@ -58,7 +58,7 @@
       aria-controls="panel-category"
       type="button"
       [class.active]="selectedTab === 'category'"
-      [attr.aria-selected]="selectedTab === 'category'"
+      [attr.aria-selected]="selectedTab === 'category' ? 'true' : 'false'"
       [attr.tabindex]="selectedTab === 'category' ? 0 : -1"
       (click)="selectTab('category')"
     >
@@ -71,7 +71,7 @@
       aria-controls="panel-alcoholic"
       type="button"
       [class.active]="selectedTab === 'alcoholic'"
-      [attr.aria-selected]="selectedTab === 'alcoholic'"
+      [attr.aria-selected]="selectedTab === 'alcoholic' ? 'true' : 'false'"
       [attr.tabindex]="selectedTab === 'alcoholic' ? 0 : -1"
       (click)="selectTab('alcoholic')"
     >
@@ -382,9 +382,9 @@
 
   <ng-template #countsLoadedCL>
     <div class="arrows" aria-hidden="true">
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
     </div>
 
     <span class="status-text">
@@ -396,9 +396,9 @@
     </span>
 
     <div class="arrows" aria-hidden="true">
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
-      <mat-icon svgIcon="arrow_drop_down"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
+      <mat-icon svgIcon="arrow_drop_down" aria-hidden="true"></mat-icon>
     </div>
   </ng-template>
 </div>
@@ -681,7 +681,11 @@
         [attr.aria-expanded]="faqStates[i].isExpanded"
       >
         <span>{{ faq.question }}</span>
-        <mat-icon class="faq-toggle-icon" svgIcon="arrow_drop_down"></mat-icon>
+        <mat-icon
+          class="faq-toggle-icon"
+          svgIcon="arrow_drop_down"
+          aria-hidden="true"
+        ></mat-icon>
       </button>
 
       <div

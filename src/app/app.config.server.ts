@@ -42,7 +42,7 @@ export const config: ApplicationConfig = {
           errorHandler
         );
 
-        // ✅ Ligature Material (per <mat-icon>menu</mat-icon>, ecc.)
+        // ✅ Ligature Material (per <mat-icon aria-hidden="true">menu</mat-icon>, ecc.)
         reg.setDefaultFontSetClass('material-icons');
         reg.registerFontClassAlias('material-icons-outlined', 'material-icons');
         reg.registerFontClassAlias('material-icons-round', 'material-icons');
