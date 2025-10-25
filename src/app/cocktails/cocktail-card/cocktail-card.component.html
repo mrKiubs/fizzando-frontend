@@ -37,7 +37,8 @@
       [routerLink]="['/cocktails', cocktail.slug]"
       [attr.aria-label]="'Open ' + cocktail.name"
     >
-      <span class="label-hay">View Recipe</span> <mat-icon>visibility</mat-icon>
+      <span class="label-hay">View Recipe</span>
+      <mat-icon aria-hidden="true">visibility</mat-icon>
     </button>
   </div>
 </ng-container>
@@ -56,7 +57,9 @@
         class="glassy-info-link"
         [routerLink]="['/cocktails', cocktail.slug]"
         [attr.href]="'/cocktails/' + cocktail.slug"
-        [attr.aria-label]="'Open ' + cocktail.name + ' recipe'"
+        [attr.aria-label]="
+          cocktail?.name ? 'Cocktail: ' + cocktail.name : 'Cocktail details'
+        "
       >
         <div class="glassy-info">
           <div class="glassy-image-container">
@@ -142,7 +145,7 @@
           class="match-motto"
           *ngIf="displayMotto as motto; else highlightTpl"
         >
-          <span>✨</span> {{ motto }}
+          <span aria-hidden="true">✨</span> {{ motto }}
         </h4>
         <ng-template #highlightTpl>
           <h4
@@ -150,7 +153,7 @@
             class="match-motto"
             *ngIf="primaryHighlight as hl"
           >
-            <span>✨</span> {{ hl.text }}
+            <span aria-hidden="true">✨</span> {{ hl.text }}
           </h4>
         </ng-template>
       </ng-container>
@@ -225,6 +228,7 @@
                   class="ingredient-item-link"
                   [routerLink]="['/ingredients', getIngredientId(ingredient)]"
                   [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
+                  [attr.aria-label]="'Ingredient: ' + ingredient"
                   (click)="$event.stopPropagation()"
                   [ngClass]="{ active: i === 0 && !!priorityIngredientName }"
                 >

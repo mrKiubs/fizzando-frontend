@@ -54,7 +54,7 @@
           rel="noopener noreferrer"
           aria-label="Instagram"
         >
-          <mat-icon>camera_alt</mat-icon>
+          <mat-icon aria-hidden="true">camera_alt</mat-icon>
         </a>
         <a
           href="https://www.facebook.com/your_profile"
@@ -62,7 +62,7 @@
           rel="noopener noreferrer"
           aria-label="Facebook"
         >
-          <mat-icon>share</mat-icon>
+          <mat-icon aria-hidden="true">share</mat-icon>
         </a>
         <a
           href="https://www.twitter.com/your_profile"
@@ -70,7 +70,7 @@
           rel="noopener noreferrer"
           aria-label="Twitter / X"
         >
-          <mat-icon>share</mat-icon>
+          <mat-icon aria-hidden="true">share</mat-icon>
         </a>
       </div>
 
@@ -85,6 +85,9 @@
 
   <div class="footer-bottom">
     <p>&copy; {{ currentYear }} Fizzando. All rights reserved.</p>
-    <p>Crafted with <span class="heart-icon">❤️</span> by Your Team</p>
+    <p aria-label="Crafted with love by Your Team">
+      Crafted with <span class="heart-icon" aria-hidden="true">❤️</span> by Your
+      Team
+    </p>
   </div>
 </footer>

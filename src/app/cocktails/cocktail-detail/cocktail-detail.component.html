@@ -5,10 +5,10 @@
   </div>
 
   <div *ngIf="error" class="error-message glass-card">
-    <mat-icon>error</mat-icon>
+    <mat-icon aria-hidden="true">error</mat-icon>
     <span>{{ error }}</span>
     <button class="glass-button secondary" (click)="goBack()">
-      <mat-icon>arrow_back</mat-icon> Go Back
+      <mat-icon aria-hidden="true">arrow_back</mat-icon> Go Back
     </button>
   </div>
 
@@ -19,13 +19,13 @@
     <h2 class="cocktail-subtitle">
       <span class="row">
         <span class="category">{{ cocktail.category }}</span>
-        <span class="separator">|</span>
+        <span class="separator" aria-hidden="true">|</span>
         <span class="alcoholic">{{ cocktail.alcoholic }}</span>
       </span>
 
       <span class="row">
         <span class="method">{{ cocktail.preparation_type }}</span>
-        <span class="separator">|</span>
+        <span class="separator" aria-hidden="true">|</span>
         <span class="glass">{{ cocktail.glass }}</span>
       </span>
     </h2>

@@ -115,6 +115,7 @@ import { ViewportService } from './services/viewport.service';
     <div class="page-noise" aria-hidden="true"></div>
 
     <main
+      id="main-content"
       class="app-main allow-route-anim"
       [@.disabled]="false"
       [@pageTransition]="{
