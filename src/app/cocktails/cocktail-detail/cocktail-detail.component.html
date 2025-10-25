@@ -19,19 +19,42 @@
 
   <!-- Title / Subtitle -->
   <ng-container *ngIf="cocktail && !loading && !error">
-    <header class="cocktail-detail-header">
-      <h1 class="cocktail-title">{{ cocktail.name }}</h1>
+    <header
+      class="cocktail-detail-header"
+      role="banner"
+      aria-labelledby="cocktail-title"
+      aria-describedby="cocktail-summary"
+    >
+      <!-- Titolo principale, semantico -->
+      <h1 id="cocktail-title" class="cocktail-title">
+        {{ cocktail.name }} —
+        <span class="visually-hidden">Cocktail recipe details</span>
+      </h1>
 
-      <h2 class="cocktail-subtitle" aria-label="Cocktail summary">
+      <!-- Sottotitolo descrittivo -->
+      <h2
+        id="cocktail-summary"
+        class="cocktail-subtitle"
+        aria-label="Cocktail summary and classification"
+      >
         <span class="row">
-          <span class="category">{{ cocktail.category }}</span>
+          <span class="category" aria-label="Category">
+            Category: {{ cocktail.category }}
+          </span>
           <span class="separator" aria-hidden="true">|</span>
-          <span class="alcoholic">{{ cocktail.alcoholic }}</span>
+          <span class="alcoholic" aria-label="Alcohol profile">
+            {{ cocktail.alcoholic }}
+          </span>
         </span>
+
         <span class="row">
-          <span class="method">{{ cocktail.preparation_type }}</span>
+          <span class="method" aria-label="Preparation method">
+            Method: {{ cocktail.preparation_type }}
+          </span>
           <span class="separator" aria-hidden="true">|</span>
-          <span class="glass">{{ cocktail.glass }}</span>
+          <span class="glass" aria-label="Served in glass type">
+            Glass: {{ cocktail.glass }}
+          </span>
         </span>
       </h2>
     </header>
@@ -80,11 +103,15 @@
           class="description-section"
           role="region"
           attr.aria-labelledby="desc-{{ cocktail.slug }}"
+          attr.aria-describedby="desc-summary-{{ cocktail.slug }}"
         >
           <h2 id="desc-{{ cocktail.slug }}" class="section-title sr-only">
-            Description
+            Description of {{ cocktail.name }}
           </h2>
-          <p [sentenceBreaks]="cocktail.ai_description"></p>
+          <p
+            id="desc-summary-{{ cocktail.slug }}"
+            [sentenceBreaks]="cocktail.ai_description"
+          ></p>
         </section>
 
         <section
@@ -93,7 +120,8 @@
           attr.aria-labelledby="instr-{{ cocktail.slug }}"
         >
           <h2 id="instr-{{ cocktail.slug }}" class="section-title">
-            Instructions
+            <span aria-hidden="true">🧾</span> Instructions to prepare
+            {{ cocktail.name }}
           </h2>
           <p [sentenceBreaks]="cocktail.instructions"></p>
         </section>
@@ -107,7 +135,8 @@
           attr.aria-labelledby="ingredients-{{ cocktail.slug }}"
         >
           <h2 id="ingredients-{{ cocktail.slug }}" class="section-title">
-            Ingredients
+            <span aria-hidden="true">🥄</span> Ingredients for
+            {{ cocktail.name }}
           </h2>
           <ul class="ingredient-list" role="list">
             <li *ngFor="let item of cocktail.ingredients_list" role="listitem">
@@ -178,7 +207,8 @@
     [attr.aria-labelledby]="'deepdive-' + cocktail.slug"
   >
     <h2 id="deepdive-{{ cocktail.slug }}" class="section-title">
-      ✨ {{ cocktail.name }} Deep Dive
+      <span aria-hidden="true">✨</span> {{ cocktail.name }} Deep Dive — AI
+      insights
     </h2>
 
     <div class="ai-blocks-grid">
@@ -277,7 +307,8 @@
     [attr.aria-labelledby]="'articles-' + cocktail?.slug"
   >
     <h2 id="articles-{{ cocktail?.slug }}" class="section-title">
-      ✨ More about {{ cocktail?.name }}
+      <span aria-hidden="true">📰</span> More about {{ cocktail?.name }} —
+      related articles
     </h2>
     <div class="related-articles-grid">
       <ng-container *ngFor="let a of relatedArticles">
@@ -312,7 +343,8 @@
     [attr.aria-labelledby]="'related-' + cocktail?.slug"
   >
     <h2 id="related-{{ cocktail?.slug }}" class="section-title">
-      ✨ If you liked the {{ cocktail?.name }}, try these too!
+      <span aria-hidden="true">✨</span>
+      If you liked the {{ cocktail?.name }}, try these related cocktails
     </h2>
 
     <div class="cards-grid limit-4">
