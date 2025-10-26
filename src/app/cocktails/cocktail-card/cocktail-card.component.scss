@@ -212,6 +212,7 @@
   & > * {
     flex: 1;
     min-width: 0px;
+    gap: 4px;
   }
 }
 
@@ -250,7 +251,7 @@
 
   /* ✅ SOLO per l’ultimo figlio */
   &:last-child::before {
-    width: calc(100% + 10px);
+    width: 100%;
   }
 
   &.active {
@@ -676,10 +677,6 @@
   }
 }
 
-.ingredient-item:last-child::before,
-.ingredient-item-link:last-child::before {
-  width: 200%;
-}
 /* hover: cambia il colore del ::before */
 .ingredient-item:hover::before,
 .ingredient-item-link:hover::before {
@@ -691,4 +688,19 @@
 .ingredient-item::before,
 .ingredient-item-link::before {
   transition: all 0.25s ease, transform 0.3s ease;
+}
+
+.ingredients-ul {
+  display: flex;
+  li {
+    flex: 1;
+    min-width: 0px;
+    position: relative;
+
+    &:last-child {
+      a::before {
+        width: 200%;
+      }
+    }
+  }
 }
