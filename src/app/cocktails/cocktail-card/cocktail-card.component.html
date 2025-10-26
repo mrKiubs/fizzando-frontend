@@ -215,69 +215,93 @@
         >
           <section
             class="ingredients-list"
-            role="list"
             attr.aria-labelledby="ingredients-{{ cocktail.slug }}"
           >
             <h4 id="ingredients-{{ cocktail.slug }}" class="sr-only">
               Ingredients for {{ cocktail.name }}
+              <span class="sr-only">
+                — {{ cocktail?.ingredients_list?.length || 0 }} total ({{
+                  mainIngredientsFormatted.length
+                }}
+                shown{{
+                  (cocktail?.ingredients_list?.length || 0) -
+                    (mainIngredientsFormatted.length || 0) >
+                  0
+                    ? ", " +
+                      ((cocktail?.ingredients_list?.length || 0) -
+                        (mainIngredientsFormatted.length || 0)) +
+                      " more hidden"
+                    : ""
+                }}).
+              </span>
             </h4>
 
-            <ng-container
-              *ngFor="let ingredient of mainIngredientsFormatted; let i = index"
-            >
-              <a
-                class="ingredient-item-link"
-                [routerLink]="['/ingredients', getIngredientId(ingredient)]"
-                [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
-                [attr.aria-label]="
-                  'Ingredient of ' + cocktail.name + ': ' + ingredient
+            <!-- Ul/Li semantici: i link restano focusabili e in ordine TAB -->
+            <ul class="ingredients-ul">
+              <li
+                *ngFor="
+                  let ingredient of mainIngredientsFormatted;
+                  let i = index
                 "
-                (click)="$event.stopPropagation()"
-                [ngClass]="{ active: i === 0 && !!priorityIngredientName }"
-                role="listitem"
               >
-                <picture>
-                  <source
-                    [srcset]="srcsetFromIngredientWebp(ingredient)"
-                    type="image/webp"
-                    sizes="30px"
-                  />
-                  <source
-                    [srcset]="srcsetFromIngredientJpg(ingredient)"
-                    sizes="30px"
-                  />
-                  <img
-                    [src]="getIngredientIconUrlJpg(ingredient)"
-                    alt=""
-                    aria-hidden="true"
-                    width="30"
-                    height="30"
-                    loading="lazy"
-                    fetchpriority="low"
-                    decoding="async"
-                    class="ingredient-icon"
-                    (error)="onCardImgError($event)"
-                  />
-                </picture>
-                <span>{{ ingredient }}</span>
-              </a>
-            </ng-container>
-          </section>
+                <a
+                  class="ingredient-item-link"
+                  [routerLink]="['/ingredients', getIngredientId(ingredient)]"
+                  [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
+                  [attr.aria-label]="
+                    'Ingredient of ' + cocktail.name + ': ' + ingredient
+                  "
+                  (click)="$event.stopPropagation()"
+                  [ngClass]="{ active: i === 0 && !!priorityIngredientName }"
+                >
+                  <picture>
+                    <source
+                      [srcset]="srcsetFromIngredientWebp(ingredient)"
+                      type="image/webp"
+                      sizes="30px"
+                    />
+                    <source
+                      [srcset]="srcsetFromIngredientJpg(ingredient)"
+                      sizes="30px"
+                    />
+                    <img
+                      [src]="getIngredientIconUrlJpg(ingredient)"
+                      alt=""
+                      aria-hidden="true"
+                      width="30"
+                      height="30"
+                      loading="lazy"
+                      fetchpriority="low"
+                      decoding="async"
+                      class="ingredient-icon"
+                      (error)="onCardImgError($event)"
+                    />
+                  </picture>
+                  <span class="ingredient-name">{{ ingredient }}</span>
+                </a>
+              </li>
+            </ul>
 
-          <span
-            class="ingredient-item-more"
-            *ngIf="
-              (cocktail?.ingredients_list?.length || 0) -
-                (mainIngredientsFormatted?.length || 0) >
-              0
-            "
-            aria-label="Additional ingredients not shown"
-          >
-            +{{
-              (cocktail.ingredients_list.length || 0) -
-                (mainIngredientsFormatted.length || 0)
-            }}
-          </span>
+            <!-- Indicatore “+N” accessibile -->
+            <span
+              class="ingredient-item-more"
+              *ngIf="
+                (cocktail?.ingredients_list?.length || 0) -
+                  (mainIngredientsFormatted?.length || 0) >
+                0
+              "
+              [attr.aria-label]="
+                'Additional ingredients not shown: ' +
+                ((cocktail?.ingredients_list?.length || 0) -
+                  (mainIngredientsFormatted?.length || 0))
+              "
+            >
+              +{{
+                (cocktail.ingredients_list.length || 0) -
+                  (mainIngredientsFormatted.length || 0)
+              }}
+            </span>
+          </section>
         </div>
 
         <div class="bottom-card-container">

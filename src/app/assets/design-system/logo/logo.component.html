@@ -1,28 +1,25 @@
 <a
   [routerLink]="homeLink"
+  [attr.href]="homeLink"
   class="brand-link"
-  [attr.aria-label]="text + ' homepage'"
+  aria-label="Fizzando homepage"
+  rel="home"
 >
   <div
     class="logo"
     [class.size-sm]="size === 'sm'"
     [class.size-md]="size === 'md'"
     [class.size-lg]="size === 'lg'"
-    role="banner"
   >
     <ng-container *ngIf="isHome; else notHome">
+      <!-- HOME: H1 reale => ottimo per SEO -->
       <h1 class="logo-text" [attr.data-text]="text">{{ text }}</h1>
     </ng-container>
 
     <ng-template #notHome>
-      <div
-        class="logo-text"
-        role="heading"
-        aria-level="2"
-        [attr.data-text]="text"
-      >
-        {{ text }}
-      </div>
+      <!-- PAGINE INTERNE: niente heading “finto” -->
+      <span class="logo-text" [attr.data-text]="text">{{ text }}</span>
+      <!-- ↑ rimane testo visibile (indicizzabile), ma non aggiunge un H2 “rumoroso” -->
     </ng-template>
 
     <small class="logo-tagline" *ngIf="tagline" aria-hidden="true">
