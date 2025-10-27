@@ -1,33 +1,12 @@
-<a
-  class="ingredient-card-link"
-  [routerLink]="['/ingredients', getIngredientId(ingredient)]"
-  [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
-  [attr.aria-label]="
-    'Ingredient: ' +
-    (ingredient.name || 'Unnamed ingredient') +
-    (ingredient.ingredient_type ? ', type ' + ingredient.ingredient_type : '') +
-    (ingredient.isAlcoholic
-      ? ', Alcoholic ingredient'
-      : ', Non-alcoholic ingredient')
-  "
-  [@cardAnimation]
-  role="article"
-  [attr.aria-labelledby]="'ingredient-title-' + getIngredientId(ingredient)"
->
-  <div class="glass-card ingredient-layout">
-    <div
-      class="image-wrapper"
-      role="figure"
-      [attr.aria-label]="'Photo of ' + ingredient.name"
-    >
+<article class="ingredient-card glass-card ingredient-layout" role="article">
+  <div class="header-card">
+    <div class="image-wrapper">
       <picture>
-        <!-- Preferisci WebP -->
         <source
           [srcset]="webpSrc(ingredient.image)"
           type="image/webp"
           sizes="60px"
         />
-        <!-- Fallback JPG/PNG -->
         <img
           [src]="getIngredientCardImageUrl(ingredient.image)"
           [alt]="
@@ -43,22 +22,33 @@
         />
       </picture>
     </div>
-
-    <div class="ingredient-details">
-      <h3
-        class="ingredient-name no-color"
-        [attr.id]="'ingredient-title-' + getIngredientId(ingredient)"
+    <h3 class="ingredient-name no-color">
+      <a
+        class="ingredient-name-link"
+        [routerLink]="['/ingredients', getIngredientId(ingredient)]"
+        [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
       >
         {{ ingredient.name }}
-      </h3>
-
-      <p
-        class="ingredient-type"
-        *ngIf="ingredient.ingredient_type"
-        [attr.aria-label]="'Type: ' + ingredient.ingredient_type"
-      >
-        {{ ingredient.ingredient_type }}
-      </p>
-    </div>
+      </a>
+    </h3>
   </div>
-</a>
+
+  <div class="ingredient-details">
+    <a
+      class="chip chip--type"
+      [routerLink]="['/ingredients']"
+      [queryParams]="typeParams"
+    >
+      {{ ingredient.ingredient_type || "All types" }}
+    </a>
+
+    <!-- Chip: alcoholic -->
+    <a
+      class="chip chip--alcoholic"
+      [routerLink]="['/ingredients']"
+      [queryParams]="alcParams"
+    >
+      {{ ingredient.isAlcoholic ? "Alcoholic" : "Non-alcoholic" }}
+    </a>
+  </div>
+</article>

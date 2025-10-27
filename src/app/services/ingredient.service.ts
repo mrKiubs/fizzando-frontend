@@ -568,4 +568,36 @@ export class IngredientService {
       shareReplay(1)
     );
   }
+
+  // in IngredientService (parte bassa del file)
+
+  private slugify(input: string): string {
+    return (input || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
+
+  /** Query params per la LISTA filtrata per categoria (URL + API safe) */
+  buildTypeFilterQuery(ingredientType: string | null | undefined) {
+    const typeRaw = ingredientType ?? ''; // quello che l'API si aspetta
+    const typeSlug = this.slugify(typeRaw); // solo per SEO/URL
+    return {
+      // usare 'type' per l’API lato /ingredients-page component
+      type: typeRaw,
+      // opzionale: slug “bello” per URL/analytics ecc.
+      type_slug: typeSlug,
+      page: 1,
+    };
+  }
+
+  /** Query params per filtro Alcoholic/Non-alcoholic */
+  buildAlcoholicFilterQuery(isAlcoholic: boolean | null | undefined) {
+    return {
+      alcoholic: String(!!isAlcoholic),
+      page: 1,
+    };
+  }
 }
