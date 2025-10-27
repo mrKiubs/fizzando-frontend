@@ -6,7 +6,7 @@
 /* ————————————————————————————————
    A) Blur solo su desktop (>=701px)
    ———————————————————————————————— */
-@mixin blur-desktop($mobile-radius: 0px, $desktop-radius: 6px) {
+@mixin blur-desktop($mobile-radius: 0px, $desktop-radius: 4px) {
   // mobile: nessun blur
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -23,7 +23,7 @@
 /* ————————————————————————————————
    B) Blur sempre (mobile + desktop)
    ———————————————————————————————— */
-@mixin blur-always($mobile-radius: 2px, $desktop-radius: 6px) {
+@mixin blur-always($mobile-radius: 2px, $desktop-radius: 4px) {
   // mobile: blur leggero
   @supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
     -webkit-backdrop-filter: blur($mobile-radius);
@@ -33,9 +33,8 @@
   // desktop: blur più marcato
   @media (min-width: 701px) {
     @supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
-      -webkit-backdrop-filter: blur($desktop-radius) brightness(1.05)
-        saturate(1.1);
-      backdrop-filter: blur($desktop-radius) brightness(1.05) saturate(1.1);
+      -webkit-backdrop-filter: blur($desktop-radius);
+      backdrop-filter: blur($desktop-radius);
     }
   }
 }
@@ -102,7 +101,6 @@
 }
 
 @mixin glass-card {
-  background-image: linear-gradient(120deg, #d2fcc315 0%, #9d8efc10 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 16px;

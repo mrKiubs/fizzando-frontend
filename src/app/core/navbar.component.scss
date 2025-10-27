@@ -566,6 +566,8 @@
       -webkit-text-fill-color: initial;
       color: #000;
       text-shadow: none;
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
     }
 
     ul {
