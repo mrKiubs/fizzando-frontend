@@ -33,8 +33,9 @@
   // desktop: blur più marcato
   @media (min-width: 701px) {
     @supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
-      -webkit-backdrop-filter: blur($desktop-radius);
-      backdrop-filter: blur($desktop-radius);
+      -webkit-backdrop-filter: blur($desktop-radius) brightness(1.05)
+        saturate(1.1);
+      backdrop-filter: blur($desktop-radius) brightness(1.05) saturate(1.1);
     }
   }
 }
