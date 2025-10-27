@@ -48,7 +48,9 @@
       [routerLink]="['/ingredients']"
       [queryParams]="alcParams"
     >
-      {{ ingredient.isAlcoholic ? "Alcoholic" : "Non-alcoholic" }}
+      <span class="last">{{
+        ingredient.isAlcoholic ? "Alcoholic" : "Non-alcoholic"
+      }}</span>
     </a>
   </div>
 </article>

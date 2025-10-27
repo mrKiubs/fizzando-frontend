@@ -294,7 +294,8 @@
   padding: 0;
 
   > :nth-child(2) {
-    flex: 1 1 auto; // prende tutto lo spazio disponibile
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex; // se deve contenere altri elementi
     justify-content: flex-start;
     align-items: center;
