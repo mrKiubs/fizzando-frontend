@@ -259,41 +259,41 @@ hr {
 }
 
 .cocktail-list {
-  /* Ho mantenuto il nome della classe per coerenza col CSS già scritto */
   display: grid;
   gap: 16px;
   max-width: 1200px;
   margin: 0 auto;
 
-  grid-auto-rows: minmax(auto);
+  /* evita espansioni verticali strane: auto è ok, oppure minmax(0, auto) */
+  grid-auto-rows: auto;
   grid-auto-flow: dense;
 
-  grid-template-columns: 1fr;
+  /* mobile first */
+  grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
+/* breakpoint */
 @media (min-width: 600px) {
   .cocktail-list {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-
 @media (min-width: 900px) {
   .cocktail-list {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-
 @media (min-width: 1200px) {
   .cocktail-list {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 600px) {
-  .cocktail-list {
-    gap: 16px;
-    grid-auto-rows: minmax(auto);
-  }
+/* opzionale, ma utile se ci sono pseudo-elementi “larghi” negli item */
+.cocktail-list > * {
+  min-width: 0; /* fondamentale in CSS Grid */
+  width: 100%; /* tiene l’item ancorato alla cella */
+  overflow: hidden; /* sicurezza contro eventuali overflow invisibili */
 }
 
 .load-more-container {

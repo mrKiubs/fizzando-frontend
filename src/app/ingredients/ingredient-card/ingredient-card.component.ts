@@ -81,4 +81,28 @@ export class IngredientCardComponent {
   getIngredientCardImageUrl(image: StrapiImage | null | undefined): string {
     return this.jpgSrc(image);
   }
+
+  // --- Helpers per i link ai filtri (no service, no regex nel template) ---
+  private slugify(val: string): string {
+    return (val || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
+
+  /** Link alla lista filtrata per categoria (type) */
+  get typeParams(): Record<string, string | number> {
+    const t = this.ingredient?.ingredient_type || '';
+    const slug = this.slugify(t);
+    // se non c'è categoria, non passo il filtro
+    return slug ? { type: slug, page: 1 } : { page: 1 };
+  }
+
+  /** Link alla lista filtrata per stato alcolico */
+  get alcParams(): Record<string, string | number> {
+    const flag = this.ingredient?.isAlcoholic;
+    if (flag === undefined || flag === null) return { page: 1 };
+    // usa la chiave che legge la tua pagina /ingredients (di solito 'alcoholic')
+    return { alcoholic: flag ? 'true' : 'false', page: 1 };
+  }
 }
