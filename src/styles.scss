@@ -28,8 +28,28 @@ body {
   font-synthesis: none;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --app-vh: 100dvh;
+  --app-vh: 100vh;
+  --app-lvh: 100vh;
+  --app-viewport-extent: max(var(--app-vh), var(--app-lvh));
   --header-height: 64px;
+}
+
+@supports (height: 100svh) {
+  :root {
+    --app-vh: 100svh;
+  }
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-vh: 100dvh;
+  }
+}
+
+@supports (height: 100lvh) {
+  :root {
+    --app-lvh: 100lvh;
+  }
 }
 
 html,
@@ -418,25 +438,5 @@ h1 {
   to {
     opacity: 1;
     transform: translateY(0px);
-  }
-}
-
-img {
-  animation: popup linear;
-  animation-timeline: view();
-  animation-range: 0% 40%;
-}
-
-@layer demo {
-  :root {
-    --rem-value: clamp(12px, 2vw, 16px);
-
-    --background-color: hsl(24 50% 2%);
-    --text-color: hsl(42 100% 95%);
-
-    --box-size: min(900px, 100%);
-
-    --outer-spacing: 5rem;
-    --inner-spacing: 2rem;
   }
 }

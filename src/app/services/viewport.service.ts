@@ -117,6 +117,21 @@ export class ViewportService {
       viewport?.height ?? window.innerHeight ?? docEl.clientHeight;
     docEl.style.setProperty('--app-vh', `${viewportHeight}px`);
 
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    const screenHeight = window.screen?.height
+      ? window.screen.height / devicePixelRatio
+      : viewportHeight;
+    const layoutHeight = window.innerHeight || docEl.clientHeight;
+    const maxViewportExtent = Math.max(
+      viewportHeight,
+      layoutHeight,
+      screenHeight
+    );
+    docEl.style.setProperty(
+      '--app-viewport-extent',
+      `${Math.round(maxViewportExtent)}px`
+    );
+
     const safeArea = this.computeSafeAreaInsets(viewport);
     docEl.style.setProperty('--safe-top', `${safeArea.top}px`);
     docEl.style.setProperty('--safe-bottom', `${safeArea.bottom}px`);
@@ -202,12 +217,14 @@ export class ViewportService {
     const hasVisualViewport = typeof window.visualViewport !== 'undefined';
     const supportsDynamicViewport =
       typeof CSS !== 'undefined' && CSS.supports?.('height: 100dvh');
-
+    const supportsLargeViewportUnits =
+      typeof CSS !== 'undefined' && CSS.supports?.('height: 100lvh');
     return (
       !!majorVersion &&
       majorVersion >= IOS_SAFARI_MIN_VERSION &&
       hasVisualViewport &&
-      supportsDynamicViewport
+      supportsDynamicViewport &&
+      !supportsLargeViewportUnits
     );
   }
 }
