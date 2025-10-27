@@ -43,7 +43,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
       ></span>
 
       <ng-content></ng-content>
-      {{ label }}
+      <span class="label">{{ label }}</span>
 
       <span
         *ngIf="count !== undefined || showCountWhenUndefined"
@@ -80,7 +80,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         ></span>
 
         <ng-content></ng-content>
-        {{ label }}
+        <span class="label">{{ label }}</span>
 
         <span
           *ngIf="count !== undefined || showCountWhenUndefined"
@@ -172,6 +172,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         background-color: currentColor;
         mask: no-repeat center / contain;
         -webkit-mask: no-repeat center / contain;
+        min-width: 18px;
       }
       .card-type {
         border-radius: 0;
@@ -244,6 +245,14 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
             width: calc(100% + 10px);
           }
         }
+      }
+
+      span.label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+        max-width: 100%;
       }
     `,
   ],

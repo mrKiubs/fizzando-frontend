@@ -23,7 +23,14 @@
 /* ————————————————————————————————
    B) Blur sempre (mobile + desktop)
    ———————————————————————————————— */
-@mixin blur-always($mobile-radius: 2px, $desktop-radius: 4px) {
+/* ————————————————————————————————
+   B) Blur sempre (mobile + desktop) con override iPad
+   ———————————————————————————————— */
+@mixin blur-always(
+  $mobile-radius: 2px,
+  $desktop-radius: 4px,
+  $ipad-radius: 2px
+) {
   // mobile: blur leggero
   @supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
     -webkit-backdrop-filter: blur($mobile-radius);
@@ -35,6 +42,18 @@
     @supports ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
       -webkit-backdrop-filter: blur($desktop-radius);
       backdrop-filter: blur($desktop-radius);
+    }
+  }
+
+  // —— iPad override (iPadOS Safari) ——
+  // Usa feature detection WebKit + range device iPad
+  @supports (-webkit-touch-callout: none) {
+    @media (min-device-width: 768px) and (max-device-width: 1366px) {
+      // importantissimo usare & per riferirsi al selettore che include il mixin
+      & {
+        -webkit-backdrop-filter: blur($ipad-radius) !important;
+        backdrop-filter: blur($ipad-radius) !important;
+      }
     }
   }
 }

@@ -243,6 +243,13 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
+  span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 /* (opzionale) se hai una classe comune per i chip */
