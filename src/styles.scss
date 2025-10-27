@@ -409,3 +409,34 @@ h1 {
     background-color: rgba(255, 255, 255, 0.12); /* flash leggero nel blur */
   }
 }
+
+@keyframes popup {
+  from {
+    opacity: 0;
+    transform: translateY(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+}
+
+img {
+  animation: popup linear;
+  animation-timeline: view();
+  animation-range: 0% 40%;
+}
+
+@layer demo {
+  :root {
+    --rem-value: clamp(12px, 2vw, 16px);
+
+    --background-color: hsl(24 50% 2%);
+    --text-color: hsl(42 100% 95%);
+
+    --box-size: min(900px, 100%);
+
+    --outer-spacing: 5rem;
+    --inner-spacing: 2rem;
+  }
+}
