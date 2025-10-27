@@ -28,8 +28,28 @@ body {
   font-synthesis: none;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --app-vh: 100dvh;
+  --app-vh: 100vh;
+  --app-lvh: 100vh;
+  --app-viewport-extent: max(var(--app-vh), var(--app-lvh));
   --header-height: 64px;
+}
+
+@supports (height: 100svh) {
+  :root {
+    --app-vh: 100svh;
+  }
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-vh: 100dvh;
+  }
+}
+
+@supports (height: 100lvh) {
+  :root {
+    --app-lvh: 100lvh;
+  }
 }
 
 html,
@@ -407,5 +427,16 @@ h1 {
   /* --- opzionale: tocco sui chip più evidente --- */
   .cocktail-chip:active {
     background-color: rgba(255, 255, 255, 0.12); /* flash leggero nel blur */
+  }
+}
+
+@keyframes popup {
+  from {
+    opacity: 0;
+    transform: translateY(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px);
   }
 }

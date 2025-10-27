@@ -24,7 +24,7 @@ html {
 
 html,
 body {
-  min-height: 100dvh;
+  min-height: var(--app-vh, 100dvh);
   margin: 0;
   //background: transparent !important;
 }
@@ -44,7 +44,7 @@ body::before {
   left: 0;
   right: 0;
   top: 0;
-  min-height: 100dvh;
+  height: var(--app-viewport-extent, var(--app-vh, 100dvh));
   z-index: 0;
   pointer-events: none;
 
@@ -73,7 +73,7 @@ body::after {
   left: 0;
   right: 0;
   top: 0;
-  min-height: 100dvh;
+  height: var(--app-viewport-extent, var(--app-vh, 100dvh));
   pointer-events: none;
   z-index: 0;
   background: radial-gradient(
@@ -93,7 +93,8 @@ body::after {
   right: -10%;
   top: calc(-10% - var(--safe-top, env(safe-area-inset-top, 0px)));
   height: calc(
-    var(--app-vh, 100dvh) + var(--safe-top, env(safe-area-inset-top, 0px)) +
+    var(--app-viewport-extent, var(--app-vh, 100dvh)) +
+      var(--safe-top, env(safe-area-inset-top, 0px)) +
       var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 20%
   );
   z-index: 0;
@@ -125,7 +126,8 @@ body::after {
   right: 0;
   top: calc(-1 * var(--safe-top, env(safe-area-inset-top, 0px)));
   height: calc(
-    var(--app-vh, 100dvh) + var(--safe-top, env(safe-area-inset-top, 0px)) +
+    var(--app-viewport-extent, var(--app-vh, 100dvh)) +
+      var(--safe-top, env(safe-area-inset-top, 0px)) +
       var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 10%
   );
   z-index: 0;
