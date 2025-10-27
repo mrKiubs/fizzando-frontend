@@ -17,7 +17,7 @@ html {
   --page-gradient: linear-gradient(
     180deg,
     #1a2a6c 0%,
-    #d84315 100% /* sfuma nel colore del body */
+    #a63e1e 100% /* sfuma nel colore del body */
   );
   --top-tint: #1a2a6c;
 }
@@ -30,7 +30,7 @@ body {
 }
 
 body {
-  background-color: #d84315;
+  background-color: #a63e1e;
   // background-image: var(--page-gradient);
   background-repeat: no-repeat;
   background-position: top left;
