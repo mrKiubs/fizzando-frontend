@@ -108,13 +108,14 @@
 .main-content-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr;
+
+  grid-template-columns: minmax(0, 1fr);
 
   @media (min-width: 768px) {
     grid-template-columns: 1fr 2fr;
   }
   @media (min-width: 1024px) {
-    grid-template-columns: 1fr 1.5fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
   }
 }
 
@@ -186,19 +187,15 @@
 }
 .ingredient-list li {
   color: rgba(255, 255, 255, 0.9);
-
-  background-image: linear-gradient(
-    120deg,
-    rgba(210, 252, 195, 0.0823529412) 0%,
-    rgba(157, 142, 252, 0.062745098) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  /* background-image: linear-gradient(120deg, rgba(210, 252, 195, 0.0823529412) 0%, rgba(157, 142, 252, 0.062745098) 100%); */
+  /* border: 1px solid rgba(255, 255, 255, 0.25); */
   border-radius: 12px;
-
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   margin-bottom: 8px;
   position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  overflow: hidden;
   &:hover {
     background-color: #ffffff15;
     border: 1px solid rgba(255, 255, 255, 0.5);
@@ -214,10 +211,12 @@
 
   a {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
     font-size: 22px;
     gap: 4px;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
   }
 
   &::after {
@@ -240,14 +239,15 @@
   }
 }
 .ingredient-measure {
-  font-size: 17px;
+  font-size: 15px;
   color: #8be9fd;
   white-space: nowrap;
   flex-shrink: 0;
-  text-align: right;
   order: 2;
   z-index: 2;
   text-shadow: none;
+  margin-top: 6px;
+  padding-left: 12px;
 }
 
 .ingredient-list li span:not(.ingredient-measure) {
@@ -321,26 +321,50 @@
 
 .image-ingredient-wrapper {
   position: relative;
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: auto;
   min-width: 50px;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: left;
-  padding-left: 4px;
 
   &:before {
     content: "";
     position: absolute;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(255, 255, 255, 0.07);
     transform-origin: top left;
     transform: skew(8deg) translate(-10px);
     z-index: -1;
     transition: transform 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+.ingredient-detail {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 20px 2px 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+
+  &:before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.07);
+    transform-origin: top left;
+    transform: skew(8deg) translate(-10px);
+    z-index: -1;
+    transition: transform 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 110%;
   }
 }
 
@@ -433,28 +457,20 @@ app-cocktail-card {
 
 .ing-cocktail {
   width: 100%;
-  display: flex;
   flex-direction: column;
   color: rgba(255, 255, 255, 0.54);
   position: relative;
-
-  &:before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.05);
-    transform-origin: top left;
-    transform: skew(8deg) translate(-10px);
-    z-index: -1;
-    transition: transform 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
+  line-height: 22px;
+  padding-left: 4px;
 }
 .ing-type {
   color: rgba(255, 255, 255, 0.708) !important;
   font-size: 12px !important;
   font-family: "Inter";
   text-shadow: none;
+  text-shadow: none;
+  white-space: nowrap;
+  padding-left: 8px;
 }
 
 /* Affiliate scroller */
@@ -754,4 +770,14 @@ app-cocktail-card {
 }
 .classification-list a:hover {
   border-bottom-color: rgba(255, 255, 255, 0.5);
+}
+
+.ingredient-measure,
+.ing-cocktail,
+.ing-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0; /* utile anche sui figli se diventano flex item */
+  max-width: 100%;
 }
