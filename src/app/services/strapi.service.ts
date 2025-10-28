@@ -124,6 +124,16 @@ export interface SimilarityMeta {
   alcoholic?: boolean;
   abvClass?: boolean;
   motto?: string;
+  relationKind?:
+    | 'ingredient'
+    | 'base'
+    | 'service'
+    | 'family'
+    | 'overlap'
+    | 'methodOnly'
+    | 'glassOnly'
+    | 'flavor'
+    | 'fallback';
 }
 export interface CocktailWithLayoutAndMatch extends Cocktail {
   isTall?: boolean;
@@ -203,6 +213,19 @@ export class CocktailService {
   >();
   private adjacentTTLms = 5 * 60_000;
 
+  /** In-memory cache to ensure deterministic relation texts for SSR builds. */
+  private relationKindCache = new Map<
+    string,
+    | 'base'
+    | 'service'
+    | 'family'
+    | 'overlap'
+    | 'methodOnly'
+    | 'glassOnly'
+    | 'flavor'
+    | 'fallback'
+  >();
+
   // ===== Similarity + Motto helpers (EN only) =====
 
   // Small utils
@@ -233,6 +256,20 @@ export class CocktailService {
       .split(/[.|;|•|–|—|-]/)[0]
       .trim();
     return part;
+  }
+
+  private _stableCompare(a: Partial<Cocktail>, b: Partial<Cocktail>): number {
+    const slugA = (a.slug || '').toLowerCase();
+    const slugB = (b.slug || '').toLowerCase();
+    const slugDiff = slugA.localeCompare(slugB);
+    if (slugDiff !== 0) return slugDiff;
+    const idA = String(a.external_id || a.id || '');
+    const idB = String(b.external_id || b.id || '');
+    return idA.localeCompare(idB);
+  }
+
+  private _sortedCopy<T extends Partial<Cocktail>>(list: readonly T[]): T[] {
+    return [...(list ?? [])].sort((a, b) => this._stableCompare(a, b));
   }
 
   // ABV class from ai_alcohol_content % or alcoholic label
@@ -481,6 +518,72 @@ export class CocktailService {
 
     for (const [k, v] of Object.entries(rep)) tpl = tpl.replace(k, v);
     return tpl.replace(/\s{2,}/g, ' ').trim();
+  }
+
+  /**
+   * Deterministic resolver for the relation kind shown in correlation headings.
+   * The result is cached per cocktail pair so SSR/CSR always agree on the text.
+   */
+  public resolveRelationKind(
+    source: Pick<Cocktail, 'slug' | 'id'>,
+    candidate: Pick<Cocktail, 'slug' | 'id'>,
+    availableKinds: readonly (
+      | 'base'
+      | 'service'
+      | 'family'
+      | 'overlap'
+      | 'methodOnly'
+      | 'glassOnly'
+      | 'flavor'
+      | 'fallback'
+    )[]
+  ):
+    | 'base'
+    | 'service'
+    | 'family'
+    | 'overlap'
+    | 'methodOnly'
+    | 'glassOnly'
+    | 'flavor'
+    | 'fallback' {
+    const norm = (value: string | number | undefined) =>
+      String(value ?? '')
+        .toLowerCase()
+        .trim();
+    const key = `${norm(source.slug ?? source.id)}::${norm(
+      candidate.slug ?? candidate.id
+    )}`;
+
+    const priority: (
+      | 'base'
+      | 'service'
+      | 'family'
+      | 'overlap'
+      | 'methodOnly'
+      | 'glassOnly'
+      | 'flavor'
+      | 'fallback'
+    )[] = [
+      'base',
+      'service',
+      'family',
+      'overlap',
+      'methodOnly',
+      'glassOnly',
+      'flavor',
+      'fallback',
+    ];
+
+    const cached = this.relationKindCache.get(key);
+    if (cached && availableKinds.includes(cached)) {
+      return cached;
+    }
+
+    const resolved =
+      priority.find((kind) => availableKinds.includes(kind)) ?? 'fallback';
+
+    this.relationKindCache.set(key, resolved);
+    return resolved;
   }
 
   public rebuildMottoWithOffset(item: any, offset: number): string {
@@ -993,8 +1096,10 @@ export class CocktailService {
       .get<StrapiResponse<any>>(this.cocktailsBaseUrl, { params })
       .pipe(
         map((response: StrapiResponse<any>) => {
-          const data = (response.data as any[]).map((item: any) =>
-            this.cleanCocktailData(item)
+          const data = this._sortedCopy(
+            (response.data as any[]).map((item: any) =>
+              this.cleanCocktailData(item)
+            )
           );
           return { data, meta: response.meta } as StrapiResponse<Cocktail>;
         }),
@@ -1221,7 +1326,15 @@ export class CocktailService {
             if (mA !== mB) return mB - mA;
             const gA = this._eq(currentCocktail.glass, a.glass);
             const gB = this._eq(currentCocktail.glass, b.glass);
-            return gB - gA;
+            if (gA !== gB) return gB - gA;
+            // Deterministic tie-breakers keep SSR output stable when scores match.
+            const slugA = (a.slug || '').toLowerCase();
+            const slugB = (b.slug || '').toLowerCase();
+            const slugDiff = slugA.localeCompare(slugB);
+            if (slugDiff !== 0) return slugDiff;
+            return String(a.external_id || a.id || '').localeCompare(
+              String(b.external_id || b.id || '')
+            );
           });
 
         // Fallback per riempire fino a limit
@@ -1271,7 +1384,18 @@ export class CocktailService {
                 similarityMeta: meta,
               } as CocktailWithLayoutAndMatch;
             })
-            .sort((a, b) => b.similarityScore! - a.similarityScore!);
+            .sort((a, b) => {
+              const diff = b.similarityScore! - a.similarityScore!;
+              if (Math.abs(diff) > 0.0001) return diff;
+              // Deterministic tie-breakers keep SSR output stable when scores match.
+              const slugA = (a.slug || '').toLowerCase();
+              const slugB = (b.slug || '').toLowerCase();
+              const slugDiff = slugA.localeCompare(slugB);
+              if (slugDiff !== 0) return slugDiff;
+              return String(a.external_id || a.id || '').localeCompare(
+                String(b.external_id || b.id || '')
+              );
+            });
 
           out = out.concat(extras);
         }
