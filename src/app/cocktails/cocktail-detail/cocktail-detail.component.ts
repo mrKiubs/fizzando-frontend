@@ -12,8 +12,10 @@ import {
   PLATFORM_ID,
   HostListener,
   inject,
+  TransferState,
+  makeStateKey,
 } from '@angular/core';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, take } from 'rxjs/operators';
 import {
   CommonModule,
   DOCUMENT,
@@ -42,7 +44,10 @@ import { SentenceBreaksDirective } from '../../assets/pipes/sentence-breaks.pipe
 
 type Highlightable = CocktailWithLayoutAndMatch & {
   primaryHighlight?: { text: string };
+  headingContext?: string | null;
 };
+const RELATED_TS_KEY = (slug: string) =>
+  makeStateKey<Highlightable[]>(`rel:${slug}`);
 
 interface AdSlot {
   isAd: true;
@@ -73,6 +78,7 @@ export class CocktailDetailComponent
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly ngZone = inject(NgZone);
+  private readonly ts = inject(TransferState);
 
   @ViewChild('relatedSentinel') relatedSentinel!: ElementRef;
   private relatedLoaded = false;
@@ -164,10 +170,31 @@ export class CocktailDetailComponent
       this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
       this.setSeoTagsAndSchema();
       this.loadPrevNextBySlug(this.cocktail.slug);
-
       this.subscribeToRouteParams(false);
-      // Lancia subito le non-critiche (non blocca il paint)
-      this.runAfterFirstPaint(() => this.kickOffNonCritical());
+
+      // === Nuovo: correlati lato SSR + TransferState ===
+      const key = RELATED_TS_KEY(this.cocktail.slug);
+      if (!this.ts.hasKey(key)) {
+        // SSR: genera correlati e memorizza
+        this.buildSimilarListSSR(this.cocktail).then((rel) => {
+          const withHeadings = this.applyHeadingContext(rel);
+          this.similarCocktails = withHeadings;
+          this.buildRelatedWithAds();
+          this.ts.set(key, withHeadings);
+        });
+      } else {
+        // CSR: recupera correlati dal TransferState
+        const rel = this.ts.get<Highlightable[]>(key, []);
+        const withHeadings = this.applyHeadingContext(rel);
+        this.similarCocktails = withHeadings;
+        this.buildRelatedWithAds();
+      }
+
+      // Non-critiche (ads + articoli)
+      this.runAfterFirstPaint(() => {
+        this.fetchRelatedArticles();
+        this.unlockAdsWhenStable();
+      });
       return;
     }
 
@@ -371,7 +398,70 @@ export class CocktailDetailComponent
     );
   }
 
-  // helper: aggiunge in “out” rispettando limiti / esclusioni
+  /**
+   * Deterministically sort candidate lists so SSR builds always emit the same HTML.
+   * This prevents Strapi’s natural order from shuffling related cards between runs.
+   */
+  private sortCandidates<
+    T extends { slug?: string; external_id?: string; id?: any }
+  >(list: readonly T[]): T[] {
+    return [...(list ?? [])].sort((a, b) => {
+      const slugA = String((a as any)?.slug || '').toLowerCase();
+      const slugB = String((b as any)?.slug || '').toLowerCase();
+      const slugDiff = slugA.localeCompare(slugB);
+      if (slugDiff !== 0) return slugDiff;
+      const idA = String((a as any)?.external_id || (a as any)?.id || '');
+      const idB = String((b as any)?.external_id || (b as any)?.id || '');
+      return idA.localeCompare(idB);
+    });
+  }
+
+  /** Pseudo-shuffle deterministico per ruotare la lista in base allo slug */
+  private pseudoShuffle<T>(list: readonly T[], seed: string): T[] {
+    const arr = [...list];
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+      h = (h * 31 + seed.charCodeAt(i)) | 0;
+    }
+    const offset = Math.abs(h) % (arr.length || 1);
+    return arr.slice(offset).concat(arr.slice(0, offset));
+  }
+
+  // helper: hash string → int
+  private _hash(s: string): number {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+
+  // helper: pick deterministico su un array
+  private _pick<T>(arr: T[], seed: string): T {
+    if (!arr.length) throw new Error('empty pick');
+    return arr[this._hash(seed) % arr.length];
+  }
+
+  // helper: costruisce una pill NON monotona
+  private _makeVariedPill(tag: string, seed: string): { text: string } {
+    const forms = [
+      `With ${tag}`,
+      `${tag} forward`,
+      `Showcases ${tag}`,
+      `${tag}-led`,
+      `Built on ${tag}`,
+      `Centered on ${tag}`,
+      `Driven by ${tag}`,
+    ];
+    return { text: this._pick(forms, seed) };
+  }
+
+  // helper: seed di coppia source↔candidate
+  private _pairSeed(source?: Cocktail, cand?: any, extra = ''): string {
+    const a = (source?.slug || source?.id || '').toString().toLowerCase();
+    const b = (cand?.slug || cand?.id || '').toString().toLowerCase();
+    return `${a}::${b}::${extra}`;
+  }
+
+  // === SOSTITUISCI il metodo pushCandidate con questo ===
   private pushCandidate(
     out: Highlightable[],
     used: Set<string | number>,
@@ -386,15 +476,17 @@ export class CocktailDetailComponent
     if (!cand) return false;
     const cid = (cand as any).id as string | number | undefined;
     if (cid == null) return false;
-    if (cid == (currentId as any)) return false; // evita self anche se string/number
+    if (cid == (currentId as any)) return false; // evita self
     if (used.has(cid)) return false;
     if (out.length >= opts.limit) return false;
 
+    const seed = this._pairSeed(opts.source, cand);
+
+    // pill variabile se abbiamo un “tag” (ingrediente), altrimenti conserva eventuale pill esistente
     const pill = opts.tag
-      ? { text: `With ${opts.tag}` }
+      ? this._makeVariedPill(opts.tag, seed)
       : (cand as any).primaryHighlight || { text: 'Suggested match' };
 
-    // mini “styleReasons” come prima
     const s = opts.source;
     const styleReasons: string[] = [];
     if (s?.preparation_type && cand.preparation_type === s.preparation_type)
@@ -411,12 +503,211 @@ export class CocktailDetailComponent
     enriched.primaryHighlight = pill;
     enriched.matchLabel = pill.text;
     enriched.matchReason = pill.text;
-    // NON imporre qui il motto: lo rigeneriamo alla fine con offset
     enriched.similarityMeta = { ...(enriched.similarityMeta || {}) };
 
     out.push(enriched);
     used.add(cid);
     return true;
+  }
+
+  private processRelatedLists(
+    baseList: Cocktail[],
+    primList: Cocktail[],
+    secList: Cocktail[]
+  ) {
+    if (!this.cocktail) {
+      this.similarCocktails = [];
+      this.relatedWithAds = [];
+      return;
+    }
+
+    // — Parametri di quota/mix —
+    const LIMIT = 21;
+    const MIN = 8;
+    const Q_PRIMARY = 8; // fino a 8 dal 1° ingrediente
+    const Q_SECONDARY = 6; // fino a 6 dal 2° ingrediente
+    const Q_STYLE = 7; // fino a 7 per “stile” (metodo/vetro/categoria)
+
+    const norm = (s?: string | null) => (s || '').toLowerCase().trim();
+    const hasIng = (c: Cocktail, name: string) =>
+      (c?.ingredients_list || []).some(
+        (it: any) => norm(it?.ingredient?.name) === norm(name)
+      );
+
+    const ingList = (this.cocktail.ingredients_list || [])
+      .map((x) => x?.ingredient)
+      .filter(Boolean);
+    const primary = ingList[0] || null;
+    const secondary = ingList[1] || null;
+    const primaryName = (primary?.name || '').trim();
+    const secondaryName = (secondary?.name || '').trim();
+
+    const used = new Set<string | number>();
+    const out: Highlightable[] = [];
+    const push = (c: Cocktail | Highlightable, tag?: string) =>
+      this.pushCandidate(out, used, this.cocktail!.id as any, c, {
+        tag,
+        source: this.cocktail!,
+        limit: LIMIT,
+      });
+
+    // 1) Prepara liste candidate (ordinamento stabile + pseudo-shuffle per variare)
+    const primCandidates = this.pseudoShuffle(
+      this.sortCandidates(primList).filter((c) =>
+        primaryName ? hasIng(c, primaryName) : true
+      ),
+      this.cocktail.slug || String(this.cocktail.id)
+    );
+
+    const secCandidates = this.pseudoShuffle(
+      this.sortCandidates(secList).filter((c) =>
+        secondaryName ? hasIng(c, secondaryName) : true
+      ),
+      (this.cocktail.slug || String(this.cocktail.id)) + '-b'
+    );
+
+    const styleCandidates = this.pseudoShuffle(
+      this.sortCandidates(baseList),
+      (this.cocktail.slug || String(this.cocktail.id)) + '-style'
+    );
+
+    // 2) Prendi quote iniziali (senza superare disponibilità)
+    const take = <T>(arr: T[], n: number) =>
+      arr.length > n ? arr.slice(0, n) : [...arr];
+
+    const primPicked = take(primCandidates, Q_PRIMARY);
+    const secPicked = take(secCandidates, Q_SECONDARY);
+    const styPicked = take(styleCandidates, Q_STYLE);
+
+    // 3) Interleave a blocchi (prim/sec/style) per evitare cluster monotoni
+    const interleave = <T>(lists: T[][], max: number) => {
+      const res: T[] = [];
+      let i = 0;
+      while (res.length < max) {
+        let pushed = false;
+        for (const lst of lists) {
+          const item = lst[i];
+          if (item !== undefined) {
+            res.push(item);
+            if (res.length >= max) break;
+            pushed = true;
+          }
+        }
+        if (!pushed) break;
+        i++;
+      }
+      return res;
+    };
+
+    const mixedSeed = `${this.cocktail.slug || this.cocktail.id}-mix`;
+    const mixed = this.pseudoShuffle(
+      interleave([primPicked, secPicked, styPicked], LIMIT * 2), // overfetch, poi dedup
+      mixedSeed
+    );
+
+    // 4) Riempie out rispettando tag ingrediente quando presente
+    for (const c of mixed) {
+      if (out.length >= LIMIT) break;
+      const tag =
+        primaryName && hasIng(c as Cocktail, primaryName)
+          ? primaryName
+          : secondaryName && hasIng(c as Cocktail, secondaryName)
+          ? secondaryName
+          : undefined;
+      push(c as Cocktail, tag);
+    }
+
+    // 5) Se sotto MIN, toppa con altri “style”
+    if (out.length < MIN && styleCandidates.length) {
+      for (const c of styleCandidates) {
+        if (out.length >= LIMIT) break;
+        push(c as Cocktail);
+      }
+    }
+
+    // 6) Dedup per ID
+    const seen = new Set<string | number>();
+    let unique = out.filter((x: any) => {
+      const id = x?.id as any;
+      if (id == null) return false;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+
+    // 7) Round-robin alfabetico per evitare “AAAA… BBBB…”
+    const byLetter: Record<string, Highlightable[]> = {};
+    for (const c of unique) {
+      const letter = (c.name?.[0] || '?').toUpperCase();
+      (byLetter[letter] ||= []).push(c);
+    }
+    const letters = Object.keys(byLetter).sort();
+    const rr: Highlightable[] = [];
+    let cursor = 0;
+    while (rr.length < unique.length) {
+      const letter = letters[cursor % letters.length];
+      const item = byLetter[letter].shift();
+      if (item) rr.push(item);
+      cursor++;
+      if (letters.every((l) => byLetter[l].length === 0)) break;
+    }
+
+    // 8) Taglia a LIMIT
+    unique = rr.slice(0, LIMIT);
+
+    // 9) Applica heading/motto e costruisci array con slot ads
+    this.similarCocktails = this.applyHeadingContext(unique);
+    this.buildRelatedWithAds();
+
+    // 10) Se ancora vuoto, fallback minimo dallo “style”
+    if (!this.similarCocktails.length && styleCandidates.length) {
+      const fb = styleCandidates.slice(
+        0,
+        Math.min(LIMIT, 6)
+      ) as any as Highlightable[];
+      this.similarCocktails = this.applyHeadingContext(fb);
+      this.buildRelatedWithAds();
+    }
+  }
+
+  private async buildSimilarListSSR(
+    source: Cocktail
+  ): Promise<Highlightable[]> {
+    const base$ = this.safeList$(
+      this.cocktailService.getSimilarCocktails(source)
+    );
+    const [baseList] = await firstValueFrom(forkJoin([base$]));
+
+    // Ordine deterministico, stessi motti di buildSimilarity
+    const sorted = this.sortCandidates(baseList || []);
+    const limit = 12;
+
+    const diversified = sorted.slice(0, limit).map((cand, idx) => {
+      const seed = `${source.slug ?? source.id}::${
+        (cand as any).slug ?? (cand as any).id
+      }`;
+      const type = this.cocktailService.resolveRelationKind(
+        source,
+        cand as CocktailWithLayoutAndMatch,
+        ['base', 'family', 'methodOnly', 'glassOnly', 'fallback']
+      );
+      const motto = this.cocktailService.buildCorrelationMotto(
+        {
+          type,
+          key: cand.name,
+          base: source.name,
+          method: cand.preparation_type || source.preparation_type || '',
+          glass: cand.glass || source.glass || '',
+          category: cand.category || source.category || 'Cocktail',
+        },
+        seed.toLowerCase()
+      );
+      return {
+        ...(cand as any),
+        similarityMeta: { motto, relationKind: type },
+      } as Highlightable;
+    });
+    return this.applyHeadingContext(diversified);
   }
 
   loadSimilarCocktails(): void {
@@ -427,9 +718,10 @@ export class CocktailDetailComponent
     }
 
     const LIMIT = 21;
-    const MIN = 8; // minimo “dignitoso” prima dei fallback
-    const Q_PRIMARY = 9;
-    const Q_SECONDARY = 5;
+    const MIN = 8;
+    const Q_PRIMARY = 8;
+    const Q_SECONDARY = 6;
+    const Q_STYLE = 7;
 
     const norm = (s?: string | null) => (s || '').toLowerCase().trim();
     const hasIng = (c: Cocktail, name: string) =>
@@ -443,13 +735,12 @@ export class CocktailDetailComponent
       .filter(Boolean);
     const primary = ingList[0] || null;
     const secondary = ingList[1] || null;
-
     const primaryName = primary?.name || null;
     const primaryId = primary?.external_id || null;
     const secondaryName = secondary?.name || null;
     const secondaryId = secondary?.external_id || null;
 
-    // richieste “safe”
+    // richieste parallele
     const base$ = this.safeList$(
       this.cocktailService.getSimilarCocktails(this.cocktail)
     );
@@ -464,263 +755,19 @@ export class CocktailDetailComponent
         )
       : of([]);
 
-    forkJoin([base$, prim$, sec$]).subscribe({
-      next: async ([baseList, primList, secList]) => {
-        const used = new Set<string | number>();
-        const out: Highlightable[] = [];
-        const push = (c: Cocktail | Highlightable, tag?: string) =>
-          this.pushCandidate(out, used, currentId, c, {
-            tag,
-            source: this.cocktail!,
-            limit: LIMIT,
-          });
-
-        // 1) fino a 9 dal primo ingrediente
-        if (primaryName && primList?.length) {
-          for (const c of primList) {
-            if (hasIng(c, primaryName)) push(c, primaryName);
-            if (
-              out.filter((x) => hasIng(x as Cocktail, primaryName)).length >=
-              Q_PRIMARY
-            )
-              break;
-            if (out.length >= LIMIT) break;
-          }
-        }
-
-        // 2) fino a 5 dal secondo
-        if (secondaryName && secList?.length) {
-          for (const c of secList) {
-            if (hasIng(c, secondaryName)) push(c, secondaryName);
-            if (
-              out.filter((x) => hasIng(x as Cocktail, secondaryName)).length >=
-              Q_SECONDARY
-            )
-              break;
-            if (out.length >= LIMIT) break;
-          }
-        }
-
-        // 3) base rankato (con pill “style” se coincide)
-        const baseRanked = (baseList as CocktailWithLayoutAndMatch[]) ?? [];
-        for (const c of baseRanked) {
-          if (out.length >= LIMIT) break;
-
-          const reasons: string[] = [];
-          if (
-            this.cocktail?.preparation_type &&
-            c.preparation_type === this.cocktail.preparation_type
-          )
-            reasons.push(c.preparation_type!);
-          if (this.cocktail?.glass && c.glass === this.cocktail.glass)
-            reasons.push(c.glass!);
-          if (this.cocktail?.category && c.category === this.cocktail.category)
-            reasons.push(c.category!);
-
-          const label = reasons.length
-            ? { text: reasons.slice(0, 2).join(' · ') }
-            : undefined;
-          const withLabel = label
-            ? ({ ...(c as any), primaryHighlight: label } as Highlightable)
-            : (c as any);
-          push(withLabel);
-        }
-
-        // 4) riempitivi “largheggianti” (togliendo il vincolo hasIng)
-        if (out.length < LIMIT && primList?.length) {
-          for (const c of primList) {
-            if (out.length >= LIMIT) break;
-            push(c, primaryName || undefined);
-          }
-        }
-        if (out.length < LIMIT && secList?.length) {
-          for (const c of secList) {
-            if (out.length >= LIMIT) break;
-            push(c, secondaryName || undefined);
-          }
-        }
-
-        // -------- Fallback robusti --------
-
-        // Fallback A: se sotto soglia MIN, prova più ingredienti (fino a 5) in parallelo
-        if (out.length < MIN && ingList.length) {
-          const extraIds = ingList
-            .map((i: any) => i?.external_id)
-            .filter(Boolean)
-            .slice(0, 5) as string[];
-
-          if (extraIds.length) {
-            const extra$ = forkJoin(
-              extraIds.map((id) =>
-                this.safeList$(
-                  this.cocktailService.getRelatedCocktailsForIngredient(id)
-                )
-              )
-            );
-            const extraGroups = await firstValueFrom(extra$);
-            for (const group of extraGroups) {
-              for (const c of group) {
-                if (out.length >= LIMIT) break;
-                push(c);
-              }
-              if (out.length >= LIMIT) break;
+    forkJoin([base$, prim$, sec$])
+      .pipe(take(1))
+      .subscribe(([baseList, primList, secList]) => {
+        this.ngZone.runOutsideAngular(() => {
+          this.ngZone.run(() => {
+            try {
+              this.processRelatedLists(baseList, primList, secList);
+            } catch (err) {
+              console.error('Error building related cocktails', err);
             }
-          }
-        }
-
-        // Fallback B: ancora pochi? usa prev/next dello slug (se disponibili) come “mini correlati”
-        if (out.length < MIN && this.cocktail?.slug) {
-          try {
-            const adj = await firstValueFrom(
-              this.cocktailService.getAdjacentCocktailsBySlug(
-                this.cocktail.slug
-              )
-            );
-            if (adj?.prev) push(adj.prev);
-            if (adj?.next) push(adj.next);
-          } catch {
-            // silenzioso: niente crash se fallisce
-          }
-        }
-
-        // dedup rigoroso
-        const seen = new Set<string | number>();
-        const finalList = out.filter((x: any) => {
-          const id = x?.id as any;
-          if (id == null) return false;
-          if (seen.has(id)) return false;
-          seen.add(id);
-          return true;
+          });
         });
-
-        // --- SOLO TESTI: diversifica H3 e ammorbidisci le pill senza toccare l'ordine ---
-
-        const s = this.cocktail!;
-        const baseName = s?.ingredients_list?.[0]?.ingredient?.name || '';
-        const norm = (x?: string | null) => (x || '').toLowerCase().trim();
-
-        const diversified = finalList.slice(0, LIMIT).map((cand, idx) => {
-          // segnali “di stile” calcolati live (no _mottoMeta)
-          const sameMethod =
-            !!s.preparation_type &&
-            cand.preparation_type === s.preparation_type;
-          const sameGlass = !!s.glass && cand.glass === s.glass;
-          const sameCat = !!s.category && cand.category === s.category;
-          const candHasBase =
-            !!baseName &&
-            (cand as any).ingredients_list?.some(
-              (it: any) => norm(it?.ingredient?.name) === norm(baseName)
-            );
-
-          // rotazione “umana”: cerco il tipo migliore e, se ripetuto, ruoto sugli altri idonei
-          const typePool: Array<
-            | 'base'
-            | 'service'
-            | 'family'
-            | 'methodOnly'
-            | 'glassOnly'
-            | 'overlap'
-            | 'flavor'
-            | 'fallback'
-          > = [];
-
-          if (candHasBase) typePool.push('base');
-          if (sameMethod && sameGlass) typePool.push('service');
-          if (sameCat) typePool.push('family');
-          if (sameMethod) typePool.push('methodOnly');
-          if (sameGlass) typePool.push('glassOnly');
-          // sempre disponibili come “variazione di stile”
-          typePool.push('overlap', 'flavor', 'fallback');
-
-          // scegli un tipo, ma ruota in base all’indice per evitare blocchi monotoni
-          const type = typePool[idx % typePool.length];
-
-          // ingredienti per le variabili del template
-          const firstIngr =
-            (cand as any).ingredients_list?.[0]?.ingredient?.name || '';
-          const seed = `${s.slug}::${
-            (cand as any).slug || (cand as any).id
-          }::${idx}`;
-
-          const motto = this.cocktailService.buildCorrelationMotto(
-            {
-              type,
-              key: firstIngr,
-              base: baseName,
-              method: (
-                cand.preparation_type ||
-                s.preparation_type ||
-                ''
-              ).trim(),
-              glass: (cand.glass || s.glass || '').trim(),
-              category: (cand.category || s.category || 'Cocktail').trim(),
-            },
-            seed,
-            idx
-          );
-
-          // Ammorbidisci pill ripetitive “With Gin” → varia leggermente il testo se identico
-          const pill = (cand as any).primaryHighlight?.text || '';
-          let newPill = pill;
-          if (/^With\s+/i.test(pill)) {
-            const tag = pill.replace(/^With\s+/i, '').trim();
-            const synonyms = [
-              `With ${tag}`,
-              `${tag} forward`,
-              `Showcases ${tag}`,
-              `${tag}-led`,
-              `Built on ${tag}`,
-              `Centered on ${tag}`,
-            ];
-            newPill = synonyms[idx % synonyms.length];
-          }
-
-          return {
-            ...cand,
-            primaryHighlight: newPill
-              ? { text: newPill }
-              : (cand as any).primaryHighlight,
-            similarityMeta: { ...(cand.similarityMeta || {}), motto },
-          } as typeof cand;
-        });
-
-        this.similarCocktails = diversified;
-        this.buildRelatedWithAds();
-
-        // se davvero è rimasto vuoto, tenta un'ultima volta solo “base”
-        if (!this.similarCocktails.length && this.cocktail) {
-          try {
-            const baseOnly = await firstValueFrom(
-              this.safeList$(
-                this.cocktailService.getSimilarCocktails(this.cocktail)
-              )
-            );
-            this.similarCocktails = (baseOnly || []).slice(0, LIMIT) as any;
-            this.buildRelatedWithAds();
-          } catch {
-            // ignora
-          }
-        }
-      },
-      error: () => {
-        // fallback totale ma “non muto”: metti prev/next se li hai
-        const mini: Highlightable[] = [];
-        if (this.previousCocktail) {
-          mini.push({
-            ...(this.previousCocktail as any),
-            id: this.previousCocktail.externalId,
-          } as any);
-        }
-        if (this.nextCocktail) {
-          mini.push({
-            ...(this.nextCocktail as any),
-            id: this.nextCocktail.externalId,
-          } as any);
-        }
-        this.similarCocktails = mini;
-        this.relatedWithAds = mini;
-      },
-    });
+      });
   }
 
   private buildRelatedWithAds(): void {
@@ -734,6 +781,92 @@ export class CocktailDetailComponent
       }
     });
     this.relatedWithAds = out;
+  }
+
+  // === SOSTITUISCI il metodo applyHeadingContext con questo ===
+  private applyHeadingContext(list: Highlightable[]): Highlightable[] {
+    const total = list?.length || 0;
+    if (!total) return [];
+
+    const cocktailName = (this.cocktail?.name || '').trim();
+    const usedHeadings = new Set<string>();
+
+    const safe = (s?: string | null) => (typeof s === 'string' ? s.trim() : '');
+
+    return list.map((item, idx) => {
+      // 1) motto preferito: generato per la COPPIA (source↔candidate)
+      const pairSeed = this._pairSeed(this.cocktail, item);
+      const inferredKind = this.cocktailService?.resolveRelationKind?.(
+        this.cocktail as Cocktail,
+        item as CocktailWithLayoutAndMatch,
+        [
+          'base',
+          'service',
+          'family',
+          'overlap',
+          'methodOnly',
+          'glassOnly',
+          'flavor',
+          'fallback',
+        ]
+      );
+
+      const mottoFromSvc =
+        this.cocktailService?.buildCorrelationMotto?.(
+          {
+            type: inferredKind || 'fallback',
+            key:
+              (item as any)?.ingredients_list?.[0]?.ingredient?.name ||
+              (this.cocktail?.ingredients_list?.[0]?.ingredient?.name ?? ''),
+            base: this.cocktail?.ingredients_list?.[0]?.ingredient?.name || '',
+            method: (
+              item.preparation_type ||
+              this.cocktail?.preparation_type ||
+              ''
+            ).trim(),
+            glass: (item.glass || this.cocktail?.glass || '').trim(),
+            category: (
+              item.category ||
+              this.cocktail?.category ||
+              'Cocktail'
+            ).trim(),
+          },
+          pairSeed
+        ) || '';
+
+      // 2) fallback “amichevole” (non usa la pill “With …”)
+      const mottoFriendly =
+        safe(mottoFromSvc) ||
+        this.makeFriendlyMotto(this.cocktail as Cocktail, item as any);
+
+      // 3) heading base + motto (NON usiamo la pill per evitare ripetizioni)
+      const parts: string[] = [`Related cocktail ${idx + 1} of ${total}`];
+      if (cocktailName) parts.push(`for ${cocktailName}`);
+      if (safe(mottoFriendly)) parts.push(safe(mottoFriendly));
+
+      let heading = parts.join(' · ');
+
+      // 4) anti-collisione: se esiste già un heading uguale, applica una variante deterministica
+      if (usedHeadings.has(heading)) {
+        const variants = [
+          `${heading} · Alt.`,
+          `${heading} · Variant`,
+          `${heading} · Another pick`,
+        ];
+        heading = this._pick(variants, pairSeed);
+      }
+      usedHeadings.add(heading);
+
+      // 5) torna l’item arricchito (motto sempre presente per sicurezza lato template)
+      return {
+        ...item,
+        headingContext: heading,
+        similarityMeta: {
+          ...(item.similarityMeta || {}),
+          motto: mottoFriendly,
+        },
+      } as Highlightable;
+    });
   }
 
   trackByRelated = (_: number, item: any) =>

@@ -84,6 +84,7 @@ export class CocktailCardComponent implements OnInit {
   public fontsLoaded = false;
   mainIngredientsFormatted: string[] = [];
 
+  @Input() headingContext: string | null = null;
   private apiUrl = env.apiUrl;
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);

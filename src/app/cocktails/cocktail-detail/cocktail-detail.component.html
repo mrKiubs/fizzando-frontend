@@ -198,8 +198,7 @@
     class="ai-details-section glass-card"
   >
     <h2 id="deepdive-{{ cocktail.slug }}" class="section-title">
-      <span aria-hidden="true">✨</span> {{ cocktail.name }} Deep Dive — AI
-      insights
+      <span aria-hidden="true">✨</span> {{ cocktail.name }} Deep Dive
     </h2>
 
     <div class="ai-blocks-grid">
@@ -275,7 +274,7 @@
   <!-- Related Articles -->
   <section class="related-articles-section" *ngIf="relatedArticles.length > 0">
     <h2 id="articles-{{ cocktail?.slug }}" class="section-title">
-      <span aria-hidden="true">📰</span> More about {{ cocktail?.name }} —
+      <span aria-hidden="true">✨</span> More about {{ cocktail?.name }} —
       related articles
     </h2>
     <div class="related-articles-grid">
@@ -312,6 +311,7 @@
             [cocktail]="$any(item)"
             [showCorrelation]="true"
             [routerLink]="['/cocktails', $any(item)?.slug]"
+            [headingContext]="$any(item)?.headingContext"
           ></app-cocktail-card>
         </ng-container>
 

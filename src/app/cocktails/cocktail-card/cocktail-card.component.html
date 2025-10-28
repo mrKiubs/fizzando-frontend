@@ -131,6 +131,9 @@
               [id]="'title-' + (cocktail.slug || cocktail.id)"
             >
               {{ cocktail.name }}
+              <span *ngIf="headingContext" class="sr-only">
+                {{ headingContext }}
+              </span>
             </h3>
           </div>
         </div>
