@@ -49,6 +49,7 @@ import { IngredientCardComponent } from '../ingredients/ingredient-card/ingredie
 import { DevAdsComponent } from '../assets/design-system/dev-ads/dev-ads.component';
 import { LogoComponent } from '../assets/design-system/logo/logo.component';
 import { ConfettiBurstComponent } from '../assets/design-system/confetti-burst/confetti-burst.component';
+import { FizzButtonComponent } from '../assets/design-system/fizz-button/fizz-button.component';
 
 interface StrapiGlossaryResponse {
   data: Array<{
@@ -90,6 +91,7 @@ type DashboardPayload = {
     NgOptimizedImage,
     LogoComponent,
     ConfettiBurstComponent,
+    FizzButtonComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],

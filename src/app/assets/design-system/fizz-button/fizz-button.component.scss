@@ -1,0 +1,145 @@
+:host {
+  /* Glass liscio, multicolor soft, no blur */
+  --fizz-button-color: #141a22;
+  --fizz-button-border: rgb(202, 202, 202);
+  --fizz-button-shadow: 0 2px 8px rgba(17, 24, 39, 0.14);
+  --fizz-button-padding-y: 0.65rem;
+  --fizz-button-padding-x: 1.5rem;
+  --fizz-button-font-size: 1rem;
+  --fizz-button-line-height: 1.2;
+  --fizz-button-radius: 4px;
+}
+
+.fizz-btn {
+  -webkit-appearance: none;
+  appearance: none;
+
+  /* ---- EFFETTO GRADIENTE GLASS MULTICOLORE ---- */
+  background-image: linear-gradient(
+      110deg,
+      rgba(255, 140, 140, 0.6) 0%,
+      rgba(255, 210, 138, 0.55) 18%,
+      rgba(255, 241, 118, 0.5) 33%,
+      rgba(125, 229, 184, 0.45) 50%,
+      rgba(130, 177, 255, 0.45) 68%,
+      rgba(179, 136, 255, 0.5) 85%
+    ),
+    linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0) 42%,
+      rgba(255, 255, 255, 0.4) 49%,
+      rgba(255, 255, 255, 0.6) 50%,
+      rgba(255, 255, 255, 0.4) 51%,
+      rgba(255, 255, 255, 0) 58%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  background-size: 160% 100%, 220% 100%;
+  background-position: 0% 50%, -200% 50%;
+  background-repeat: no-repeat;
+  background-blend-mode: soft-light, screen; /* attenua la luminosità */
+  filter: saturate(0.95) brightness(1.5); /* “spento” ma vivo */
+
+  /* -------------------------------------------- */
+  color: var(--fizz-button-color);
+  border-radius: var(--fizz-button-radius);
+  //border: 1px solid var(--fizz-button-border);
+  padding: var(--fizz-button-padding-y) var(--fizz-button-padding-x);
+  font-size: var(--fizz-button-font-size);
+  line-height: var(--fizz-button-line-height);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  text-decoration: none;
+  outline: none;
+  width: auto;
+  transition: transform 140ms ease, box-shadow 140ms ease,
+    background-position 2.8s ease, filter 300ms ease;
+  box-shadow: var(--fizz-button-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  text-shadow: none;
+  will-change: transform, background-position, filter;
+
+  color: rgba(20, 20, 20, 0.75); /* tono neutro e leggibile */
+  font-weight: 600;
+  text-shadow: 0.5px 0.5px 0 rgba(255, 255, 255, 0.25),
+    /* highlight leggero sopra */ -0.5px -0.5px 0 rgba(0, 0, 0, 0.35); /* ombra sottile sotto */
+  letter-spacing: 0.015em;
+  backdrop-filter: brightness(1.03);
+}
+
+/* full width */
+.fizz-btn.full {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* small */
+.fizz-btn.small {
+  --fizz-button-padding-y: 0.45rem;
+  --fizz-button-padding-x: 1.1rem;
+  --fizz-button-font-size: 0.875rem;
+}
+
+/* Hover / focus: muove leggermente il gradiente e alza la luce */
+:host(:hover) .fizz-btn,
+:host(:focus-within) .fizz-btn {
+  transform: translateY(-0.5px);
+  background-position: 100% 50%, 0% 50%;
+  filter: saturate(1.05) brightness(1.02);
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.fizz-btn:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3),
+    0 4px 14px rgba(17, 24, 39, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Active */
+:host(:active) .fizz-btn {
+  transform: translateY(0);
+  filter: brightness(0.93);
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Disabled */
+.fizz-btn.is-disabled,
+:host([aria-disabled="true"]) .fizz-btn {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  filter: saturate(0.6) brightness(0.9);
+  pointer-events: none;
+}
+
+/* Mobile */
+@media (hover: none) {
+  :host(:hover) .fizz-btn,
+  :host(:focus-within) .fizz-btn {
+    transform: none;
+  }
+  :host(:active) .fizz-btn {
+    transform: scale(0.99);
+  }
+}
+
+/* Motion reduce */
+@media (prefers-reduced-motion: reduce) {
+  .fizz-btn {
+    transition: none;
+  }
+}

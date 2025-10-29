@@ -262,59 +262,18 @@
       <div class="glass-card cocktail-display-button">
         <h3>Quick links</h3>
         <div class="quick-link-home">
-          <button
-            class="btn-shine hover-move"
-            [routerLink]="['/cocktails']"
-            aria-label="Explore all cocktails"
+          <fizz-button [routerLink]="['/cocktails']" [responsive]="true"
+            >All Cocktails</fizz-button
           >
-            <span class="icon-button" aria-hidden="true">🍹</span>
-            <span>Cocktails<br />Explorer</span>
-          </button>
-
-          <button
-            class="btn-shine hover-move"
-            [routerLink]="['/ingredients']"
-            aria-label="Explore all ingredients"
+          <fizz-button [routerLink]="['/ingredients']" [responsive]="true"
+            >All Ingredients</fizz-button
           >
-            <span class="icon-button" aria-hidden="true">🌿</span>
-            <span>Ingredients<br />Explorer</span>
-          </button>
-
-          <button
-            class="btn-shine hover-move"
-            [routerLink]="['/cocktails']"
-            aria-label="Explore all cocktails"
+          <fizz-button [routerLink]="['/ingredients']" [responsive]="true"
+            >Generate cocktail</fizz-button
           >
-            <span class="icon-button" aria-hidden="true">🍹</span>
-            <span>Cocktails<br />Explorer</span>
-          </button>
-
-          <button
-            class="btn-shine hover-move"
-            [routerLink]="['/ingredients']"
-            aria-label="Explore all ingredients"
+          <fizz-button [routerLink]="['/ingredients']" [responsive]="true"
+            >Glossary</fizz-button
           >
-            <span class="icon-button" aria-hidden="true">🌿</span>
-            <span>Ingredients<br />Explorer</span>
-          </button>
-
-          <button
-            class="btn-shine hover-move"
-            [routerLink]="['/cocktails']"
-            aria-label="Explore all cocktails"
-          >
-            <span class="icon-button" aria-hidden="true">🍹</span>
-            <span>Cocktails<br />Explorer</span>
-          </button>
-
-          <button
-            class="btn-shine hover-move"
-            [routerLink]="['/ingredients']"
-            aria-label="Explore all ingredients"
-          >
-            <span class="icon-button" aria-hidden="true">🌿</span>
-            <span>Ingredients<br />Explorer</span>
-          </button>
         </div>
       </div>
     </section>

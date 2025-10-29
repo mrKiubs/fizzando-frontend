@@ -26,7 +26,7 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         active ? 'active' : '',
         count ? '' : 'no-count',
         transparent ? 'transparent' : '',
-        cardType == true ? 'card-type bg-dots' : ''
+        cardType == true ? 'card-type' : ''
       ]"
       [attr.data-slug]="slugVal"
       [routerLink]="routerLink"

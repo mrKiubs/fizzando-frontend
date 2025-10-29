@@ -61,7 +61,7 @@
           cocktail.name ? 'Cocktail: ' + cocktail.name : 'Cocktail details'
         "
       >
-        <div class="glassy-info bg-dots">
+        <div class="glassy-info">
           <div class="glassy-image-container">
             <picture>
               <!-- mobile -->
@@ -248,7 +248,7 @@
                 "
               >
                 <a
-                  class="ingredient-item-link bg-dots"
+                  class="ingredient-item-link"
                   [routerLink]="['/ingredients', getIngredientId(ingredient)]"
                   [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
                   [attr.aria-label]="
