@@ -1,0 +1,48 @@
+<!-- Catturo il contenuto una sola volta -->
+<ng-template #projected><ng-content></ng-content></ng-template>
+
+<!-- LINK -->
+<a
+  *ngIf="isLink"
+  #btn
+  class="fizz-btn"
+  [class.small]="size === 'small'"
+  [class.is-disabled]="disabled"
+  [class.full]="responsive"
+  [routerLink]="routerLink"
+  [queryParams]="queryParams"
+  [fragment]="fragment"
+  [replaceUrl]="replaceUrl"
+  [state]="state"
+  [attr.href]="href ?? null"
+  [attr.target]="target ?? null"
+  [attr.rel]="computedRel"
+  [attr.aria-disabled]="disabled"
+  [attr.tabindex]="disabled ? -1 : null"
+  (click)="onMaybeDisabledClick($event)"
+>
+  <ng-container [ngTemplateOutlet]="projected"></ng-container>
+</a>
+
+<!-- BUTTON -->
+<button
+  *ngIf="!isLink"
+  #btn
+  class="fizz-btn"
+  [class.small]="size === 'small'"
+  [class.full]="responsive"
+  [disabled]="disabled"
+  [attr.aria-disabled]="disabled"
+  [attr.type]="type"
+  [attr.name]="name ?? null"
+  [attr.value]="value ?? null"
+  [attr.form]="form ?? null"
+  [attr.formaction]="formaction ?? null"
+  [attr.formenctype]="formenctype ?? null"
+  [attr.formmethod]="formmethod ?? null"
+  [attr.formtarget]="formtarget ?? null"
+  [attr.formnovalidate]="formnovalidate ? '' : null"
+  [attr.autofocus]="autofocus ? '' : null"
+>
+  <ng-container [ngTemplateOutlet]="projected"></ng-container>
+</button>
