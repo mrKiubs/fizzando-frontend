@@ -1,36 +1,36 @@
 <article class="ingredient-card glass-card ingredient-layout" role="article">
   <div class="header-card">
-    <div class="image-wrapper">
-      <picture>
-        <source
-          [srcset]="webpSrc(ingredient.image)"
-          type="image/webp"
-          sizes="60px"
-        />
-        <img
-          [src]="getIngredientCardImageUrl(ingredient.image)"
-          [alt]="
-            ingredient.name
-              ? 'Photo of ' + ingredient.name + ' ingredient'
-              : 'Ingredient photo'
-          "
-          [attr.loading]="priority ? 'eager' : 'lazy'"
-          [attr.fetchpriority]="priority ? 'high' : 'low'"
-          decoding="async"
-          width="60"
-          height="60"
-        />
-      </picture>
-    </div>
-    <h3 class="ingredient-name no-color">
-      <a
-        class="ingredient-name-link"
-        [routerLink]="['/ingredients', getIngredientId(ingredient)]"
-        [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
-      >
+    <a
+      class="ingredient-name-link"
+      [routerLink]="['/ingredients', getIngredientId(ingredient)]"
+      [attr.href]="'/ingredients/' + getIngredientId(ingredient)"
+    >
+      <div class="image-wrapper">
+        <picture>
+          <source
+            [srcset]="webpSrc(ingredient.image)"
+            type="image/webp"
+            sizes="60px"
+          />
+          <img
+            [src]="getIngredientCardImageUrl(ingredient.image)"
+            [alt]="
+              ingredient.name
+                ? 'Photo of ' + ingredient.name + ' ingredient'
+                : 'Ingredient photo'
+            "
+            [attr.loading]="priority ? 'eager' : 'lazy'"
+            [attr.fetchpriority]="priority ? 'high' : 'low'"
+            decoding="async"
+            width="60"
+            height="60"
+          />
+        </picture>
+      </div>
+      <h3 class="ingredient-name no-color">
         {{ ingredient.name }}
-      </a>
-    </h3>
+      </h3>
+    </a>
   </div>
 
   <div class="ingredient-details">
