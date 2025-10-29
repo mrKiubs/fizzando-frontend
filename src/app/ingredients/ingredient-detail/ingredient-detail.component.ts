@@ -111,6 +111,7 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   // --- responsive/seo
   isMobile = false;
   private siteBaseUrl = '';
+  private normalizedBaseUrl = '';
   private schemaScript?: HTMLScriptElement;
 
   // --- WEBP preferenza
@@ -139,6 +140,9 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
       this.siteBaseUrl = window.location.origin;
       this.isMobile = window.innerWidth <= 768;
       this.supportsWebp = this.checkWebpSupport();
+    } else {
+      this.siteBaseUrl = this.stripTrailingSlash((env as any)?.siteUrl ?? '');
+      this.normalizedBaseUrl = this.siteBaseUrl;
     }
 
     this.updateAdSlotTypes();
@@ -575,7 +579,37 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
 
   private getFullSiteUrl(path: string): string {
     const p = path.startsWith('/') ? path : '/' + path;
-    return `${this.siteBaseUrl}${p}`;
+    const base = this.getNormalizedBaseUrl();
+    return base ? `${base}${p}` : p;
+  }
+
+  private getNormalizedBaseUrl(): string {
+    if (!this.siteBaseUrl) {
+      this.ensureSiteBaseUrl();
+    }
+    if (!this.siteBaseUrl) return '';
+    if (!this.normalizedBaseUrl) {
+      this.normalizedBaseUrl = this.stripTrailingSlash(this.siteBaseUrl);
+    }
+    return this.normalizedBaseUrl;
+  }
+
+  private ensureSiteBaseUrl(): void {
+    if (this.siteBaseUrl) return;
+    if (this.isBrowser) {
+      this.siteBaseUrl = window.location.origin;
+      this.normalizedBaseUrl = '';
+      return;
+    }
+    const envSiteUrl = (env as any)?.siteUrl;
+    if (typeof envSiteUrl === 'string' && envSiteUrl) {
+      this.siteBaseUrl = envSiteUrl;
+      this.normalizedBaseUrl = '';
+    }
+  }
+
+  private stripTrailingSlash(url: string): string {
+    return url.endsWith('/') ? url.slice(0, -1) : url;
   }
 
   // === responsive ===========================================================
@@ -583,96 +617,101 @@ export class IngredientDetailComponent implements OnInit, OnDestroy {
   @HostListener('window:resize')
   onResize(): void {
     if (!this.isBrowser) return;
-    cancelAnimationFrame(this.resizeRaf!);
+    if (this.resizeRaf) {
+      cancelAnimationFrame(this.resizeRaf);
+    }
     this.resizeRaf = requestAnimationFrame(() => {
       const nextIsMobile = window.innerWidth <= 768;
       if (nextIsMobile !== this.isMobile) {
         this.isMobile = nextIsMobile;
+        this.updateAdSlotTypes();
         this.cdr.markForCheck();
       }
+      this.resizeRaf = undefined;
     });
   }
 
   // === SEO / JSON-LD ========================================================
 
   private setSeoTagsAndSchema(): void {
-    if (!this.ingredient || !this.isBrowser) return;
+    if (!this.ingredient) return;
 
-    requestAnimationFrame(() => {
-      if (!this.ingredient) return;
-
-      const name = this.ingredient.name;
-      const desc =
-        this.ingredient.ai_common_uses ||
-        this.ingredient.ai_flavor_profile ||
-        this.ingredient.description_from_cocktaildb ||
-        `${name} ingredient details, uses and profile.`;
-
-      // Usa l'hero (piccolo ma sicuro) con preferenza WebP
-      const imageUrl = this.getPreferred(
-        this.getIngredientHeroUrl(this.ingredient)
-      );
-      const pageUrl = this.getFullSiteUrl(
-        `/ingredients/${this.ingredient.external_id}`
-      );
-
-      // <title> + meta description
-      this.titleService.setTitle(`${name} | Fizzando`);
-      this.metaService.updateTag({ name: 'description', content: desc });
-
-      // canonical
-      let canonical = this.document.querySelector<HTMLLinkElement>(
-        'link[rel="canonical"]'
-      );
-      if (!canonical) {
-        canonical = this.renderer.createElement('link');
-        this.renderer.setAttribute(canonical, 'rel', 'canonical');
-        this.renderer.appendChild(this.document.head, canonical);
+    if (this.isBrowser) {
+      if (typeof queueMicrotask === 'function') {
+        queueMicrotask(() => {
+          if (!this.ingredient) return;
+          this.renderSeoMetadata(this.ingredient);
+        });
+      } else {
+        setTimeout(() => {
+          if (!this.ingredient) return;
+          this.renderSeoMetadata(this.ingredient);
+        }, 0);
       }
-      this.renderer.setAttribute(canonical, 'href', pageUrl);
+      return;
+    }
 
-      // OpenGraph / Twitter
-      this.metaService.updateTag({ property: 'og:title', content: name });
-      this.metaService.updateTag({
-        property: 'og:description',
-        content: desc,
-      });
-      this.metaService.updateTag({ property: 'og:image', content: imageUrl });
-      this.metaService.updateTag({ property: 'og:url', content: pageUrl });
-      this.metaService.updateTag({ property: 'og:type', content: 'article' });
-      this.metaService.updateTag({
-        property: 'og:site_name',
-        content: 'Fizzando',
-      });
+    this.renderSeoMetadata(this.ingredient);
+  }
 
-      this.metaService.updateTag({
-        name: 'twitter:card',
-        content: 'summary_large_image',
-      });
-      this.metaService.updateTag({ name: 'twitter:title', content: name });
-      this.metaService.updateTag({
-        name: 'twitter:description',
-        content: desc,
-      });
-      this.metaService.updateTag({ name: 'twitter:image', content: imageUrl });
+  private renderSeoMetadata(ingredient: IngredientDetail): void {
+    const name = ingredient.name;
+    const desc =
+      ingredient.ai_common_uses ||
+      ingredient.ai_flavor_profile ||
+      ingredient.description_from_cocktaildb ||
+      `${name} ingredient details, uses and profile.`;
 
-      // Preload hero se utile all’LCP
-      const existing = this.document.querySelector<HTMLLinkElement>(
-        'link[rel="preload"][as="image"][data-preload-hero="1"]'
-      );
-      if (!existing && imageUrl) {
-        const preload = this.renderer.createElement('link') as HTMLLinkElement;
-        this.renderer.setAttribute(preload, 'rel', 'preload');
-        this.renderer.setAttribute(preload, 'as', 'image');
-        this.renderer.setAttribute(preload, 'href', imageUrl);
-        this.renderer.setAttribute(preload, 'imagesizes', '150px');
-        this.renderer.setAttribute(preload, 'data-preload-hero', '1');
-        this.renderer.appendChild(this.document.head, preload);
-      }
+    const imageUrl = this.getPreferred(this.getIngredientHeroUrl(ingredient));
+    const pageUrl = this.getFullSiteUrl(
+      `/ingredients/${ingredient.external_id}`
+    );
 
-      // JSON-LD
-      this.addJsonLdSchema();
+    this.titleService.setTitle(`${name} | Fizzando`);
+    this.metaService.updateTag({ name: 'description', content: desc });
+
+    let canonical = this.document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]'
+    );
+    if (!canonical) {
+      canonical = this.renderer.createElement('link');
+      this.renderer.setAttribute(canonical, 'rel', 'canonical');
+      this.renderer.appendChild(this.document.head, canonical);
+    }
+    this.renderer.setAttribute(canonical, 'href', pageUrl);
+
+    this.metaService.updateTag({ property: 'og:title', content: name });
+    this.metaService.updateTag({ property: 'og:description', content: desc });
+    this.metaService.updateTag({ property: 'og:image', content: imageUrl });
+    this.metaService.updateTag({ property: 'og:url', content: pageUrl });
+    this.metaService.updateTag({ property: 'og:type', content: 'article' });
+    this.metaService.updateTag({
+      property: 'og:site_name',
+      content: 'Fizzando',
     });
+
+    this.metaService.updateTag({
+      name: 'twitter:card',
+      content: 'summary_large_image',
+    });
+    this.metaService.updateTag({ name: 'twitter:title', content: name });
+    this.metaService.updateTag({ name: 'twitter:description', content: desc });
+    this.metaService.updateTag({ name: 'twitter:image', content: imageUrl });
+
+    const existing = this.document.querySelector<HTMLLinkElement>(
+      'link[rel="preload"][as="image"][data-preload-hero="1"]'
+    );
+    if (!existing && imageUrl) {
+      const preload = this.renderer.createElement('link') as HTMLLinkElement;
+      this.renderer.setAttribute(preload, 'rel', 'preload');
+      this.renderer.setAttribute(preload, 'as', 'image');
+      this.renderer.setAttribute(preload, 'href', imageUrl);
+      this.renderer.setAttribute(preload, 'imagesizes', '100px');
+      this.renderer.setAttribute(preload, 'data-preload-hero', '1');
+      this.renderer.appendChild(this.document.head, preload);
+    }
+
+    this.addJsonLdSchema();
   }
 
   private resizeRaf?: number;

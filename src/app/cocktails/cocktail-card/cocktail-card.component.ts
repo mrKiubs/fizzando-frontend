@@ -7,6 +7,7 @@ import {
   signal,
   PLATFORM_ID,
   SimpleChanges,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -59,6 +60,7 @@ type ActiveVariant =
       ]),
     ]),
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CocktailCardComponent implements OnInit {
   @Input() cocktail!: CocktailWithLayoutAndMatch;
