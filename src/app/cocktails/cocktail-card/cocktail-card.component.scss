@@ -161,6 +161,7 @@
     @media (max-width: 600px) {
       flex-direction: row;
       padding: 4px;
+      gap: 8px;
     }
   }
 }
@@ -174,8 +175,8 @@
 
 /* default: riservo 2 righe => no CLS */
 .cocktail-card-title {
-  font-size: 28px;
-  line-height: 28px;
+  font-size: 24px;
+  line-height: 26px;
 
   overflow: hidden;
   text-overflow: ellipsis;
@@ -233,7 +234,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background-color: rgba(255, 255, 255, 0.07);
+    background-color: rgba(255, 255, 255, 0.035);
 
     transform-origin: top left;
     transform: skewX(8deg) translateX(-10px);
@@ -674,7 +675,7 @@
 /* hover: cambia il colore del ::before */
 .ingredient-item:hover::before,
 .ingredient-item-link:hover::before {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
 }
 
