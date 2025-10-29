@@ -144,6 +144,15 @@ section {
   min-width: 0; /* evita overflow del contenuto interno */
 }
 
+/* Defer layout/calcolo fuori viewport mantenendo dimensioni stabili */
+.section-block,
+.articles-by-category-section,
+.quick-links-section,
+.ad-block {
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
+}
+
 /* Ads: spazio riservato (no CLS) + safe width */
 
 /* Quick links */
@@ -380,11 +389,18 @@ h4 {
     line-height: 20px;
     color: #ffffff68;
     margin: 0 0 12px;
+    min-height: 60px; /* riserva spazio per tre righe su mobile */
+    display: block;
   }
 
   .hero-blurb {
     margin: 0 0 20px;
     max-width: 70ch;
+  }
+
+  .hero-line,
+  .hero-line2 {
+    min-height: 48px; /* mantiene stabile il layout durante il caricamento font */
   }
 
   .hero-cta {
