@@ -215,7 +215,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     this.carouselObserver?.disconnect();
     this.dataSubscription?.unsubscribe();
     this.cleanupSeo();
-    //this.removeRandomImagePreload();
+    this.removeRandomImagePreload();
     this.cotdIO?.disconnect();
   }
 
@@ -348,9 +348,8 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
           isTall: false,
           isWide: false,
         };
-        // Preload (browser-side, ok così)
-        //const preloadUrl = this.getBestImageUrl(this.randomCocktail.image, 360);
-        //this.addRandomImagePreload(preloadUrl);
+        const preloadUrl = this.getBestImageUrl(this.randomCocktail.image, 360);
+        this.addRandomImagePreload(preloadUrl);
       }
     }
 
@@ -429,7 +428,10 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   private addRandomImagePreload(url: string) {
     try {
       if (!this.isBrowser || !url) return;
-      //this.removeRandomImagePreload();
+      if (this.preloadRandomLink?.href === url) {
+        return;
+      }
+      this.removeRandomImagePreload();
       const link = this.renderer.createElement('link') as HTMLLinkElement;
       this.renderer.setAttribute(link, 'rel', 'preload');
       this.renderer.setAttribute(link, 'as', 'image');
