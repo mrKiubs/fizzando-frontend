@@ -13,7 +13,7 @@
     <!-- CAROUSEL -->
     <section
       #carouselRoot
-      class="carousel glass-card hero"
+      class="carousel glass-card hero bg-dots"
       role="region"
       aria-roledescription="carousel"
       aria-label="Featured content"
@@ -68,7 +68,10 @@
                 instructions and pro techniques.
               </p>
 
-              <button class="btn-shine" [routerLink]="['/cocktails']">
+              <button
+                class="btn-shine hover-move"
+                [routerLink]="['/cocktails']"
+              >
                 <span class="icon-button">🍹</span>
                 <span>Cocktails Explorer</span>
               </button>
@@ -93,7 +96,10 @@
                 home bar
               </p>
 
-              <button class="btn-shine" [routerLink]="['/ingredients']">
+              <button
+                class="btn-shine hover-move"
+                [routerLink]="['/ingredients']"
+              >
                 <span class="icon-button">🌿</span>
                 <span>Ingredients Explorer</span>
               </button>
@@ -223,7 +229,7 @@
           <h4 id="cotd-name">{{ randomCocktail.name }}</h4>
 
           <button
-            class="btn-shine"
+            class="btn-shine hover-move"
             type="button"
             (click)="
               celebrateAndGo($event, ['/cocktails', randomCocktail.slug])
@@ -257,7 +263,7 @@
         <h3>Quick links</h3>
         <div class="quick-link-home">
           <button
-            class="btn-shine"
+            class="btn-shine hover-move"
             [routerLink]="['/cocktails']"
             aria-label="Explore all cocktails"
           >
@@ -266,7 +272,7 @@
           </button>
 
           <button
-            class="btn-shine"
+            class="btn-shine hover-move"
             [routerLink]="['/ingredients']"
             aria-label="Explore all ingredients"
           >
@@ -275,7 +281,7 @@
           </button>
 
           <button
-            class="btn-shine"
+            class="btn-shine hover-move"
             [routerLink]="['/cocktails']"
             aria-label="Explore all cocktails"
           >
@@ -284,7 +290,7 @@
           </button>
 
           <button
-            class="btn-shine"
+            class="btn-shine hover-move"
             [routerLink]="['/ingredients']"
             aria-label="Explore all ingredients"
           >
@@ -293,7 +299,7 @@
           </button>
 
           <button
-            class="btn-shine"
+            class="btn-shine hover-move"
             [routerLink]="['/cocktails']"
             aria-label="Explore all cocktails"
           >
@@ -302,7 +308,7 @@
           </button>
 
           <button
-            class="btn-shine"
+            class="btn-shine hover-move"
             [routerLink]="['/ingredients']"
             aria-label="Explore all ingredients"
           >
