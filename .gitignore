@@ -46,3 +46,5 @@ dist/
 .tmp/
 .env
 .env.*
+
+!reports/
