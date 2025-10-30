@@ -134,6 +134,12 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
   `,
   styles: [
     `
+      .cocktail-chip {
+        --chip-accent-bg: rgba(0, 123, 255, 0.18);
+        --chip-accent-border: rgba(0, 123, 255, 0.65);
+        --chip-accent-layer: rgba(0, 123, 255, 0.28);
+      }
+
       .cocktail-chip.no-count {
         padding: 4px 8px 4px 8px;
       }
@@ -143,10 +149,39 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
         border-color: rgba(255, 255, 255, 0.85);
       }
       .cocktail-chip.active {
-        background: rgba(0, 123, 255, 0.1);
-        border-color: #fff;
+        background: var(--chip-accent-bg);
+        border-color: var(--chip-accent-border);
         color: #fff;
         cursor: default;
+      }
+
+      .cocktail-chip.active::before {
+        background-color: var(--chip-accent-layer);
+        border-color: var(--chip-accent-border);
+      }
+
+      .cocktail-chip.variant-method {
+        --chip-accent-bg: rgba(255, 193, 7, 0.2);
+        --chip-accent-border: rgba(255, 193, 7, 0.7);
+        --chip-accent-layer: rgba(255, 193, 7, 0.3);
+      }
+
+      .cocktail-chip.variant-category {
+        --chip-accent-bg: rgba(156, 39, 176, 0.22);
+        --chip-accent-border: rgba(156, 39, 176, 0.65);
+        --chip-accent-layer: rgba(156, 39, 176, 0.32);
+      }
+
+      .cocktail-chip.variant-glass {
+        --chip-accent-bg: rgba(0, 188, 212, 0.22);
+        --chip-accent-border: rgba(0, 188, 212, 0.6);
+        --chip-accent-layer: rgba(0, 188, 212, 0.3);
+      }
+
+      .cocktail-chip.variant-alcoholic {
+        --chip-accent-bg: rgba(76, 175, 80, 0.22);
+        --chip-accent-border: rgba(76, 175, 80, 0.65);
+        --chip-accent-layer: rgba(76, 175, 80, 0.3);
       }
 
       .chip-count {
@@ -245,6 +280,14 @@ type Variant = 'default' | 'category' | 'method' | 'glass' | 'alcoholic';
             width: calc(100% + 10px);
           }
         }
+      }
+
+      .cocktail-chip.variant-method.active::before,
+      .cocktail-chip.variant-category.active::before,
+      .cocktail-chip.variant-glass.active::before,
+      .cocktail-chip.variant-alcoholic.active::before {
+        background-color: var(--chip-accent-layer);
+        border-color: var(--chip-accent-border);
       }
 
       span.label {

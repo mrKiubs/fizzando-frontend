@@ -347,6 +347,7 @@ export class FacetChipsComponent
   @Input() items: string[] = [];
   @Input() activeKind: Kind | 'root' = 'root';
   @Input() activeSlug = '';
+  @Input() isActive = true;
 
   @Input() stopClickPropagation = false;
 
@@ -371,7 +372,8 @@ export class FacetChipsComponent
   private subscriptions: Subscription[] = [];
 
   private uiSubscriptions: Subscription[] = [];
-  private scrollStateScheduled = false;
+  private scrollStateTimerId: ReturnType<typeof setTimeout> | null = null;
+  private ensureActiveChipTimerId: ReturnType<typeof setTimeout> | null = null;
   private scrollObserversReady = false;
   private readonly isBrowser = typeof window !== 'undefined';
 
@@ -382,16 +384,34 @@ export class FacetChipsComponent
       this.refreshCounts();
       this.scheduleScrollStateUpdate();
     }
+
+    if (changes['activeSlug'] || changes['activeKind']) {
+      const shouldForce =
+        this.activeKind === this.kind && !!this.activeSlug?.length;
+      this.scheduleEnsureActiveChipVisible(shouldForce);
+    }
+
+    if (changes['isActive']) {
+      if (this.isActive) {
+        this.scheduleScrollStateUpdate(120);
+        this.scheduleEnsureActiveChipVisible(true);
+      } else {
+        this.clearEnsureActiveChipTimer();
+      }
+    }
   }
 
   ngAfterViewInit(): void {
     this.initScrollObservers();
     this.scheduleScrollStateUpdate();
+    this.scheduleEnsureActiveChipVisible(true);
   }
 
   ngOnDestroy(): void {
     this.clearSubscriptions();
     this.clearUiSubscriptions();
+    this.clearScrollStateTimer();
+    this.clearEnsureActiveChipTimer();
   }
 
   private refreshCounts(): void {
@@ -525,6 +545,7 @@ export class FacetChipsComponent
 
     this.cdr.detectChanges();
     this.scheduleScrollStateUpdate();
+    this.scheduleEnsureActiveChipVisible();
   }
 
   onScrollButtonClick(direction: 'left' | 'right'): void {
@@ -537,6 +558,7 @@ export class FacetChipsComponent
       behavior: 'smooth',
     });
     this.scheduleScrollStateUpdate();
+    this.scheduleEnsureActiveChipVisible();
   }
 
   private clearSubscriptions(): void {
@@ -577,13 +599,21 @@ export class FacetChipsComponent
     this.updateScrollState();
   }
 
-  private scheduleScrollStateUpdate(): void {
-    if (this.scrollStateScheduled) return;
-    this.scrollStateScheduled = true;
-    setTimeout(() => {
-      this.scrollStateScheduled = false;
+  private scheduleScrollStateUpdate(delay = 0): void {
+    if (this.scrollStateTimerId !== null) {
+      clearTimeout(this.scrollStateTimerId);
+    }
+    this.scrollStateTimerId = setTimeout(() => {
+      this.scrollStateTimerId = null;
       this.updateScrollState();
-    });
+    }, delay);
+  }
+
+  private clearScrollStateTimer(): void {
+    if (this.scrollStateTimerId !== null) {
+      clearTimeout(this.scrollStateTimerId);
+      this.scrollStateTimerId = null;
+    }
   }
 
   private updateScrollState(): void {
@@ -604,6 +634,13 @@ export class FacetChipsComponent
       return;
     }
 
+    if (!this.isElementLaidOut(el)) {
+      if (this.isActive) {
+        this.scheduleScrollStateUpdate(120);
+      }
+      return;
+    }
+
     const threshold = 8;
     const maxScrollLeft = Math.max(el.scrollWidth - el.clientWidth, 0);
     const hasOverflow = maxScrollLeft > threshold;
@@ -614,6 +651,9 @@ export class FacetChipsComponent
     this.canScrollRight =
       hasOverflow && currentScroll < maxScrollLeft - threshold;
     this.cdr.markForCheck();
+    if (hasOverflow) {
+      this.scheduleEnsureActiveChipVisible();
+    }
   }
 
   count(slug: string) {
@@ -631,7 +671,56 @@ export class FacetChipsComponent
   }
 
   get showArrows(): boolean {
-    const k = (this.kind ?? '').toString().toLowerCase();
-    return k !== 'alcoholic' && this.showScrollControls;
+    return this.showScrollControls;
+  }
+
+  private scheduleEnsureActiveChipVisible(force = false): void {
+    if (!this.isBrowser || !this.isActive) return;
+    if (this.ensureActiveChipTimerId !== null) {
+      clearTimeout(this.ensureActiveChipTimerId);
+    }
+
+    const delay = force ? 150 : 60;
+    this.ensureActiveChipTimerId = setTimeout(() => {
+      this.ensureActiveChipTimerId = null;
+      this.ensureActiveChipVisible(force);
+    }, delay);
+  }
+
+  private clearEnsureActiveChipTimer(): void {
+    if (this.ensureActiveChipTimerId !== null) {
+      clearTimeout(this.ensureActiveChipTimerId);
+      this.ensureActiveChipTimerId = null;
+    }
+  }
+
+  private ensureActiveChipVisible(force = false): void {
+    if (!this.isBrowser || !this.isActive) return;
+
+    const container = this.chipsContainer?.nativeElement;
+    if (!container || !this.isElementLaidOut(container)) return;
+
+    const activeChip = container.querySelector<HTMLElement>(
+      '.cocktail-chip.active'
+    );
+    if (!activeChip) return;
+
+    const padding = 16;
+    const chipStart = activeChip.offsetLeft;
+    const chipEnd = chipStart + activeChip.offsetWidth;
+    const viewStart = container.scrollLeft;
+    const viewEnd = viewStart + container.clientWidth;
+
+    const shouldScroll =
+      force || chipStart < viewStart + padding || chipEnd > viewEnd - padding;
+
+    if (!shouldScroll) return;
+
+    const target = Math.max(chipStart - padding, 0);
+    container.scrollTo({ left: target, behavior: 'smooth' });
+  }
+
+  private isElementLaidOut(el: HTMLElement): boolean {
+    return el.offsetWidth > 0 && el.offsetHeight > 0;
   }
 }
