@@ -1358,7 +1358,9 @@ mat-icon {
   margin-top: 4px;
 }
 
-.cocktail-chips-container > *:nth-child(2) {
+.cocktail-chips-container.card-content > *:nth-child(2) {
+  flex: 1;
+  min-width: 0px;
 }
 
 .cocktail-key-info {

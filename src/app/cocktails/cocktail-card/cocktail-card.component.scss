@@ -58,7 +58,7 @@
   height: 100%;
   padding: 8px;
 
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   transition: 0.2s ease;
 }
 
@@ -154,8 +154,8 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 20%);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+      background-color: rgba(255, 255, 255, 10%);
+      border-bottom: 1px solid rgba(255, 255, 255, 10%) !important;
     }
 
     @media (max-width: 600px) {
@@ -237,7 +237,7 @@
     background-color: rgba(255, 255, 255, 0.035);
 
     transform-origin: top left;
-    transform: skewX(8deg) translateX(-10px);
+    transform: skewX(8deg) translateX(-12px);
     z-index: -1;
     transition: transform 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -250,6 +250,7 @@
 
   &.active {
     color: rgba(204, 204, 204, 0.4392156863);
+
     &:hover {
       color: rgba(204, 204, 204, 0.4392156863);
       border: none;
@@ -263,6 +264,7 @@
 
     &::before {
       background-color: rgba(000, 000, 000, 0.05);
+      border: 2px solid rgba(255, 255, 255, 10%) !important;
     }
   }
 }
@@ -676,13 +678,13 @@
 .ingredient-item:hover::before,
 .ingredient-item-link:hover::before {
   background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border: 2px solid rgba(255, 255, 255, 10%) !important;
 }
 
 /* assicura la transizione morbida del colore */
 .ingredient-item::before,
 .ingredient-item-link::before {
-  transition: all 0.25s ease, transform 0.3s ease;
+  transition: background-color 0.25s ease, transform 0.3s ease;
 }
 
 .ingredients-ul {
