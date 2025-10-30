@@ -1353,8 +1353,6 @@ mat-icon {
 }
 
 .cocktail-chips-container > *:nth-child(2) {
-  flex: 1 1 auto;
-  min-width: 0; /* evita overflow del contenuto interno */
 }
 
 .cocktail-key-info {
