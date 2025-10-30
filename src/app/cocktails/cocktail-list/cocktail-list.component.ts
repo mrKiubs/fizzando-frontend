@@ -1622,6 +1622,32 @@ export class CocktailListComponent implements OnInit, OnDestroy {
           this.hubSlug = '';
         }
 
+        const tabParamRaw = params['tab'];
+        const tabParam =
+          typeof tabParamRaw === 'string' &&
+          this.tabOrder.includes(tabParamRaw as HubTab)
+            ? (tabParamRaw as HubTab)
+            : null;
+
+        let nextSelectedTab: HubTab = this.selectedTab;
+
+        if (tabParam) {
+          nextSelectedTab = tabParam;
+        } else if (
+          this.hubKind === 'method' ||
+          this.hubKind === 'glass' ||
+          this.hubKind === 'category' ||
+          this.hubKind === 'alcoholic'
+        ) {
+          nextSelectedTab = this.hubKind;
+        } else if (!this.tabOrder.includes(this.selectedTab)) {
+          nextSelectedTab = 'method';
+        }
+
+        if (this.selectedTab !== nextSelectedTab) {
+          this.selectedTab = nextSelectedTab;
+        }
+
         // === CONTEX ATTIVO PER LE CARD (chips/ingredienti) ===
         this.activeVariant = undefined;
         this.activeSlug = undefined;

@@ -90,12 +90,6 @@
     <!-- ⤵️ INCOLLA QUI il tuo div .link-section-method (immutato) -->
 
     <div class="link-section link-section-method">
-      <!-- Micro-copy SEO sopra i blocchi chips -->
-      <p class="chip-lead">
-        Browse cocktails by <strong>preparation method</strong> to discover
-        classic and modern recipes mixed, shaken, stirred, or layered — a clean,
-        Wikipedia-style map of techniques across the site.
-      </p>
       <app-facet-chips
         label="By method"
         kind="method"
@@ -114,6 +108,7 @@
         ]"
         [activeKind]="hubKind"
         [activeSlug]="hubSlug"
+        [isActive]="selectedTab === 'method'"
       >
       </app-facet-chips>
     </div>
@@ -127,11 +122,6 @@
     [attr.aria-labelledby]="'tab-glass'"
   >
     <div class="link-section link-section-glass">
-      <p class="chip-lead">
-        Explore cocktails by <strong>glassware</strong> — from highballs to
-        coupes. Glass type hints at style, dilution and presentation, helping
-        you jump to the right family of drinks.
-      </p>
       <app-facet-chips
         label="By glass"
         kind="glass"
@@ -164,6 +154,7 @@
         ]"
         [activeKind]="hubKind"
         [activeSlug]="hubSlug"
+        [isActive]="selectedTab === 'glass'"
       >
       </app-facet-chips>
     </div>
@@ -177,11 +168,6 @@
     [attr.aria-labelledby]="'tab-category'"
   >
     <div class="link-section link-section-categories">
-      <p class="chip-lead">
-        Jump into <strong>categories</strong> that match a mood or flavor
-        profile — refreshing, tropical, spirit-forward, after-dinner, sparkling
-        and more.
-      </p>
       <app-facet-chips
         label="By category"
         kind="category"
@@ -204,6 +190,7 @@
         ]"
         [activeKind]="hubKind"
         [activeSlug]="hubSlug"
+        [isActive]="selectedTab === 'category'"
       >
       </app-facet-chips>
     </div>
@@ -217,16 +204,13 @@
     [attr.aria-labelledby]="'tab-alcoholic'"
   >
     <div class="link-section link-section-alcholic">
-      <p class="chip-lead">
-        Filter by <strong>alcohol profile</strong> — from non-alcoholic and
-        low-ABV options to full-strength classics.
-      </p>
       <app-facet-chips
         label="By profile"
         kind="alcoholic"
         [items]="alcoholicOptions"
         [activeKind]="hubKind"
         [activeSlug]="hubSlug"
+        [isActive]="selectedTab === 'alcoholic'"
       >
       </app-facet-chips>
     </div>
@@ -403,51 +387,39 @@
   </ng-template>
 </div>
 
-<hr />
-
-<!-- Legenda migliorata con sinonimi e invito all’azione -->
-<p class="cocktail-card-legend">
-  Each card shows the cocktail’s <b>image</b>, <b>category</b>, estimated
-  <b>ABV (Alcohol By Volume)</b>, <b>key ingredients</b>, and the
-  <b>recommended glass</b>. Click any cocktail to view the full recipe, method,
-  and ingredient links — an easy way to navigate classic and modern mixed
-  drinks.
-</p>
-
 <div *ngIf="loading" class="loading-message">Loading cocktails...</div>
 <div *ngIf="error" class="error-message">{{ error }}</div>
-
-<!-- STATUS PAGINA / RISULTATI -->
-<div
-  class="page-status"
-  *ngIf="!loading && !error && totalItems > 0"
-  role="status"
-  aria-live="polite"
->
-  <span class="page-status__page"
-    >Page {{ currentPage }} of {{ totalPages }}</span
-  >
-  <span class="page-status__sep" aria-hidden="true">•</span>
-  <span class="page-status__range">
-    Showing {{ pageStart }}–{{ pageEnd }} of {{ totalItems }}
-  </span>
-</div>
-
-<!-- Skeleton quando loading -->
-<div
-  class="page-status page-status--skeleton"
-  *ngIf="loading"
-  aria-hidden="true"
->
-  <span class="skl w-28"></span>
-  <span class="skl w-6"></span>
-  <span class="skl w-48"></span>
-</div>
 
 <div
   class="glass-card cards-grid limit-4"
   *ngIf="!error && cocktails.length > 0"
 >
+  <!-- STATUS PAGINA / RISULTATI -->
+  <div
+    class="page-status"
+    *ngIf="!loading && !error && totalItems > 0"
+    role="status"
+    aria-live="polite"
+  >
+    <span class="page-status__page"
+      >Page {{ currentPage }} of {{ totalPages }}</span
+    >
+    <span class="page-status__sep" aria-hidden="true">•</span>
+    <span class="page-status__range">
+      Showing {{ pageStart }}–{{ pageEnd }} of {{ totalItems }}
+    </span>
+  </div>
+
+  <!-- Skeleton quando loading -->
+  <div
+    class="page-status page-status--skeleton"
+    *ngIf="loading"
+    aria-hidden="true"
+  >
+    <span class="skl w-28"></span>
+    <span class="skl w-6"></span>
+    <span class="skl w-48"></span>
+  </div>
   <ng-container
     *ngFor="
       let cocktail of cocktails;
@@ -679,6 +651,7 @@
         [attr.id]="'faq-q-' + i"
         [attr.aria-controls]="'faq-a-' + i"
         [attr.aria-expanded]="faqStates[i].isExpanded"
+        (click)="toggleFaq(i)"
       >
         <span>{{ faq.question }}</span>
         <mat-icon

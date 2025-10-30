@@ -45,7 +45,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
 
         <div #chipsContainer class="cocktail-chips-container chips-scroll">
           <app-cocktail-chip
-            *ngFor="let lbl of items; trackBy: trackByLabel"
+            *ngFor="let lbl of displayItems; trackBy: trackByLabel"
             [label]="lbl"
             [count]="count(slug(lbl))"
             [active]="activeKind === kind && activeSlug === slug(lbl)"
@@ -347,6 +347,7 @@ export class FacetChipsComponent
   @Input() items: string[] = [];
   @Input() activeKind: Kind | 'root' = 'root';
   @Input() activeSlug = '';
+  @Input() isActive = true;
 
   @Input() stopClickPropagation = false;
 
@@ -360,6 +361,8 @@ export class FacetChipsComponent
   canScrollLeft = false;
   canScrollRight = false;
 
+  private activeMovedToFront = false;
+
   // cache condivisa tra tutte le istanze (home/nav/footer)
   private static memo: Record<Kind, Record<string, number>> = {
     method: {},
@@ -371,27 +374,95 @@ export class FacetChipsComponent
   private subscriptions: Subscription[] = [];
 
   private uiSubscriptions: Subscription[] = [];
-  private scrollStateScheduled = false;
+  private scrollStateTimerId: ReturnType<typeof setTimeout> | null = null;
+  private ensureActiveChipTimerId: ReturnType<typeof setTimeout> | null = null;
   private scrollObserversReady = false;
   private readonly isBrowser = typeof window !== 'undefined';
+  private pendingScrollReset = false;
+
+  displayItems: string[] = [];
 
   constructor(private api: CocktailService, private cdr: ChangeDetectorRef) {}
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['items'] || changes['activeSlug'] || changes['activeKind']) {
+      this.updateDisplayItems();
+    }
+
     if (changes['items'] || changes['countsInput'] || changes['kind']) {
       this.refreshCounts();
       this.scheduleScrollStateUpdate();
+    }
+
+    if (changes['activeSlug'] || changes['activeKind']) {
+      const shouldForce =
+        this.activeKind === this.kind && !!this.activeSlug?.length;
+      this.scheduleEnsureActiveChipVisible(shouldForce);
+    }
+
+    if (changes['isActive']) {
+      if (this.isActive) {
+        this.scheduleScrollStateUpdate(120);
+        this.scheduleEnsureActiveChipVisible(true);
+      } else {
+        this.clearEnsureActiveChipTimer();
+      }
     }
   }
 
   ngAfterViewInit(): void {
     this.initScrollObservers();
     this.scheduleScrollStateUpdate();
+    this.scheduleEnsureActiveChipVisible(true);
+    if (this.pendingScrollReset) {
+      this.resetScrollToStartSoon();
+    }
   }
 
   ngOnDestroy(): void {
     this.clearSubscriptions();
     this.clearUiSubscriptions();
+    this.clearScrollStateTimer();
+    this.clearEnsureActiveChipTimer();
+  }
+
+  private updateDisplayItems(): void {
+    const source = Array.isArray(this.items) ? [...this.items] : [];
+    let movedActiveToFront = false;
+
+    if (
+      source.length &&
+      this.activeKind === this.kind &&
+      (this.activeSlug || '').length
+    ) {
+      const activeIndex = source.findIndex(
+        (label) => this.slug(label) === this.activeSlug
+      );
+
+      if (activeIndex > 0) {
+        const [activeLabel] = source.splice(activeIndex, 1);
+        source.unshift(activeLabel);
+        movedActiveToFront = true;
+      }
+    }
+
+    this.activeMovedToFront = movedActiveToFront;
+
+    const sameOrder =
+      source.length === this.displayItems.length &&
+      source.every((label, index) => this.displayItems[index] === label);
+
+    if (!sameOrder) {
+      this.displayItems = source;
+      this.cdr.markForCheck();
+    }
+
+    if (movedActiveToFront) {
+      this.pendingScrollReset = true;
+      this.resetScrollToStartSoon();
+    } else if (!source.length) {
+      this.pendingScrollReset = false;
+    }
   }
 
   private refreshCounts(): void {
@@ -525,6 +596,7 @@ export class FacetChipsComponent
 
     this.cdr.detectChanges();
     this.scheduleScrollStateUpdate();
+    this.scheduleEnsureActiveChipVisible();
   }
 
   onScrollButtonClick(direction: 'left' | 'right'): void {
@@ -537,6 +609,7 @@ export class FacetChipsComponent
       behavior: 'smooth',
     });
     this.scheduleScrollStateUpdate();
+    this.scheduleEnsureActiveChipVisible();
   }
 
   private clearSubscriptions(): void {
@@ -577,13 +650,40 @@ export class FacetChipsComponent
     this.updateScrollState();
   }
 
-  private scheduleScrollStateUpdate(): void {
-    if (this.scrollStateScheduled) return;
-    this.scrollStateScheduled = true;
-    setTimeout(() => {
-      this.scrollStateScheduled = false;
-      this.updateScrollState();
+  private resetScrollToStartSoon(): void {
+    if (!this.isBrowser) {
+      this.pendingScrollReset = false;
+      return;
+    }
+
+    const container = this.chipsContainer?.nativeElement;
+    if (!container) {
+      return;
+    }
+
+    this.pendingScrollReset = false;
+    requestAnimationFrame(() => {
+      const target = this.chipsContainer?.nativeElement;
+      if (!target) return;
+      target.scrollTo({ left: 0, behavior: 'smooth' });
     });
+  }
+
+  private scheduleScrollStateUpdate(delay = 0): void {
+    if (this.scrollStateTimerId !== null) {
+      clearTimeout(this.scrollStateTimerId);
+    }
+    this.scrollStateTimerId = setTimeout(() => {
+      this.scrollStateTimerId = null;
+      this.updateScrollState();
+    }, delay);
+  }
+
+  private clearScrollStateTimer(): void {
+    if (this.scrollStateTimerId !== null) {
+      clearTimeout(this.scrollStateTimerId);
+      this.scrollStateTimerId = null;
+    }
   }
 
   private updateScrollState(): void {
@@ -604,6 +704,13 @@ export class FacetChipsComponent
       return;
     }
 
+    if (!this.isElementLaidOut(el)) {
+      if (this.isActive) {
+        this.scheduleScrollStateUpdate(120);
+      }
+      return;
+    }
+
     const threshold = 8;
     const maxScrollLeft = Math.max(el.scrollWidth - el.clientWidth, 0);
     const hasOverflow = maxScrollLeft > threshold;
@@ -614,6 +721,9 @@ export class FacetChipsComponent
     this.canScrollRight =
       hasOverflow && currentScroll < maxScrollLeft - threshold;
     this.cdr.markForCheck();
+    if (hasOverflow) {
+      this.scheduleEnsureActiveChipVisible();
+    }
   }
 
   count(slug: string) {
@@ -631,7 +741,65 @@ export class FacetChipsComponent
   }
 
   get showArrows(): boolean {
-    const k = (this.kind ?? '').toString().toLowerCase();
-    return k !== 'alcoholic' && this.showScrollControls;
+    return this.showScrollControls;
+  }
+
+  private scheduleEnsureActiveChipVisible(force = false): void {
+    if (!this.isBrowser || !this.isActive) return;
+    if (this.ensureActiveChipTimerId !== null) {
+      clearTimeout(this.ensureActiveChipTimerId);
+    }
+
+    const delay = force ? 150 : 60;
+    this.ensureActiveChipTimerId = setTimeout(() => {
+      this.ensureActiveChipTimerId = null;
+      this.ensureActiveChipVisible(force);
+    }, delay);
+  }
+
+  private clearEnsureActiveChipTimer(): void {
+    if (this.ensureActiveChipTimerId !== null) {
+      clearTimeout(this.ensureActiveChipTimerId);
+      this.ensureActiveChipTimerId = null;
+    }
+  }
+
+  private ensureActiveChipVisible(force = false): void {
+    if (!this.isBrowser || !this.isActive) return;
+
+    const container = this.chipsContainer?.nativeElement;
+    if (!container || !this.isElementLaidOut(container)) return;
+
+    const activeChip = container.querySelector<HTMLElement>(
+      '.cocktail-chip.active'
+    );
+    if (!activeChip) return;
+
+    const padding = 16;
+    const chipStart = activeChip.offsetLeft;
+    const chipEnd = chipStart + activeChip.offsetWidth;
+    const viewStart = container.scrollLeft;
+    const viewEnd = viewStart + container.clientWidth;
+
+    if (
+      !force &&
+      this.activeMovedToFront &&
+      chipStart <= padding &&
+      viewStart > chipStart + padding
+    ) {
+      return;
+    }
+
+    const shouldScroll =
+      force || chipStart < viewStart + padding || chipEnd > viewEnd - padding;
+
+    if (!shouldScroll) return;
+
+    const target = Math.max(chipStart - padding, 0);
+    container.scrollTo({ left: target, behavior: 'smooth' });
+  }
+
+  private isElementLaidOut(el: HTMLElement): boolean {
+    return el.offsetWidth > 0 && el.offsetHeight > 0;
   }
 }
