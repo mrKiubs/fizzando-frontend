@@ -5,6 +5,7 @@ import {
   inject,
   OnDestroy,
   Inject,
+  Type,
 } from '@angular/core';
 import {
   Router,
@@ -30,22 +31,14 @@ import {
   group,
 } from '@angular/animations';
 
-import { NavbarComponent } from './core/navbar.component';
-import { CocktailBubblesComponent } from './assets/design-system/cocktail-bubbles/cocktail-bubbles.component';
-import { FooterComponent } from './core/footer.component';
 import { ViewportService } from './services/viewport.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    CommonModule,
-    NavbarComponent,
-    RouterOutlet,
-    RouterModule,
-    CocktailBubblesComponent,
-    FooterComponent,
-  ],
+  imports: [CommonModule, RouterOutlet, RouterModule],
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss'],
   animations: [
     trigger('pageTransition', [
       transition('noanim <=> *', [
@@ -105,60 +98,6 @@ import { ViewportService } from './services/viewport.service';
       ),
     ]),
   ],
-  template: `
-    <app-navbar></app-navbar>
-
-    <!-- Riflessi glass (conic) -->
-    <div class="page-caustics" aria-hidden="true"></div>
-
-    <!-- Micro-noise anti-banding -->
-    <div class="page-noise" aria-hidden="true"></div>
-
-    <main
-      id="main-content"
-      class="app-main allow-route-anim"
-      [@.disabled]="false"
-      [@pageTransition]="{
-        value: getRouteAnimationData(routerOutlet),
-        params: animParams
-      }"
-      (@pageTransition.start)="onRouteAnimStart()"
-      (@pageTransition.done)="onRouteAnimDone()"
-    >
-      <router-outlet #routerOutlet="outlet"></router-outlet>
-    </main>
-
-    @defer (on idle) {
-    <app-footer></app-footer>
-    } @placeholder {
-    <footer class="app-footer-placeholder" aria-hidden="true"></footer>
-    } @if (showAmbient) { @defer (on idle) {
-    <app-cocktail-bubbles></app-cocktail-bubbles>
-    } @placeholder {
-    <div class="cocktail-bubbles-placeholder" aria-hidden="true"></div>
-    } }
-  `,
-  styles: [
-    `
-      @use './assets/style/main.scss' as *;
-
-      .app-main.allow-route-anim > * {
-        will-change: transform, opacity;
-        -webkit-backface-visibility: hidden;
-        transform: translateZ(0);
-      }
-      .app-footer-placeholder {
-        display: block;
-        min-height: 120px;
-        width: 100%;
-      }
-      .cocktail-bubbles-placeholder {
-        position: fixed;
-        inset: auto 0 0 0;
-        height: 0;
-      }
-    `,
-  ],
 })
 export class AppComponent implements OnDestroy {
   private router = inject(Router);
@@ -182,6 +121,10 @@ export class AppComponent implements OnDestroy {
   // iOS visualViewport fix
   private vvResizeHandler?: () => void;
   private isIOS = false;
+
+  private navbarComponentRef?: Promise<Type<unknown>>;
+  private footerComponentRef?: Promise<Type<unknown>>;
+  private ambientComponentRef?: Promise<Type<unknown>>;
 
   protected readonly isTouch =
     this.isBrowser &&
@@ -418,5 +361,32 @@ export class AppComponent implements OnDestroy {
     const dataAnim = outlet?.activatedRouteData?.['animation'];
     if (dataAnim) return dataAnim;
     return this.router.url.split('?')[0] || 'default';
+  }
+
+  protected loadNavbar() {
+    if (!this.navbarComponentRef) {
+      this.navbarComponentRef = import('./core/navbar.component').then(
+        (m) => m.NavbarComponent
+      );
+    }
+    return this.navbarComponentRef;
+  }
+
+  protected loadFooter() {
+    if (!this.footerComponentRef) {
+      this.footerComponentRef = import('./core/footer.component').then(
+        (m) => m.FooterComponent
+      );
+    }
+    return this.footerComponentRef;
+  }
+
+  protected loadAmbient() {
+    if (!this.ambientComponentRef) {
+      this.ambientComponentRef = import(
+        './assets/design-system/cocktail-bubbles/cocktail-bubbles.component'
+      ).then((m) => m.CocktailBubblesComponent);
+    }
+    return this.ambientComponentRef;
   }
 }

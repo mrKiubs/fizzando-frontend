@@ -7,7 +7,7 @@ export const routes: Routes = [
       import('./dashboard/dashboard.component').then(
         (m) => m.DashboardComponent
       ),
-    data: { breadcrumb: 'Home' },
+    data: { breadcrumb: 'Home', animation: 'home' },
   },
 
   {

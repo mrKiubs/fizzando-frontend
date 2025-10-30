@@ -1,0 +1,37 @@
+@defer (on viewport; prefetch on idle) { @let navbarCmp = loadNavbar() | async;
+@if (navbarCmp) {
+<ng-container *ngComponentOutlet="navbarCmp"></ng-container>
+} } @placeholder {
+<header class="app-navbar-placeholder" aria-hidden="true"></header>
+}
+
+<!-- Riflessi glass (conic) -->
+<div class="page-caustics" aria-hidden="true"></div>
+
+<!-- Micro-noise anti-banding -->
+<div class="page-noise" aria-hidden="true"></div>
+
+<main
+  id="main-content"
+  class="app-main allow-route-anim"
+  [@.disabled]="false"
+  [@pageTransition]="{
+    value: getRouteAnimationData(routerOutlet),
+    params: animParams
+  }"
+  (@pageTransition.start)="onRouteAnimStart()"
+  (@pageTransition.done)="onRouteAnimDone()"
+>
+  <router-outlet #routerOutlet="outlet"></router-outlet>
+</main>
+
+@defer (on idle) { @let footerCmp = loadFooter() | async; @if (footerCmp) {
+<ng-container *ngComponentOutlet="footerCmp"></ng-container>
+} } @placeholder {
+<footer class="app-footer-placeholder" aria-hidden="true"></footer>
+} @if (showAmbient) { @defer (on idle) { @let ambientCmp = loadAmbient() |
+async; @if (ambientCmp) {
+<ng-container *ngComponentOutlet="ambientCmp"></ng-container>
+} } @placeholder {
+<div class="cocktail-bubbles-placeholder" aria-hidden="true"></div>
+} }
