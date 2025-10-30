@@ -45,7 +45,7 @@ type Kind = 'method' | 'glass' | 'category' | 'alcoholic';
 
         <div #chipsContainer class="cocktail-chips-container chips-scroll">
           <app-cocktail-chip
-            *ngFor="let lbl of items; trackBy: trackByLabel"
+            *ngFor="let lbl of displayItems; trackBy: trackByLabel"
             [label]="lbl"
             [count]="count(slug(lbl))"
             [active]="activeKind === kind && activeSlug === slug(lbl)"
@@ -376,10 +376,17 @@ export class FacetChipsComponent
   private ensureActiveChipTimerId: ReturnType<typeof setTimeout> | null = null;
   private scrollObserversReady = false;
   private readonly isBrowser = typeof window !== 'undefined';
+  private pendingScrollReset = false;
+
+  displayItems: string[] = [];
 
   constructor(private api: CocktailService, private cdr: ChangeDetectorRef) {}
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['items'] || changes['activeSlug'] || changes['activeKind']) {
+      this.updateDisplayItems();
+    }
+
     if (changes['items'] || changes['countsInput'] || changes['kind']) {
       this.refreshCounts();
       this.scheduleScrollStateUpdate();
@@ -405,6 +412,9 @@ export class FacetChipsComponent
     this.initScrollObservers();
     this.scheduleScrollStateUpdate();
     this.scheduleEnsureActiveChipVisible(true);
+    if (this.pendingScrollReset) {
+      this.resetScrollToStartSoon();
+    }
   }
 
   ngOnDestroy(): void {
@@ -412,6 +422,43 @@ export class FacetChipsComponent
     this.clearUiSubscriptions();
     this.clearScrollStateTimer();
     this.clearEnsureActiveChipTimer();
+  }
+
+  private updateDisplayItems(): void {
+    const source = Array.isArray(this.items) ? [...this.items] : [];
+    let movedActiveToFront = false;
+
+    if (
+      source.length &&
+      this.activeKind === this.kind &&
+      (this.activeSlug || '').length
+    ) {
+      const activeIndex = source.findIndex(
+        (label) => this.slug(label) === this.activeSlug
+      );
+
+      if (activeIndex > 0) {
+        const [activeLabel] = source.splice(activeIndex, 1);
+        source.unshift(activeLabel);
+        movedActiveToFront = true;
+      }
+    }
+
+    const sameOrder =
+      source.length === this.displayItems.length &&
+      source.every((label, index) => this.displayItems[index] === label);
+
+    if (!sameOrder) {
+      this.displayItems = source;
+      this.cdr.markForCheck();
+    }
+
+    if (movedActiveToFront) {
+      this.pendingScrollReset = true;
+      this.resetScrollToStartSoon();
+    } else if (!source.length) {
+      this.pendingScrollReset = false;
+    }
   }
 
   private refreshCounts(): void {
@@ -597,6 +644,25 @@ export class FacetChipsComponent
     }
 
     this.updateScrollState();
+  }
+
+  private resetScrollToStartSoon(): void {
+    if (!this.isBrowser) {
+      this.pendingScrollReset = false;
+      return;
+    }
+
+    const container = this.chipsContainer?.nativeElement;
+    if (!container) {
+      return;
+    }
+
+    this.pendingScrollReset = false;
+    requestAnimationFrame(() => {
+      const target = this.chipsContainer?.nativeElement;
+      if (!target) return;
+      target.scrollTo({ left: 0, behavior: 'smooth' });
+    });
   }
 
   private scheduleScrollStateUpdate(delay = 0): void {
