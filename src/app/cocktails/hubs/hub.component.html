@@ -212,7 +212,10 @@
 </p>
 
 <!-- CARDS GRID (hub items) -->
-<div class="glass-card cards-grid limit-4" *ngIf="!error && items.length > 0">
+<div
+  class="glass-card cards-grid dark limit-4"
+  *ngIf="!error && items.length > 0"
+>
   <a
     class="hub-card"
     *ngFor="let item of items"

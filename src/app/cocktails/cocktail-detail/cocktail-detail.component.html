@@ -195,7 +195,7 @@
   <!-- Deep Dive -->
   <section
     *ngIf="cocktail && !loading && !error"
-    class="ai-details-section glass-card"
+    class="ai-details-section glass-card dark"
   >
     <h2 id="deepdive-{{ cocktail.slug }}" class="section-title">
       <span aria-hidden="true">✨</span> {{ cocktail.name }} Deep Dive
@@ -271,19 +271,6 @@
     </div>
   </section>
 
-  <!-- Related Articles -->
-  <section class="related-articles-section" *ngIf="relatedArticles.length > 0">
-    <h2 id="articles-{{ cocktail?.slug }}" class="section-title">
-      <span aria-hidden="true">✨</span> More about {{ cocktail?.name }} —
-      related articles
-    </h2>
-    <div class="related-articles-grid">
-      <ng-container *ngFor="let a of relatedArticles">
-        <app-article-card [article]="a"></app-article-card>
-      </ng-container>
-    </div>
-  </section>
-
   <!-- AD BLOCK #2 -->
   <section class="ad-block" [ngClass]="adSlotClass(getTopAdType())">
     <span class="ad-badge">Ad</span>
@@ -297,13 +284,32 @@
   </section>
 
   <!-- Related Cocktails -->
-  <section class="related-cocktails-section" *ngIf="relatedWithAds.length > 0">
+  <section
+    class="glass-card dark related-cocktails-section"
+    *ngIf="relatedWithAds.length > 0"
+  >
     <h2 id="related-{{ cocktail?.slug }}" class="section-title">
       <span aria-hidden="true">✨</span>
       If you liked the {{ cocktail?.name }}, try these related cocktails
     </h2>
 
     <div class="cards-grid limit-4">
+      <!-- Related Articles -->
+      <section
+        class="glass-card dark related-articles-section"
+        *ngIf="relatedArticles.length > 0"
+      >
+        <h2 id="articles-{{ cocktail?.slug }}" class="section-title">
+          <span aria-hidden="true">✨</span> More about {{ cocktail?.name }} —
+          related articles
+        </h2>
+        <div class="related-articles-grid">
+          <ng-container *ngFor="let a of relatedArticles">
+            <app-article-card [article]="a"></app-article-card>
+          </ng-container>
+        </div>
+      </section>
+
       <ng-container *ngFor="let item of relatedWithAds; let i = index">
         <ng-container *ngIf="!$any(item).isAd; else adTpl">
           <app-cocktail-card

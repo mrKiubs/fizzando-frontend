@@ -329,7 +329,10 @@
 
     <!-- FEATURED COCKTAILS -->
     @defer (on viewport) {
-    <section class="section-block glass-card" *ngIf="featuredCocktails.length">
+    <section
+      class="section-block glass-card dark"
+      *ngIf="featuredCocktails.length"
+    >
       <div class="section-head">
         <h3>Featured Cocktails</h3>
         <a class="link-inline" [routerLink]="['/cocktails']">View all</a>
@@ -384,7 +387,10 @@
 
     <!-- LATEST INGREDIENTS (defer: viewport) -->
     @defer (on viewport) {
-    <section class="section-block glass-card" *ngIf="latestIngredients.length">
+    <section
+      class="section-block glass-card dark"
+      *ngIf="latestIngredients.length"
+    >
       <div class="section-head">
         <h3>Latest Ingredients</h3>
         <a class="link-inline" [routerLink]="['/ingredients']">View all</a>
