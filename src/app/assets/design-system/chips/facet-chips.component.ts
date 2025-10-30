@@ -361,6 +361,8 @@ export class FacetChipsComponent
   canScrollLeft = false;
   canScrollRight = false;
 
+  private activeMovedToFront = false;
+
   // cache condivisa tra tutte le istanze (home/nav/footer)
   private static memo: Record<Kind, Record<string, number>> = {
     method: {},
@@ -443,6 +445,8 @@ export class FacetChipsComponent
         movedActiveToFront = true;
       }
     }
+
+    this.activeMovedToFront = movedActiveToFront;
 
     const sameOrder =
       source.length === this.displayItems.length &&
@@ -776,6 +780,15 @@ export class FacetChipsComponent
     const chipEnd = chipStart + activeChip.offsetWidth;
     const viewStart = container.scrollLeft;
     const viewEnd = viewStart + container.clientWidth;
+
+    if (
+      !force &&
+      this.activeMovedToFront &&
+      chipStart <= padding &&
+      viewStart > chipStart + padding
+    ) {
+      return;
+    }
 
     const shouldScroll =
       force || chipStart < viewStart + padding || chipEnd > viewEnd - padding;
