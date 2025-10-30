@@ -379,6 +379,7 @@ export class FacetChipsComponent
   private scrollObserversReady = false;
   private readonly isBrowser = typeof window !== 'undefined';
   private pendingScrollReset = false;
+  private suppressEnsureActiveChipUntil = 0;
 
   displayItems: string[] = [];
 
@@ -604,6 +605,7 @@ export class FacetChipsComponent
     if (!el) return;
 
     const scrollDistance = Math.max(el.clientWidth * 0.7, 200);
+    this.suppressEnsureActiveChipVisible();
     el.scrollBy({
       left: direction === 'left' ? -scrollDistance : scrollDistance,
       behavior: 'smooth',
@@ -746,6 +748,9 @@ export class FacetChipsComponent
 
   private scheduleEnsureActiveChipVisible(force = false): void {
     if (!this.isBrowser || !this.isActive) return;
+    if (force) {
+      this.suppressEnsureActiveChipUntil = 0;
+    }
     if (this.ensureActiveChipTimerId !== null) {
       clearTimeout(this.ensureActiveChipTimerId);
     }
@@ -766,6 +771,7 @@ export class FacetChipsComponent
 
   private ensureActiveChipVisible(force = false): void {
     if (!this.isBrowser || !this.isActive) return;
+    if (this.shouldSkipEnsureActiveChip(force)) return;
 
     const container = this.chipsContainer?.nativeElement;
     if (!container || !this.isElementLaidOut(container)) return;
@@ -797,6 +803,15 @@ export class FacetChipsComponent
 
     const target = Math.max(chipStart - padding, 0);
     container.scrollTo({ left: target, behavior: 'smooth' });
+  }
+
+  private suppressEnsureActiveChipVisible(durationMs = 800): void {
+    this.suppressEnsureActiveChipUntil = Date.now() + durationMs;
+  }
+
+  private shouldSkipEnsureActiveChip(force: boolean): boolean {
+    if (force) return false;
+    return Date.now() < this.suppressEnsureActiveChipUntil;
   }
 
   private isElementLaidOut(el: HTMLElement): boolean {

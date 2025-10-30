@@ -631,6 +631,10 @@ body {
   @media (max-width: 600px) {
     padding: 16px 8px;
   }
+
+  &.dark {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
 }
 .glass-card-mini {
   background-color: rgba(255, 255, 255, 0.08);
@@ -746,7 +750,7 @@ body {
   margin: 0 auto;
   border-radius: 12px;
 
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.1);
   /* border: 1px solid rgba(255, 255, 255, 0.12); */
   font-size: 0.85rem;
   line-height: 1.2;
@@ -1105,6 +1109,7 @@ body {
   padding: 0;
   margin: 0;
   font-size: 14px;
+  margin-bottom: 8px;
 }
 
 .status-icon {

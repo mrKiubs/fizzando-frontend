@@ -178,35 +178,38 @@
 <div *ngIf="loading" class="loading-message">Loading ingredients...</div>
 <div *ngIf="error" class="error-message">{{ error }}</div>
 
-<!-- STATUS PAGINA / RISULTATI (come CocktailList) -->
-<div
-  class="page-status"
-  *ngIf="!loading && !error && totalItems > 0"
-  role="status"
-  aria-live="polite"
->
-  <span class="page-status__page"
-    >Page {{ currentPage }} of {{ totalPages }}</span
-  >
-  <span class="page-status__sep" aria-hidden="true">•</span>
-  <span class="page-status__range">
-    Showing {{ pageStart }}–{{ pageEnd }} of {{ totalItems }}
-  </span>
-</div>
-
-<!-- Skeleton quando loading -->
-<div
-  class="page-status page-status--skeleton"
-  *ngIf="loading"
-  aria-hidden="true"
->
-  <span class="skl w-28"></span>
-  <span class="skl w-6"></span>
-  <span class="skl w-48"></span>
-</div>
-
 <!-- GRID (riuso classi .cocktail-list se già stilate) -->
-<div class="cocktail-list" *ngIf="!error && ingredients.length > 0">
+<div
+  class="cocktail-list glass-card dark"
+  *ngIf="!error && ingredients.length > 0"
+>
+  <!-- STATUS PAGINA / RISULTATI (come CocktailList) -->
+  <div
+    class="page-status"
+    *ngIf="!loading && !error && totalItems > 0"
+    role="status"
+    aria-live="polite"
+  >
+    <span class="page-status__page"
+      >Page {{ currentPage }} of {{ totalPages }}</span
+    >
+    <span class="page-status__sep" aria-hidden="true">•</span>
+    <span class="page-status__range">
+      Showing {{ pageStart }}–{{ pageEnd }} of {{ totalItems }}
+    </span>
+  </div>
+
+  <!-- Skeleton quando loading -->
+  <div
+    class="page-status page-status--skeleton"
+    *ngIf="loading"
+    aria-hidden="true"
+  >
+    <span class="skl w-28"></span>
+    <span class="skl w-6"></span>
+    <span class="skl w-48"></span>
+  </div>
+
   <ng-container
     *ngFor="let ingredient of ingredients; let i = index; trackBy: trackById"
   >

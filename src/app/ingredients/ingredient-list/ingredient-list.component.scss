@@ -291,8 +291,6 @@ hr {
 
 /* opzionale, ma utile se ci sono pseudo-elementi “larghi” negli item */
 .cocktail-list > * {
-  min-width: 0; /* fondamentale in CSS Grid */
-  width: 100%; /* tiene l’item ancorato alla cella */
   overflow: hidden; /* sicurezza contro eventuali overflow invisibili */
 }
 
@@ -463,10 +461,10 @@ p.ingredient-card-legend {
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 0.875rem;
-  margin: 16px auto;
+  margin: 0 auto;
   border-radius: 12px;
 
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.15);
   /* border: 1px solid rgba(255, 255, 255, 0.12); */
   font-size: 0.85rem;
   line-height: 1.2;
