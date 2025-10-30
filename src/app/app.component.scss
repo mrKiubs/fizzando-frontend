@@ -1,7 +1,17 @@
-/* src/app/app.component.scss o src/styles.scss */
+@use "./assets/style/main.scss" as *;
 
-// Importa i tuoi stili principali che includono variabili e mixin
-@use "./assets/style/main.scss" as *; // Assicurati che il percorso sia corretto
+.app-main.allow-route-anim > * {
+  will-change: transform, opacity;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.app-navbar-placeholder {
+  display: block;
+  height: 64px;
+  background: rgba(21, 17, 17, 0.6);
+  backdrop-filter: blur(8px);
+}
 
 .app-footer-placeholder {
   display: block;
