@@ -79,7 +79,7 @@
     background-color: rgba(255, 255, 255, 0.07);
 
     transform-origin: top left;
-    transform: skewX(8deg) translateX(-11px);
+    transform: skewX(8deg) translateX(-13px);
     z-index: -1;
     transition: transform 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -303,7 +303,7 @@
 .ingredient-name-link {
   display: flex;
   align-items: stretch;
-  gap: 3px;
+  gap: 1px;
   flex: 1;
 
   &:hover {
@@ -311,8 +311,9 @@
     .image-wrapper {
       &:before {
         background-color: rgba(255, 255, 255, 0.1);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+        border: 2px solid rgba(255, 255, 255, 0.1);
         transition: all 0.3s ease;
+        border-top: 0;
       }
     }
   }
