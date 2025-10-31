@@ -6,6 +6,7 @@ import {
   OnDestroy,
   Inject,
   Type,
+  OnInit,
 } from '@angular/core';
 import {
   Router,
@@ -88,7 +89,7 @@ import { NavbarComponent } from './core/navbar.component';
         {
           params: {
             enterDuration: '300ms',
-            enterDelay: '50ms',
+            enterDelay: '0ms',
             enterEasing: 'cubic-bezier(0.17, 0.88, 0.32, 1.27)',
             leaveDuration: '200ms',
             leaveEasing: 'ease-out',
@@ -100,7 +101,7 @@ import { NavbarComponent } from './core/navbar.component';
     ]),
   ],
 })
-export class AppComponent implements OnDestroy {
+export class AppComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private readonly platformId = inject(PLATFORM_ID);
@@ -110,6 +111,8 @@ export class AppComponent implements OnDestroy {
   private readonly scroller = inject(ViewportScroller);
 
   private skipMotionNext = false;
+  private reduceMotionMql?: MediaQueryList;
+  private reduceMotionListener?: (event: MediaQueryListEvent) => void;
 
   // Sheen/route state
   private sheenTimer: any = null;
@@ -130,19 +133,42 @@ export class AppComponent implements OnDestroy {
     this.isBrowser &&
     (navigator.maxTouchPoints > 0 ||
       /Android|iP(ad|hone|od)/i.test(navigator.userAgent));
-  protected readonly prefersReduced =
-    this.isBrowser &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  protected prefersReduced = false;
   protected readonly showAmbient = true;
 
   constructor() {
+    if (this.isBrowser && typeof window.matchMedia === 'function') {
+      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+      this.reduceMotionMql = mql;
+      this.prefersReduced = mql.matches;
+      this.skipMotionNext = this.prefersReduced;
+
+      const listener = (event: MediaQueryListEvent) => {
+        this.prefersReduced = event.matches;
+        this.skipMotionNext = event.matches;
+      };
+
+      if (typeof mql.addEventListener === 'function') {
+        mql.addEventListener('change', listener);
+      } else if (typeof mql.addListener === 'function') {
+        mql.addListener(listener);
+      }
+
+      this.reduceMotionListener = listener;
+    }
     // Pre-cattura stato per eventuale “no motion” su questa navigazione
     this.router.events
       .pipe(filter((e): e is NavigationStart => e instanceof NavigationStart))
       .subscribe(() => {
         const nav = this.router.getCurrentNavigation();
         const st = (nav?.extras?.state as any) || {};
-        this.skipMotionNext = !!(st.suppressMotion || st.suppressScroll);
+        if (st.suppressMotion === true) {
+          this.skipMotionNext = true;
+        } else if (st.suppressMotion === false) {
+          this.skipMotionNext = false;
+        } else {
+          this.skipMotionNext = this.prefersReduced;
+        }
       });
 
     // After NavEnd → tema + sheen (solo touch, preset Calm)
@@ -175,7 +201,8 @@ export class AppComponent implements OnDestroy {
         }
 
         // C) reset flag “skipMotionNext” per la prossima
-        if (pathChanged) setTimeout(() => (this.skipMotionNext = false), 50);
+        if (pathChanged)
+          setTimeout(() => (this.skipMotionNext = this.prefersReduced), 50);
       });
   }
 
@@ -224,6 +251,16 @@ export class AppComponent implements OnDestroy {
     if (this.rafId) cancelAnimationFrame(this.rafId);
     this.rafId = null;
     if (this.sheenTimer) clearTimeout(this.sheenTimer);
+    if (this.reduceMotionMql && this.reduceMotionListener) {
+      if (typeof this.reduceMotionMql.removeEventListener === 'function') {
+        this.reduceMotionMql.removeEventListener(
+          'change',
+          this.reduceMotionListener
+        );
+      } else if (typeof this.reduceMotionMql.removeListener === 'function') {
+        this.reduceMotionMql.removeListener(this.reduceMotionListener);
+      }
+    }
 
     // Cleanup iOS listeners
     const vv = (window as any).visualViewport as VisualViewport | undefined;
@@ -338,7 +375,7 @@ export class AppComponent implements OnDestroy {
     return isMobile
       ? {
           enterDuration: '280ms',
-          enterDelay: '25ms',
+          enterDelay: '0ms',
           enterEasing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
           leaveDuration: '180ms',
           leaveEasing: 'ease-out',
@@ -347,7 +384,7 @@ export class AppComponent implements OnDestroy {
         }
       : {
           enterDuration: '300ms',
-          enterDelay: '50ms',
+          enterDelay: '0ms',
           enterEasing: 'cubic-bezier(0.17, 0.88, 0.32, 1.27)',
           leaveDuration: '200ms',
           leaveEasing: 'ease-out',
