@@ -19,6 +19,7 @@
                 ? 'Photo of ' + ingredient.name + ' ingredient'
                 : 'Ingredient photo'
             "
+            appLazyImageFade
             [attr.loading]="priority ? 'eager' : 'lazy'"
             [attr.fetchpriority]="priority ? 'high' : 'low'"
             decoding="async"

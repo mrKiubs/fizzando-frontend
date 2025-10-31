@@ -122,6 +122,38 @@ html {
 * {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
+
+@media (hover: none) and (pointer: coarse) {
+  :where(
+      a,
+      button,
+      input[type="button"],
+      input[type="submit"],
+      input[type="reset"],
+      [role="button"]
+    ):not(.no-touch-feedback) {
+    @include m.touch-press-feedback();
+  }
+
+  .no-touch-feedback {
+    @include m.disable-touch-feedback();
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (prefers-reduced-motion: reduce) {
+  :where(
+      a,
+      button,
+      input[type="button"],
+      input[type="submit"],
+      input[type="reset"],
+      [role="button"]
+    ):not(.no-touch-feedback) {
+    --touch-press-active-transform: none;
+    --touch-press-active-filter: none;
+    transition-duration: 0ms;
+  }
+}
 /* ====== Riduzione CLS: allinea x-height tra fallback e webfont ====== */
 
 h1,
@@ -457,5 +489,22 @@ h1 {
   to {
     opacity: 1;
     transform: translateY(0px);
+  }
+}
+
+/* Lazy image fade-in */
+img.lazy-image-fade {
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+  will-change: opacity;
+}
+
+img.lazy-image-fade.lazy-image-fade--loaded {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  img.lazy-image-fade {
+    transition-duration: 0ms;
   }
 }

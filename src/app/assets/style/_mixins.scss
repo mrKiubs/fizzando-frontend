@@ -3,6 +3,37 @@
 @use "variables" as vars;
 @use "sass:color";
 
+// --- Touch feedback helpers -------------------------------------------------
+@mixin touch-press-feedback(
+  $scale: 0.97,
+  $duration: 140ms,
+  $timing: cubic-bezier(0.22, 1, 0.36, 1)
+) {
+  --touch-press-scale: #{$scale};
+  --touch-press-duration: #{$duration};
+  --touch-press-timing: #{$timing};
+
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  transition: transform var(--touch-press-duration) var(--touch-press-timing),
+    filter var(--touch-press-duration) var(--touch-press-timing);
+
+  &:active,
+  &.is-touch-active {
+    transform: var(
+      --touch-press-active-transform,
+      scale(var(--touch-press-scale))
+    );
+    filter: var(--touch-press-active-filter, none);
+  }
+}
+
+@mixin disable-touch-feedback() {
+  --touch-press-active-transform: none !important;
+  --touch-press-active-filter: none !important;
+  transition: none !important;
+}
+
 /* ————————————————————————————————
    A) Blur solo su desktop (>=701px)
    ———————————————————————————————— */
