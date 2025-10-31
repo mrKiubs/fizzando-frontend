@@ -756,6 +756,9 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   glassCounts: Record<string, number> = {};
   categoryCounts: Record<string, number> = {};
   private countsLoaded = false;
+  private facetCountsScheduled = false;
+  private facetCountIdleId: number | null = null;
+  private facetCountTimeoutId: number | null = null;
 
   // helper per una singola conta
   private countFor(
@@ -839,6 +842,36 @@ export class CocktailListComponent implements OnInit, OnDestroy {
         )
       )
     );
+  }
+
+  private scheduleFacetCounts(): void {
+    if (!this.isBrowser || this.countsLoaded || this.facetCountsScheduled) {
+      return;
+    }
+
+    this.facetCountsScheduled = true;
+
+    const run = () => {
+      this.facetCountIdleId = null;
+      this.facetCountTimeoutId = null;
+      this.loadFacetCountsOnce().catch(() => {
+        this.facetCountsScheduled = false;
+      });
+    };
+
+    const win = window as typeof window & {
+      requestIdleCallback?: (
+        cb: () => void,
+        options?: { timeout?: number }
+      ) => number;
+    };
+
+    if (typeof win.requestIdleCallback === 'function') {
+      this.facetCountIdleId = win.requestIdleCallback(run, { timeout: 2000 });
+      return;
+    }
+
+    this.facetCountTimeoutId = window.setTimeout(run, 250);
   }
 
   // esponi un helper per il template
@@ -1773,12 +1806,26 @@ export class CocktailListComponent implements OnInit, OnDestroy {
     const qp = (this.route.snapshot.queryParamMap.get('tab') as HubTab) || null;
     if (qp && this.tabOrder.includes(qp)) this.selectedTab = qp;
 
-    this.loadFacetCountsOnce();
+    this.scheduleFacetCounts();
   }
 
   ngOnDestroy(): void {
     if (this.searchDebounceHandle) {
       clearTimeout(this.searchDebounceHandle);
+    }
+    if (this.isBrowser) {
+      const win = window as typeof window & {
+        cancelIdleCallback?: (handle: number) => void;
+      };
+      if (
+        this.facetCountIdleId !== null &&
+        typeof win.cancelIdleCallback === 'function'
+      ) {
+        win.cancelIdleCallback(this.facetCountIdleId);
+      }
+      if (this.facetCountTimeoutId !== null) {
+        window.clearTimeout(this.facetCountTimeoutId);
+      }
     }
     this.cleanupSeo();
   }
@@ -2995,6 +3042,7 @@ export class CocktailListComponent implements OnInit, OnDestroy {
   }
 
   selectTab(t: HubTab) {
+    this.scheduleFacetCounts();
     if (this.selectedTab === t) return;
     this.selectedTab = t;
     this.router.navigate([], {

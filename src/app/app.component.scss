@@ -8,9 +8,9 @@
 
 .app-navbar-placeholder {
   display: block;
-  height: 64px;
-  background: rgba(21, 17, 17, 0.6);
-  backdrop-filter: blur(8px);
+  width: 100%;
+  min-height: 64px;
+  box-sizing: border-box;
 }
 
 .app-footer-placeholder {
