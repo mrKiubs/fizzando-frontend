@@ -1,15 +1,13 @@
-@defer (on viewport; prefetch on idle) { @let navbarCmp = loadNavbar() | async;
-@if (navbarCmp) {
+<!-- HEADER: frame fisso + defer con timer (placeholder visibile subito) -->
+
+@defer (on timer(150ms); prefetch on idle) { @let navbarCmp = loadNavbar() |
+async; @if (navbarCmp) {
 <ng-container *ngComponentOutlet="navbarCmp"></ng-container>
 } } @placeholder {
-<header class="app-navbar-placeholder" aria-hidden="true"></header>
+<div class="app-navbar-placeholder" aria-hidden="true"></div>
+} @loading {
+<div class="app-navbar-placeholder" aria-hidden="true"></div>
 }
-
-<!-- Riflessi glass (conic) -->
-<div class="page-caustics" aria-hidden="true"></div>
-
-<!-- Micro-noise anti-banding -->
-<div class="page-noise" aria-hidden="true"></div>
 
 <main
   id="main-content"
