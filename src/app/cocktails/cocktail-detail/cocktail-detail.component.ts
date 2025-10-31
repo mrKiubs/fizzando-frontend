@@ -116,6 +116,9 @@ export class CocktailDetailComponent
   isMobile = false;
   contentReady = false;
 
+  private seoRafId: number | null = null;
+  private seoTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
   private siteBaseUrl = '';
   private cocktailSchemaScript: HTMLScriptElement | undefined;
 
@@ -168,7 +171,7 @@ export class CocktailDetailComponent
 
       this.heroSrc = this.getPreferred(this.getCocktailHeroUrl(this.cocktail));
       this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
-      this.setSeoTagsAndSchema();
+      this.scheduleSeoUpdate();
       this.loadPrevNextBySlug(this.cocktail.slug);
       this.subscribeToRouteParams(false);
 
@@ -253,6 +256,7 @@ export class CocktailDetailComponent
     if (this.wheelListenerCleanup) this.wheelListenerCleanup();
     if (this.io) this.io.disconnect();
     clearTimeout(this.relatedFallbackTimer);
+    this.cancelScheduledSeoUpdate();
     this.cleanupSeo();
   }
 
@@ -277,7 +281,7 @@ export class CocktailDetailComponent
           this.getCocktailHeroUrl(this.cocktail)
         );
         this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
-        this.setSeoTagsAndSchema();
+        this.scheduleSeoUpdate();
       }
     } catch {
       // non bloccare la pagina se l'idratazione fallisce
@@ -342,6 +346,7 @@ export class CocktailDetailComponent
     this.similarCocktails = [];
     this.relatedWithAds = [];
     this.contentReady = false;
+    this.scheduleSeoUpdate();
     this.cleanupSeo();
 
     const cached = this.allCocktails.find((c) => c.slug === slug);
@@ -375,7 +380,7 @@ export class CocktailDetailComponent
             this.getCocktailHeroUrl(this.cocktail)
           );
           this.heroSrcset = this.getCocktailImageSrcsetPreferred(this.cocktail);
-          this.setSeoTagsAndSchema();
+          this.scheduleSeoUpdate();
           this.loadPrevNextBySlug(this.cocktail.slug);
 
           this.runAfterFirstPaint(() => this.kickOffNonCritical());
@@ -1060,6 +1065,46 @@ export class CocktailDetailComponent
 
   private getFullSiteUrl(path: string): string {
     return `${this.siteBaseUrl}${path}`;
+  }
+
+  private scheduleSeoUpdate(): void {
+    if (!this.cocktail) return;
+
+    if (!this.isBrowser) {
+      this.setSeoTagsAndSchema();
+      return;
+    }
+
+    this.cancelScheduledSeoUpdate();
+
+    this.ngZone.runOutsideAngular(() => {
+      if (typeof requestAnimationFrame !== 'function') {
+        this.seoTimeoutId = setTimeout(() => {
+          this.ngZone.run(() => this.setSeoTagsAndSchema());
+          this.seoTimeoutId = null;
+        }, 0);
+        return;
+      }
+
+      this.seoRafId = requestAnimationFrame(() => {
+        this.seoTimeoutId = setTimeout(() => {
+          this.ngZone.run(() => this.setSeoTagsAndSchema());
+          this.seoTimeoutId = null;
+          this.seoRafId = null;
+        }, 0);
+      });
+    });
+  }
+
+  private cancelScheduledSeoUpdate(): void {
+    if (this.seoRafId !== null) {
+      cancelAnimationFrame(this.seoRafId);
+      this.seoRafId = null;
+    }
+    if (this.seoTimeoutId !== null) {
+      clearTimeout(this.seoTimeoutId);
+      this.seoTimeoutId = null;
+    }
   }
 
   // ===== SEO =====
