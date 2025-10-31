@@ -32,11 +32,12 @@ import {
 } from '@angular/animations';
 
 import { ViewportService } from './services/viewport.service';
+import { NavbarComponent } from './core/navbar.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterModule],
+  imports: [CommonModule, RouterOutlet, RouterModule, NavbarComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   animations: [
@@ -122,7 +123,6 @@ export class AppComponent implements OnDestroy {
   private vvResizeHandler?: () => void;
   private isIOS = false;
 
-  private navbarComponentRef?: Promise<Type<unknown>>;
   private footerComponentRef?: Promise<Type<unknown>>;
   private ambientComponentRef?: Promise<Type<unknown>>;
 
@@ -361,15 +361,6 @@ export class AppComponent implements OnDestroy {
     const dataAnim = outlet?.activatedRouteData?.['animation'];
     if (dataAnim) return dataAnim;
     return this.router.url.split('?')[0] || 'default';
-  }
-
-  protected loadNavbar() {
-    if (!this.navbarComponentRef) {
-      this.navbarComponentRef = import('./core/navbar.component').then(
-        (m) => m.NavbarComponent
-      );
-    }
-    return this.navbarComponentRef;
   }
 
   protected loadFooter() {
