@@ -491,3 +491,20 @@ h1 {
     transform: translateY(0px);
   }
 }
+
+/* Lazy image fade-in */
+img.lazy-image-fade {
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+  will-change: opacity;
+}
+
+img.lazy-image-fade.lazy-image-fade--loaded {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  img.lazy-image-fade {
+    transition-duration: 0ms;
+  }
+}

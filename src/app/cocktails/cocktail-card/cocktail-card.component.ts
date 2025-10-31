@@ -23,7 +23,7 @@ import {
   StrapiImage,
 } from '../../services/strapi.service';
 import { CocktailChipComponent } from '../../assets/design-system/chips/cocktail-chip.component';
-
+import { LazyImageFadeDirective } from '../../directives/lazy-image-fade.directive';
 type HighlightKind =
   | 'motto'
   | 'service'
@@ -43,7 +43,13 @@ type ActiveVariant =
 @Component({
   selector: 'app-cocktail-card',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterLink, CocktailChipComponent],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    RouterLink,
+    CocktailChipComponent,
+    LazyImageFadeDirective,
+  ],
   templateUrl: './cocktail-card.component.html',
   styleUrls: ['./cocktail-card.component.scss'],
   animations: [

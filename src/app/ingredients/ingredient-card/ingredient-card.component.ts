@@ -6,11 +6,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { trigger, style, animate, transition } from '@angular/animations';
 import { env } from '../../config/env';
+import { LazyImageFadeDirective } from '../../directives/lazy-image-fade.directive';
 
 @Component({
   selector: 'app-ingredient-card',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterLink],
+  imports: [CommonModule, MatIconModule, RouterLink, LazyImageFadeDirective],
   templateUrl: './ingredient-card.component.html',
   styleUrls: ['./ingredient-card.component.scss'],
   animations: [

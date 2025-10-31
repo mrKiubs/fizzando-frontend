@@ -20,6 +20,7 @@
         class="cocktail-card-image"
         width="96"
         height="96"
+        appLazyImageFade
         [attr.loading]="isLcp ? 'eager' : 'lazy'"
         [attr.fetchpriority]="isLcp ? 'high' : 'low'"
         decoding="async"
@@ -98,6 +99,7 @@
                     : 'Cocktail photo'
                 "
                 class="cocktail-card-image"
+                appLazyImageFade
                 loading="lazy"
                 fetchpriority="low"
                 decoding="async"
@@ -273,6 +275,7 @@
                       aria-hidden="true"
                       width="30"
                       height="30"
+                      appLazyImageFade
                       loading="lazy"
                       fetchpriority="low"
                       decoding="async"

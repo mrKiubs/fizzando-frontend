@@ -22,7 +22,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { Title, Meta } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
+import { LazyImageFadeDirective } from '../../directives/lazy-image-fade.directive';
 import {
   IngredientService,
   Ingredient,
@@ -76,6 +76,7 @@ const relatedStateKey = (externalId: string) =>
     FormatAbvPipe,
     DevAdsComponent,
     NgOptimizedImage,
+    LazyImageFadeDirective,
   ],
   templateUrl: './ingredient-detail.component.html',
   styleUrls: ['./ingredient-detail.component.scss'],

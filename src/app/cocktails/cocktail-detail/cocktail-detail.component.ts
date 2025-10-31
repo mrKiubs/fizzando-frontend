@@ -29,6 +29,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { firstValueFrom, forkJoin, Observable, of, Subscription } from 'rxjs';
 import { Title, Meta } from '@angular/platform-browser';
+import { LazyImageFadeDirective } from '../../directives/lazy-image-fade.directive';
 
 import {
   CocktailService,
@@ -68,6 +69,7 @@ interface AdSlot {
     CocktailCardComponent,
     NgOptimizedImage,
     SentenceBreaksDirective,
+    LazyImageFadeDirective,
   ],
   templateUrl: './cocktail-detail.component.html',
   styleUrls: ['./cocktail-detail.component.scss'],
