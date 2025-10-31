@@ -81,6 +81,13 @@ app.use(
     },
   })
 );
+// 404 per richieste a file statici NON presenti (evita che cadano nel SSR)
+app.get(
+  /\.(?:m?js|css|map|png|jpe?g|webp|avif|gif|svg|ico|json|woff2?|ttf)$/i,
+  (_req, res) => {
+    res.status(404).end();
+  }
+);
 
 /* ================== MICRO-CACHE SSR ================== */
 type CacheEntry = { html: string; expires: number; etag: string };
