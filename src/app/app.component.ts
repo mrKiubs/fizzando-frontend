@@ -15,6 +15,7 @@ import {
   RouterOutlet,
   RouterModule,
   ActivatedRoute,
+  ActivatedRouteSnapshot,
 } from '@angular/router';
 import {
   CommonModule,
@@ -396,8 +397,32 @@ export class AppComponent implements OnInit, OnDestroy {
   getRouteAnimationData(outlet: RouterOutlet) {
     if (this.skipMotionNext) return 'noanim';
     const dataAnim = outlet?.activatedRouteData?.['animation'];
-    if (dataAnim) return dataAnim;
+    if (dataAnim) {
+      const snapshot = outlet?.activatedRoute?.snapshot ?? null;
+      if (snapshot) {
+        const paramSignature = this.collectRouteParams(snapshot);
+        if (paramSignature) {
+          return `${dataAnim}::${paramSignature}`;
+        }
+      }
+      return dataAnim;
+    }
     return this.router.url.split('?')[0] || 'default';
+  }
+
+  private collectRouteParams(snapshot: ActivatedRouteSnapshot): string {
+    const parts: string[] = [];
+    let current: ActivatedRouteSnapshot | null = snapshot;
+    while (current) {
+      for (const key of current.paramMap.keys) {
+        const value = current.paramMap.get(key);
+        if (value) {
+          parts.push(`${key}:${value}`);
+        }
+      }
+      current = current.firstChild ?? null;
+    }
+    return parts.join('|');
   }
 
   protected loadFooter() {
