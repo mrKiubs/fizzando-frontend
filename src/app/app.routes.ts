@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 
+import { cocktailDetailResolver } from './cocktails/cocktail-detail/cocktail-detail.resolver';
+
 export const routes: Routes = [
   {
     path: '',
@@ -88,7 +90,8 @@ export const routes: Routes = [
           import('./cocktails/cocktail-detail/cocktail-detail.component').then(
             (m) => m.CocktailDetailComponent
           ),
-        data: { breadcrumb: 'Cocktail Details' },
+        resolve: { cocktail: cocktailDetailResolver },
+        data: { breadcrumb: 'Cocktail Details', animation: 'cocktail-detail' },
       },
     ],
   },
