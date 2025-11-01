@@ -337,15 +337,6 @@ mat-icon,
   }
 }
 
-/* 2) Titolo pagina (H1) – evita micro-shift quando applica il webfont */
-.page-title,
-h1 {
-  line-height: 1.1;
-  min-height: 1.1em; /* riserva l’altezza di una riga */
-  /* opzionale: se hai margini che collassano, fissa padding per stabilità */
-  padding-top: 0.01px; /* hack innocuo che previene piccoli collassi */
-}
-
 /* 3) Mat icon già stabilizzate (lascia se non l’hai messo prima) */
 .mat-icon,
 .material-icons {
