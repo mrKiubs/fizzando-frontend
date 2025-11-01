@@ -5,7 +5,7 @@
   [class.scrolled]="isScrolled"
 >
   <div class="header-content">
-    <app-logo (click)="closeMenu()"></app-logo>
+    <app-logo [isHome]="isHome" (click)="closeMenu()"></app-logo>
 
     <div class="header-actions">
       <!-- Bottone SEARCH -->
